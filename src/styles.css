@@ -59,7 +59,22 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-mint: var(--mint);
+  --color-mint-foreground: var(--mint-foreground);
+  --color-mint-soft: var(--mint-soft);
+  --color-tier-bronze: var(--tier-bronze);
+  --color-tier-prata: var(--tier-prata);
+  --color-tier-ouro: var(--tier-ouro);
+  --color-tier-platina: var(--tier-platina);
+  --color-tier-lendario: var(--tier-lendario);
+  --color-tier-goat: var(--tier-goat);
+  --font-sans:
+    "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
 }
+
 
 :root {
   --radius: 1rem;
