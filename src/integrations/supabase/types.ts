@@ -14,13 +14,339 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      card_tiers: {
+        Row: {
+          id: string
+          nome: string
+          ordem: number
+          overall_minimo: number
+          peladas_minimas: number
+        }
+        Insert: {
+          id?: string
+          nome: string
+          ordem: number
+          overall_minimo: number
+          peladas_minimas: number
+        }
+        Update: {
+          id?: string
+          nome?: string
+          ordem?: number
+          overall_minimo?: number
+          peladas_minimas?: number
+        }
+        Relationships: []
+      }
+      evaluations: {
+        Row: {
+          avaliado_id: string
+          avaliador_id: string
+          chute: number | null
+          comportamento: number | null
+          criado_em: string
+          drible: number | null
+          id: string
+          match_id: string
+          nota_geral: number
+          pontualidade: number | null
+          posicionamento: number | null
+          toque: number | null
+          velocidade: number | null
+        }
+        Insert: {
+          avaliado_id: string
+          avaliador_id: string
+          chute?: number | null
+          comportamento?: number | null
+          criado_em?: string
+          drible?: number | null
+          id?: string
+          match_id: string
+          nota_geral: number
+          pontualidade?: number | null
+          posicionamento?: number | null
+          toque?: number | null
+          velocidade?: number | null
+        }
+        Update: {
+          avaliado_id?: string
+          avaliador_id?: string
+          chute?: number | null
+          comportamento?: number | null
+          criado_em?: string
+          drible?: number | null
+          id?: string
+          match_id?: string
+          nota_geral?: number
+          pontualidade?: number | null
+          posicionamento?: number | null
+          toque?: number | null
+          velocidade?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluations_avaliado_id_fkey"
+            columns: ["avaliado_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_avaliador_id_fkey"
+            columns: ["avaliador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evaluations_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followers: {
+        Row: {
+          criado_em: string
+          id: string
+          seguido_id: string
+          seguidor_id: string
+        }
+        Insert: {
+          criado_em?: string
+          id?: string
+          seguido_id: string
+          seguidor_id: string
+        }
+        Update: {
+          criado_em?: string
+          id?: string
+          seguido_id?: string
+          seguidor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followers_seguido_id_fkey"
+            columns: ["seguido_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followers_seguidor_id_fkey"
+            columns: ["seguidor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_invite_links: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          id: string
+          match_id: string
+          token: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          match_id: string
+          token: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          match_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_invite_links_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_participants: {
+        Row: {
+          entrou_em: string
+          id: string
+          match_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          entrou_em?: string
+          id?: string
+          match_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          entrou_em?: string
+          id?: string
+          match_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_participants_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          cidade: string
+          criado_em: string
+          data: string
+          descricao: string | null
+          finalizada_em: string | null
+          horario: string
+          id: string
+          local: string
+          mvp_id: string | null
+          organizador_id: string
+          quantidade_vagas: number
+          status: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          cidade: string
+          criado_em?: string
+          data: string
+          descricao?: string | null
+          finalizada_em?: string | null
+          horario: string
+          id?: string
+          local: string
+          mvp_id?: string | null
+          organizador_id: string
+          quantidade_vagas: number
+          status?: string
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          cidade?: string
+          criado_em?: string
+          data?: string
+          descricao?: string | null
+          finalizada_em?: string | null
+          horario?: string
+          id?: string
+          local?: string
+          mvp_id?: string | null
+          organizador_id?: string
+          quantidade_vagas?: number
+          status?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_mvp_id_fkey"
+            columns: ["mvp_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_organizador_id_fkey"
+            columns: ["organizador_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avaliacoes_recebidas: number
+          bio: string | null
+          card_gerado_url: string | null
+          cidade: string | null
+          criado_em: string
+          email: string | null
+          foto_url: string | null
+          handle: string | null
+          id: string
+          nome_exibicao: string
+          overall: number
+          peladas_jogadas: number
+          perfil_completo: boolean
+          plano: string
+          posicao_preferida: string | null
+          vezes_mvp: number
+        }
+        Insert: {
+          avaliacoes_recebidas?: number
+          bio?: string | null
+          card_gerado_url?: string | null
+          cidade?: string | null
+          criado_em?: string
+          email?: string | null
+          foto_url?: string | null
+          handle?: string | null
+          id: string
+          nome_exibicao: string
+          overall?: number
+          peladas_jogadas?: number
+          perfil_completo?: boolean
+          plano?: string
+          posicao_preferida?: string | null
+          vezes_mvp?: number
+        }
+        Update: {
+          avaliacoes_recebidas?: number
+          bio?: string | null
+          card_gerado_url?: string | null
+          cidade?: string | null
+          criado_em?: string
+          email?: string | null
+          foto_url?: string | null
+          handle?: string | null
+          id?: string
+          nome_exibicao?: string
+          overall?: number
+          peladas_jogadas?: number
+          perfil_completo?: boolean
+          plano?: string
+          posicao_preferida?: string | null
+          vezes_mvp?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      pode_avaliar: {
+        Args: { _avaliado: string; _avaliador: string; _match_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
