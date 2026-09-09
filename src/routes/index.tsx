@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
-import { Logo } from "@/components/goating/logo";
+import { GoatingLogo } from "@/components/goating/logo";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { MatchCard, type PeladaFeed } from "@/components/goating/match-card";
 import { Button } from "@/components/ui/button";
