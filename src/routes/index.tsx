@@ -138,7 +138,7 @@ function Feed() {
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
       <header className="sticky top-0 z-20 border-b border-border bg-primary px-4 pt-5 pb-4">
         <div className="flex items-center justify-between">
-          <Logo />
+          <GoatingLogo withWordmark />
           <Link
             to="/perfil"
             className="rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint"
