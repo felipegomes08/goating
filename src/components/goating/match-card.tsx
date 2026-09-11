@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { CalendarDays, Check, Lock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -123,29 +124,34 @@ export function MatchCard({
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 flex gap-2">
+        <Button asChild variant="outline" className="flex-1">
+          <Link to="/pelada/$id" params={{ id: pelada.id }}>
+            Ver detalhes
+          </Link>
+        </Button>
         {pelada.minhaSituacao === "aprovado" ? (
-          <Button disabled className="w-full bg-mint-soft text-primary" variant="secondary">
+          <Button disabled className="flex-1 bg-mint-soft text-primary" variant="secondary">
             Você está dentro
           </Button>
         ) : pelada.minhaSituacao === "pendente" ? (
-          <Button disabled variant="secondary" className="w-full">
+          <Button disabled variant="secondary" className="flex-1">
             Solicitação enviada
           </Button>
         ) : lotado ? (
-          <Button disabled className="w-full">
+          <Button disabled className="flex-1">
             Lotado
           </Button>
         ) : aberta ? (
           <Button
-            className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
+            className="flex-1 bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
             onClick={() => onEntrar(pelada)}
             disabled={carregando}
           >
             Entrar
           </Button>
         ) : (
-          <Button className="w-full" onClick={() => onEntrar(pelada)} disabled={carregando}>
+          <Button className="flex-1" onClick={() => onEntrar(pelada)} disabled={carregando}>
             Solicitar entrada
           </Button>
         )}
