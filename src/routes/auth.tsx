@@ -77,7 +77,9 @@ function AuthPage() {
         <div className="flex justify-center">
           <GoatingLogo size={56} />
         </div>
-        <h1 className="mt-4 text-3xl font-extrabold text-primary-foreground">Goating</h1>
+        <h1 className="mt-4 flex justify-center">
+          <GoatingLogo variant="wordmark" size={48} />
+        </h1>
         <p className="mt-1 text-sm text-mint">Jogue. Conecte. Evolua.</p>
       </div>
 
