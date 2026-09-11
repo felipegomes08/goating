@@ -38,9 +38,12 @@ function CriarPelada() {
   const [vagas, setVagas] = useState(10);
   const [tipo, setTipo] = useState<"aberta" | "fechada">("aberta");
   const [enviando, setEnviando] = useState(false);
-  const [criada, setCriada] = useState<{ titulo: string; cidade: string; token: string } | null>(
-    null,
-  );
+  const [criada, setCriada] = useState<{
+    id: string;
+    titulo: string;
+    cidade: string;
+    token: string;
+  } | null>(null);
 
   if (!carregando && !userId) {
     navigate({ to: "/auth", replace: true });
@@ -78,7 +81,7 @@ function CriarPelada() {
       const token = crypto.randomUUID().replaceAll("-", "").slice(0, 10);
       await supabase.from("match_invite_links").insert({ match_id: pelada.id, token });
 
-      setCriada({ titulo: pelada.titulo, cidade: pelada.cidade, token });
+      setCriada({ id: pelada.id, titulo: pelada.titulo, cidade: pelada.cidade, token });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não deu para criar a pelada.");
     } finally {
@@ -87,7 +90,7 @@ function CriarPelada() {
   }
 
   if (criada) {
-    const link = `goating.app/p/${criada.token}`;
+    const link = `${window.location.origin}/p/${criada.token}`;
     return (
       <div className="app-shell flex flex-col">
         <header className="bg-primary px-4 pt-6 pb-8 text-center">
