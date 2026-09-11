@@ -110,11 +110,16 @@ function CriarPelada() {
           <Button
             className="w-full"
             onClick={() => {
-              void navigator.clipboard.writeText(`https://${link}`);
+              void navigator.clipboard.writeText(link);
               toast.success("Link copiado!");
             }}
           >
             <Share2 className="mr-2 size-4" /> Compartilhar link
+          </Button>
+          <Button asChild className="w-full bg-mint text-mint-foreground hover:bg-mint/90">
+            <Link to="/pelada/$id" params={{ id: criada.id }}>
+              Abrir a pelada
+            </Link>
           </Button>
           <Button asChild variant="outline" className="w-full">
             <Link to="/">Ver no feed</Link>
