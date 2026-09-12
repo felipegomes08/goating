@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Lock, Minus, Plus, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
+import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -185,14 +186,10 @@ function CriarPelada() {
         </div>
 
         <div>
-          <Label htmlFor="cidade">Cidade</Label>
-          <Input
-            id="cidade"
-            value={cidadeFinal}
-            onChange={(e) => setCidade(e.target.value)}
-            placeholder="Patos de Minas, MG"
-            className="mt-1"
-          />
+          <Label>Cidade</Label>
+          <div className="mt-1">
+            <CidadeCombobox value={cidadeFinal || null} onChange={setCidade} />
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Usada para mostrar essa pelada no feed de quem está nessa cidade.
           </p>

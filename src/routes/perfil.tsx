@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { BottomNav } from "@/components/goating/bottom-nav";
+import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import { PlayerCard } from "@/components/goating/player-card";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
 import { Button } from "@/components/ui/button";
@@ -319,8 +320,8 @@ function Perfil() {
             <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cidade">Cidade</Label>
-            <Input id="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} />
+            <Label>Cidade</Label>
+            <CidadeCombobox value={cidade || null} onChange={setCidade} />
           </div>
           <div className="space-y-1.5">
             <Label>Posição preferida</Label>

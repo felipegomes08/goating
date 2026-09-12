@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/hooks/use-session";
+import { useSession, usePerfil } from "@/hooks/use-session";
 import { GoatingLogo } from "@/components/goating/logo";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { MatchCard, type PeladaFeed } from "@/components/goating/match-card";
@@ -48,13 +48,16 @@ type LinhaPelada = {
 
 function Feed() {
   const { userId, carregando } = useSession();
+  const { data: perfil, isLoading: carregandoPerfil } = usePerfil(userId);
   const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
   const [entrando, setEntrando] = useState<string | null>(null);
 
+  const cidade = perfil?.cidade ?? null;
+
   const feed = useQuery({
-    queryKey: ["feed", userId],
-    enabled: !!userId,
+    queryKey: ["feed", userId, cidade],
+    enabled: !!userId && !!cidade,
     queryFn: async (): Promise<PeladaFeed[]> => {
       const hoje = new Date().toISOString().slice(0, 10);
       const { data: peladas, error } = await supabase
@@ -63,6 +66,7 @@ function Feed() {
           "id, titulo, data, horario, local, cidade, quantidade_vagas, tipo, organizador_id",
         )
         .eq("status", "agendada")
+        .eq("cidade", cidade!)
         .gte("data", hoje)
         .order("data", { ascending: true })
         .order("horario", { ascending: true })
@@ -146,19 +150,25 @@ function Feed() {
             Meu perfil
           </Link>
         </div>
-        <div className="relative mt-4">
+        {cidade && (
+          <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-mint">
+            <MapPin className="size-3.5" />
+            {cidade}
+          </p>
+        )}
+        <div className="relative mt-3">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por cidade, quadra ou pelada"
+            placeholder="Buscar por quadra ou pelada"
             className="h-11 rounded-xl border-0 bg-card pl-9 text-sm"
           />
         </div>
       </header>
 
       <main className="flex-1 space-y-3 px-4 py-4">
-        {carregando || feed.isLoading ? (
+        {carregando || carregandoPerfil || (!!cidade && feed.isLoading) ? (
           [0, 1, 2].map((i) => <Skeleton key={i} className="h-56 w-full rounded-2xl" />)
         ) : !userId ? (
           <div className="mt-16 text-center">
@@ -169,14 +179,26 @@ function Feed() {
               <Link to="/auth">Entrar no Goating</Link>
             </Button>
           </div>
+        ) : !cidade ? (
+          <div className="mt-16 space-y-3 text-center">
+            <p className="text-base font-semibold text-foreground">Falta só um passo</p>
+            <p className="text-sm text-muted-foreground">
+              Complete seu cadastro para ver as peladas perto de você.
+            </p>
+            <Button asChild className="mt-2 bg-mint text-mint-foreground hover:bg-mint/90">
+              <Link to="/perfil">Completar cadastro</Link>
+            </Button>
+          </div>
         ) : lista.length === 0 ? (
           <div className="mt-16 text-center">
-            <p className="text-base font-semibold text-foreground">Nenhuma pelada por aqui ainda</p>
+            <p className="text-base font-semibold text-foreground">
+              Nenhuma pelada em {cidade} ainda
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
               Seja o primeiro a organizar e chame a galera pelo link.
             </p>
             <Button asChild className="mt-4 bg-mint text-mint-foreground hover:bg-mint/90">
-              <Link to="/criar">Criar pelada</Link>
+              <Link to="/criar">Criar pelada em {cidade}</Link>
             </Button>
           </div>
         ) : (

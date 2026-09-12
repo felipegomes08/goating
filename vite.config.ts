@@ -12,4 +12,17 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    server: {
+      proxy: {
+        // Assets from src/assets/*.asset.json (logo, etc.) resolve to relative
+        // /__l5e/... URLs that only exist inside Lovable's own hosting. Proxy
+        // them to the published app in local dev so those images load.
+        "/__l5e": {
+          target: "https://goating.lovable.app",
+          changeOrigin: true,
+        },
+      },
+    },
+  },
 });
