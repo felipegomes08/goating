@@ -10,30 +10,37 @@ export function GoatingLogo({
   className,
   variant = "icon",
   tone = "dark",
+  iconTone,
+  wordmarkTone,
 }: {
   size?: number;
   withWordmark?: boolean;
   className?: string;
   variant?: "icon" | "wordmark";
   tone?: "dark" | "light";
+  iconTone?: "dark" | "light";
+  wordmarkTone?: "dark" | "light";
 }) {
+  const itone = iconTone ?? tone;
+  const wtone = wordmarkTone ?? tone;
+
   return (
     <div className={cn("flex max-w-full items-center gap-2", className)}>
       {variant !== "wordmark" && (
         <img
-          src={tone === "dark" ? greenIcon.url : whiteIcon.url}
+          src={itone === "dark" ? greenIcon.url : whiteIcon.url}
           width={size}
           height={size}
-          className="shrink-0 object-contain"
+          className="shrink-0 self-center object-contain"
           alt={withWordmark ? "" : "Goating"}
         />
       )}
       {(withWordmark || variant === "wordmark") && (
         <img
-          src={tone === "dark" ? whiteWordmark.url : greenWordmark.url}
+          src={wtone === "dark" ? whiteWordmark.url : greenWordmark.url}
           width={size * 3.8}
           height={size}
-          className="min-w-0 object-contain"
+          className="min-w-0 self-center object-contain"
           alt="Goating"
         />
       )}
