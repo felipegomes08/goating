@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { traduzirErroAuth } from "@/lib/auth-erros";
 import { GoatingLogo } from "@/components/goating/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,7 +66,7 @@ function AuthPage() {
         navigate({ to: destino, replace: true });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Não foi possível continuar.");
+      toast.error(traduzirErroAuth(err));
     } finally {
       setCarregando(false);
     }
