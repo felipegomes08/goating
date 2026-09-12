@@ -11,8 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as BuscarRouteImport } from './routes/buscar'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as RedeRouteImport } from './routes/rede'
+import { Route as JogadorIdRouteImport } from './routes/jogador.$id'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PeladaIdRouteImport } from './routes/pelada.$id'
 import { Route as PeladaIdAvaliarRouteImport } from './routes/pelada.$id.avaliar'
@@ -27,6 +30,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BuscarRoute = BuscarRouteImport.update({
+  id: '/buscar',
+  path: '/buscar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CriarRoute = CriarRouteImport.update({
   id: '/criar',
   path: '/criar',
@@ -35,6 +43,16 @@ const CriarRoute = CriarRouteImport.update({
 const PerfilRoute = PerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RedeRoute = RedeRouteImport.update({
+  id: '/rede',
+  path: '/rede',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JogadorIdRoute = JogadorIdRouteImport.update({
+  id: '/jogador/$id',
+  path: '/jogador/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PTokenRoute = PTokenRouteImport.update({
@@ -56,8 +74,11 @@ const PeladaIdAvaliarRoute = PeladaIdAvaliarRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
   '/perfil': typeof PerfilRoute
+  '/rede': typeof RedeRoute
+  '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRouteWithChildren
   '/pelada/$id/avaliar': typeof PeladaIdAvaliarRoute
@@ -65,8 +86,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
   '/perfil': typeof PerfilRoute
+  '/rede': typeof RedeRoute
+  '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRouteWithChildren
   '/pelada/$id/avaliar': typeof PeladaIdAvaliarRoute
@@ -75,8 +99,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
   '/perfil': typeof PerfilRoute
+  '/rede': typeof RedeRoute
+  '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRouteWithChildren
   '/pelada/$id/avaliar': typeof PeladaIdAvaliarRoute
@@ -86,8 +113,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/buscar'
     | '/criar'
     | '/perfil'
+    | '/rede'
+    | '/jogador/$id'
     | '/p/$token'
     | '/pelada/$id'
     | '/pelada/$id/avaliar'
@@ -95,8 +125,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/buscar'
     | '/criar'
     | '/perfil'
+    | '/rede'
+    | '/jogador/$id'
     | '/p/$token'
     | '/pelada/$id'
     | '/pelada/$id/avaliar'
@@ -104,8 +137,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/auth'
+    | '/buscar'
     | '/criar'
     | '/perfil'
+    | '/rede'
+    | '/jogador/$id'
     | '/p/$token'
     | '/pelada/$id'
     | '/pelada/$id/avaliar'
@@ -114,8 +150,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  BuscarRoute: typeof BuscarRoute
   CriarRoute: typeof CriarRoute
   PerfilRoute: typeof PerfilRoute
+  RedeRoute: typeof RedeRoute
+  JogadorIdRoute: typeof JogadorIdRoute
   PTokenRoute: typeof PTokenRoute
   PeladaIdRoute: typeof PeladaIdRouteWithChildren
 }
@@ -136,6 +175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/buscar': {
+      id: '/buscar'
+      path: '/buscar'
+      fullPath: '/buscar'
+      preLoaderRoute: typeof BuscarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/criar': {
       id: '/criar'
       path: '/criar'
@@ -148,6 +194,20 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/perfil'
       preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rede': {
+      id: '/rede'
+      path: '/rede'
+      fullPath: '/rede'
+      preLoaderRoute: typeof RedeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jogador/$id': {
+      id: '/jogador/$id'
+      path: '/jogador/$id'
+      fullPath: '/jogador/$id'
+      preLoaderRoute: typeof JogadorIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$token': {
@@ -189,8 +249,11 @@ const PeladaIdRouteWithChildren = PeladaIdRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  BuscarRoute: BuscarRoute,
   CriarRoute: CriarRoute,
   PerfilRoute: PerfilRoute,
+  RedeRoute: RedeRoute,
+  JogadorIdRoute: JogadorIdRoute,
   PTokenRoute: PTokenRoute,
   PeladaIdRoute: PeladaIdRouteWithChildren,
 }

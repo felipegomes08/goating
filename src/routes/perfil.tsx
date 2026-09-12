@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, LogOut, Users } from "lucide-react";
+import { Camera, LogOut, Search, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
@@ -260,16 +260,27 @@ function Perfil() {
           ))}
         </section>
 
-        <section className="flex items-center justify-between rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Users className="size-4" />
-            <span className="font-bold text-foreground">{seguidores.data?.seguidores ?? 0}</span>{" "}
-            seguidores
-          </p>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-bold text-foreground">{seguidores.data?.seguindo ?? 0}</span>{" "}
-            seguindo
-          </p>
+        <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+          <div className="flex items-center justify-between">
+            <Link
+              to="/rede"
+              search={{ aba: "seguidores" }}
+              className="flex items-center gap-2 text-sm text-muted-foreground"
+            >
+              <Users className="size-4" />
+              <span className="font-bold text-foreground">{seguidores.data?.seguidores ?? 0}</span>{" "}
+              seguidores
+            </Link>
+            <Link to="/rede" search={{ aba: "seguindo" }} className="text-sm text-muted-foreground">
+              <span className="font-bold text-foreground">{seguidores.data?.seguindo ?? 0}</span>{" "}
+              seguindo
+            </Link>
+          </div>
+          <Button asChild variant="secondary" className="w-full">
+            <Link to="/buscar">
+              <Search className="size-4" /> Buscar jogadores
+            </Link>
+          </Button>
         </section>
 
         {!overallLiberado(perfil.avaliacoes_recebidas) && (
