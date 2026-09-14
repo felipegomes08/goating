@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { traduzirErroAuth } from "@/lib/auth-erros";
+import { traduzirErroAuth, traduzirErroUrl } from "@/lib/auth-erros";
 import { GoatingLogo } from "@/components/goating/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +30,10 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const search = useRouterState({ select: (s) => s.location.search }) as { convite?: string };
+  const search = useRouterState({ select: (s) => s.location.search }) as {
+    convite?: string;
+    erro?: string;
+  };
   const [modo, setModo] = useState<"entrar" | "criar" | "recuperar">("entrar");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
