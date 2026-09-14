@@ -40,7 +40,8 @@ export function RecuperacaoRedirect() {
     }
 
     if (tipo === "recovery" && temToken && pathname !== "/redefinir-senha") {
-      window.location.replace(`/redefinir-senha${window.location.search}${window.location.hash}`);
+      const sufixo = hash ? `#${hash}` : `?${query}`;
+      window.location.replace(`/redefinir-senha${sufixo}`);
     }
   }, [navigate, pathname]);
 
