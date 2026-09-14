@@ -56,36 +56,69 @@ function CriarPelada() {
   const cidadeFinal = cidade || perfil?.cidade || "";
   const valido = titulo.trim() && data && horario && local.trim() && cidadeFinal.trim();
 
+  const DIAS = [
+    "todo domingo",
+    "toda segunda",
+    "toda terça",
+    "toda quarta",
+    "toda quinta",
+    "toda sexta",
+    "todo sábado",
+  ];
+  const diaSemana = data ? DIAS[new Date(`${data}T12:00:00`).getDay()] : null;
+
+  function somarSemanas(iso: string, semanas: number) {
+    const d = new Date(`${iso}T12:00:00`);
+    d.setDate(d.getDate() + semanas * 7);
+    return d.toISOString().slice(0, 10);
+  }
+
   async function criar() {
     if (!valido || !userId) return;
     setEnviando(true);
     try {
-      const { data: pelada, error } = await supabase
+      const total = recorrente ? repeticoes : 1;
+      const datas = Array.from({ length: total }, (_, i) => somarSemanas(data, i));
+
+      const { data: peladas, error } = await supabase
         .from("matches")
-        .insert({
-          organizador_id: userId,
-          titulo: titulo.trim(),
-          data,
-          horario,
-          local: local.trim(),
-          cidade: cidadeFinal.trim(),
-          quantidade_vagas: vagas,
-          tipo,
-        })
-        .select()
-        .single();
+        .insert(
+          datas.map((d) => ({
+            organizador_id: userId,
+            titulo: titulo.trim(),
+            data: d,
+            horario,
+            local: local.trim(),
+            cidade: cidadeFinal.trim(),
+            quantidade_vagas: vagas,
+            tipo,
+          })),
+        )
+        .select();
       if (error) throw error;
 
-      await supabase.from("match_participants").insert({
-        match_id: pelada.id,
-        user_id: userId,
-        status: "aprovado",
+      await supabase.from("match_participants").insert(
+        peladas.map((p) => ({
+          match_id: p.id,
+          user_id: userId,
+          status: "aprovado",
+        })),
+      );
+
+      const links = peladas.map((p) => ({
+        match_id: p.id,
+        token: crypto.randomUUID().replaceAll("-", "").slice(0, 10),
+      }));
+      await supabase.from("match_invite_links").insert(links);
+
+      const primeira = peladas[0];
+      setCriada({
+        id: primeira.id,
+        titulo: primeira.titulo,
+        cidade: primeira.cidade,
+        token: links[0].token,
+        total: peladas.length,
       });
-
-      const token = crypto.randomUUID().replaceAll("-", "").slice(0, 10);
-      await supabase.from("match_invite_links").insert({ match_id: pelada.id, token });
-
-      setCriada({ id: pelada.id, titulo: pelada.titulo, cidade: pelada.cidade, token });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não deu para criar a pelada.");
     } finally {
