@@ -69,8 +69,9 @@ function RedefinirSenha() {
     try {
       const { error } = await supabase.auth.updateUser({ password: senha });
       if (error) throw error;
-      toast.success("Senha atualizada! Já pode usar a nova senha.");
-      navigate({ to: "/", replace: true });
+      toast.success("Senha atualizada! Faça login com a nova senha.");
+      await supabase.auth.signOut();
+      navigate({ to: "/auth", replace: true });
     } catch (err) {
       toast.error(traduzirErroAuth(err));
     } finally {
