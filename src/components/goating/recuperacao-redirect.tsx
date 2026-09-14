@@ -10,6 +10,11 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
  * - token de recuperação  -> /redefinir-senha (mantendo o fragmento)
  * - erro (link expirado)  -> /auth com uma mensagem em português
  */
+// Capturado na importação do módulo: o client do Supabase limpa o fragmento
+// da URL assim que é criado, então precisamos guardar antes disso.
+const HASH_INICIAL = typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : "";
+const QUERY_INICIAL = typeof window !== "undefined" ? window.location.search.replace(/^\?/, "") : "";
+
 export function RecuperacaoRedirect() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -17,9 +22,10 @@ export function RecuperacaoRedirect() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
-    const query = window.location.search.startsWith("?") ? window.location.search.slice(1) : "";
+    const hash = HASH_INICIAL;
+    const query = QUERY_INICIAL;
     if (!hash && !query) return;
+
 
     const params = new URLSearchParams(hash || query);
     const erro = params.get("error") || params.get("error_code");
