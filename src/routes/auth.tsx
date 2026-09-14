@@ -42,6 +42,13 @@ function AuthPage() {
 
   const destino = search?.convite ? `/p/${search.convite}` : "/";
 
+  const erroUrl = search?.erro;
+  useEffect(() => {
+    if (!erroUrl) return;
+    toast.error(traduzirErroUrl(erroUrl));
+    setModo("recuperar");
+  }, [erroUrl]);
+
   async function enviarRecuperacao(e: React.FormEvent) {
     e.preventDefault();
     setCarregando(true);
