@@ -112,6 +112,7 @@ function CriarPelada() {
       await supabase.from("match_invite_links").insert(links);
 
       const primeira = peladas[0];
+      if (!primeira || !links[0]) throw new Error("Não deu para criar a pelada.");
       setCriada({
         id: primeira.id,
         titulo: primeira.titulo,
