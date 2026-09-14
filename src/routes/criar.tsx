@@ -38,12 +38,15 @@ function CriarPelada() {
   const [cidade, setCidade] = useState("");
   const [vagas, setVagas] = useState(10);
   const [tipo, setTipo] = useState<"aberta" | "fechada">("aberta");
+  const [recorrente, setRecorrente] = useState(false);
+  const [repeticoes, setRepeticoes] = useState(4);
   const [enviando, setEnviando] = useState(false);
   const [criada, setCriada] = useState<{
     id: string;
     titulo: string;
     cidade: string;
     token: string;
+    total: number;
   } | null>(null);
 
   if (!carregando && !userId) {
