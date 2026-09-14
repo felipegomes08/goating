@@ -13,6 +13,17 @@ const MAPA: Array<[RegExp, string]> = [
   [/network|fetch failed|failed to fetch/i, "Sem conexão. Verifique sua internet e tente de novo."],
 ];
 
+const MAPA_URL: Record<string, string> = {
+  otp_expired: "Esse link expirou ou já foi usado. Peça um novo link de recuperação.",
+  access_denied: "Esse link expirou ou já foi usado. Peça um novo link de recuperação.",
+  invalid_request: "O link de recuperação veio incompleto. Peça um novo.",
+  server_error: "Deu problema ao abrir o link. Tente pedir um novo.",
+};
+
+export function traduzirErroUrl(codigo: string): string {
+  return MAPA_URL[codigo] ?? "Esse link não funcionou. Peça um novo link de recuperação.";
+}
+
 export function traduzirErroAuth(erro: unknown): string {
   const msg = erro instanceof Error ? erro.message : typeof erro === "string" ? erro : "";
   for (const [re, texto] of MAPA) {
