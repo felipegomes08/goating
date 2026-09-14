@@ -232,20 +232,6 @@ function DetalhePelada() {
     await atualizar();
   }
 
-  async function definirMvp(jogadorId: string) {
-    setOcupado(true);
-    const { error } = await supabase
-      .from("matches")
-      .update({ mvp_id: pelada.mvp_id === jogadorId ? null : jogadorId })
-      .eq("id", id);
-    setOcupado(false);
-    if (error) {
-      toast.error("Não deu pra marcar o craque da partida.");
-      return;
-    }
-    await atualizar();
-  }
-
   return (
     <div className="app-shell flex min-h-screen flex-col pb-28">
       <header className="bg-primary px-4 pt-4 pb-5">
@@ -368,20 +354,16 @@ function DetalhePelada() {
                       </span>
                     )}
                   </div>
-                  {finalizada && souOrganizador ? (
-                    <button
-                      aria-label={`Marcar ${p.nome} como craque da partida`}
-                      disabled={ocupado}
-                      onClick={() => definirMvp(p.user_id)}
-                      className={cn(
-                        "flex size-8 items-center justify-center rounded-lg",
-                        ehMvp ? "bg-tier-ouro/20 text-tier-ouro" : "bg-secondary text-muted-foreground",
-                      )}
+                  {ehMvp && (
+                    <span
+                      title={
+                        finalizada && !dentroDaJanela
+                          ? "Craque da partida"
+                          : "Craque da partida (provisório, até fechar as avaliações)"
+                      }
                     >
-                      <Crown className="size-4" />
-                    </button>
-                  ) : (
-                    ehMvp && <Crown className="size-4 text-tier-ouro" />
+                      <Crown className="size-4 text-tier-ouro" />
+                    </span>
                   )}
                 </div>
               );

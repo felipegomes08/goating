@@ -15,6 +15,7 @@ import { Route as BuscarRouteImport } from './routes/buscar'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as RedeRouteImport } from './routes/rede'
+import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as JogadorIdRouteImport } from './routes/jogador.$id'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PeladaIdRouteImport } from './routes/pelada.$id'
@@ -50,6 +51,11 @@ const RedeRoute = RedeRouteImport.update({
   path: '/rede',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
+  id: '/redefinir-senha',
+  path: '/redefinir-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JogadorIdRoute = JogadorIdRouteImport.update({
   id: '/jogador/$id',
   path: '/jogador/$id',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/criar': typeof CriarRoute
   '/perfil': typeof PerfilRoute
   '/rede': typeof RedeRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRouteWithChildren
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/criar': typeof CriarRoute
   '/perfil': typeof PerfilRoute
   '/rede': typeof RedeRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRouteWithChildren
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/criar': typeof CriarRoute
   '/perfil': typeof PerfilRoute
   '/rede': typeof RedeRoute
+  '/redefinir-senha': typeof RedefinirSenhaRoute
   '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRouteWithChildren
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/criar'
     | '/perfil'
     | '/rede'
+    | '/redefinir-senha'
     | '/jogador/$id'
     | '/p/$token'
     | '/pelada/$id'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/criar'
     | '/perfil'
     | '/rede'
+    | '/redefinir-senha'
     | '/jogador/$id'
     | '/p/$token'
     | '/pelada/$id'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/criar'
     | '/perfil'
     | '/rede'
+    | '/redefinir-senha'
     | '/jogador/$id'
     | '/p/$token'
     | '/pelada/$id'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   CriarRoute: typeof CriarRoute
   PerfilRoute: typeof PerfilRoute
   RedeRoute: typeof RedeRoute
+  RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   JogadorIdRoute: typeof JogadorIdRoute
   PTokenRoute: typeof PTokenRoute
   PeladaIdRoute: typeof PeladaIdRouteWithChildren
@@ -201,6 +214,13 @@ declare module '@tanstack/react-router' {
       path: '/rede'
       fullPath: '/rede'
       preLoaderRoute: typeof RedeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/redefinir-senha': {
+      id: '/redefinir-senha'
+      path: '/redefinir-senha'
+      fullPath: '/redefinir-senha'
+      preLoaderRoute: typeof RedefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/jogador/$id': {
@@ -253,6 +273,7 @@ const rootRouteChildren: RootRouteChildren = {
   CriarRoute: CriarRoute,
   PerfilRoute: PerfilRoute,
   RedeRoute: RedeRoute,
+  RedefinirSenhaRoute: RedefinirSenhaRoute,
   JogadorIdRoute: JogadorIdRoute,
   PTokenRoute: PTokenRoute,
   PeladaIdRoute: PeladaIdRouteWithChildren,

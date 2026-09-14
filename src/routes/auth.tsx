@@ -31,13 +31,30 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const search = useRouterState({ select: (s) => s.location.search }) as { convite?: string };
-  const [modo, setModo] = useState<"entrar" | "criar">("entrar");
+  const [modo, setModo] = useState<"entrar" | "criar" | "recuperar">("entrar");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
 
   const destino = search?.convite ? `/p/${search.convite}` : "/";
+
+  async function enviarRecuperacao(e: React.FormEvent) {
+    e.preventDefault();
+    setCarregando(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/redefinir-senha`,
+      });
+      if (error) throw error;
+      toast.success("Se esse e-mail tiver conta, mandamos um link pra redefinir a senha.");
+      setModo("entrar");
+    } catch (err) {
+      toast.error(traduzirErroAuth(err));
+    } finally {
+      setCarregando(false);
+    }
+  }
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -84,70 +101,116 @@ function AuthPage() {
         <p className="mt-1 text-sm text-mint">Jogue. Conecte. Evolua.</p>
       </div>
 
-      <form onSubmit={enviar} className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
-        <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
-          {(["entrar", "criar"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setModo(m)}
-              className={
-                "rounded-lg py-2 text-sm font-semibold transition-colors " +
-                (modo === m ? "bg-primary text-primary-foreground" : "text-muted-foreground")
-              }
-            >
-              {m === "entrar" ? "Entrar" : "Criar conta"}
-            </button>
-          ))}
-        </div>
-
-        {modo === "criar" && (
-          <div className="mb-3">
-            <Label htmlFor="nome">Nome de exibição</Label>
+      {modo === "recuperar" ? (
+        <form
+          onSubmit={enviarRecuperacao}
+          className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]"
+        >
+          <p className="mb-4 text-sm text-muted-foreground">
+            Digita seu e-mail que a gente manda um link pra você criar uma senha nova.
+          </p>
+          <div className="mb-5">
+            <Label htmlFor="email-recuperar">E-mail</Label>
             <Input
-              id="nome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
+              id="email-recuperar"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="Como a galera te chama"
               className="mt-1"
             />
           </div>
-        )}
+          <Button
+            type="submit"
+            disabled={carregando}
+            className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
+          >
+            Enviar link de recuperação
+          </Button>
+          <button
+            type="button"
+            onClick={() => setModo("entrar")}
+            className="mt-4 w-full text-center text-sm font-semibold text-muted-foreground"
+          >
+            Voltar para o login
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={enviar} className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
+          <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl bg-secondary p-1">
+            {(["entrar", "criar"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setModo(m)}
+                className={
+                  "rounded-lg py-2 text-sm font-semibold transition-colors " +
+                  (modo === m ? "bg-primary text-primary-foreground" : "text-muted-foreground")
+                }
+              >
+                {m === "entrar" ? "Entrar" : "Criar conta"}
+              </button>
+            ))}
+          </div>
 
-        <div className="mb-3">
-          <Label htmlFor="email">E-mail</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="mt-1"
-          />
-        </div>
+          {modo === "criar" && (
+            <div className="mb-3">
+              <Label htmlFor="nome">Nome de exibição</Label>
+              <Input
+                id="nome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                required
+                placeholder="Como a galera te chama"
+                className="mt-1"
+              />
+            </div>
+          )}
 
-        <div className="mb-5">
-          <Label htmlFor="senha">Senha</Label>
-          <Input
-            id="senha"
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            required
-            minLength={6}
-            className="mt-1"
-          />
-        </div>
+          <div className="mb-3">
+            <Label htmlFor="email">E-mail</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="mt-1"
+            />
+          </div>
 
-        <Button
-          type="submit"
-          disabled={carregando}
-          className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-        >
-          {modo === "entrar" ? "Entrar" : "Criar conta"}
-        </Button>
-      </form>
+          <div className="mb-2">
+            <Label htmlFor="senha">Senha</Label>
+            <Input
+              id="senha"
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+              minLength={6}
+              className="mt-1"
+            />
+          </div>
+
+          {modo === "entrar" && (
+            <button
+              type="button"
+              onClick={() => setModo("recuperar")}
+              className="mb-4 block text-right text-xs font-semibold text-muted-foreground"
+            >
+              Esqueci minha senha
+            </button>
+          )}
+
+          <Button
+            type="submit"
+            disabled={carregando}
+            className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
+          >
+            {modo === "entrar" ? "Entrar" : "Criar conta"}
+          </Button>
+        </form>
+      )}
     </div>
   );
 }
