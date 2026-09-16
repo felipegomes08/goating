@@ -52,15 +52,7 @@ function dataFormatada(data: string, horario: string) {
   return `${semana}, ${d.getDate()} ${mes} · ${hh}:${mm}`;
 }
 
-export function MatchCard({
-  pelada,
-  onEntrar,
-  carregando,
-}: {
-  pelada: PeladaFeed;
-  onEntrar: (p: PeladaFeed) => void;
-  carregando?: boolean;
-}) {
+export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
   const aberta = pelada.tipo === "aberta";
   const lotado = pelada.confirmados >= pelada.quantidade_vagas;
   const proporcao = Math.min(1, pelada.confirmados / pelada.quantidade_vagas);
@@ -143,16 +135,16 @@ export function MatchCard({
             Lotado
           </Button>
         ) : aberta ? (
-          <Button
-            className="flex-1 bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-            onClick={() => onEntrar(pelada)}
-            disabled={carregando}
-          >
-            Entrar
+          <Button asChild className="flex-1 bg-mint font-semibold text-mint-foreground hover:bg-mint/90">
+            <Link to="/pelada/$id" params={{ id: pelada.id }}>
+              Entrar
+            </Link>
           </Button>
         ) : (
-          <Button className="flex-1" onClick={() => onEntrar(pelada)} disabled={carregando}>
-            Solicitar entrada
+          <Button asChild className="flex-1">
+            <Link to="/pelada/$id" params={{ id: pelada.id }}>
+              Solicitar entrada
+            </Link>
           </Button>
         )}
       </div>

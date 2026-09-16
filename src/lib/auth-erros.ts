@@ -10,6 +10,7 @@ const MAPA: Array<[RegExp, string]> = [
   [/token has expired|otp_expired|invalid.*token/i, "O link expirou. Peça um novo."],
   [/user not found/i, "Não encontramos uma conta com esse e-mail."],
   [/signups? not allowed|signup is disabled/i, "Os cadastros estão desativados no momento."],
+  [/anonymous sign-?ins? (are|is) disabled/i, "Entrar como convidado está desativado no momento."],
   [/network|fetch failed|failed to fetch/i, "Sem conexão. Verifique sua internet e tente de novo."],
 ];
 

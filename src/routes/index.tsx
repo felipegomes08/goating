@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search } from "lucide-react";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { GoatingLogo } from "@/components/goating/logo";
@@ -49,9 +48,7 @@ type LinhaPelada = {
 function Feed() {
   const { userId, carregando } = useSession();
   const { data: perfil, isLoading: carregandoPerfil } = usePerfil(userId);
-  const queryClient = useQueryClient();
   const [busca, setBusca] = useState("");
-  const [entrando, setEntrando] = useState<string | null>(null);
 
   const cidade = perfil?.cidade ?? null;
 
@@ -119,25 +116,6 @@ function Feed() {
     );
   }, [feed.data, busca]);
 
-  async function entrar(pelada: PeladaFeed) {
-    if (!userId) return;
-    setEntrando(pelada.id);
-    const { error } = await supabase.from("match_participants").insert({
-      match_id: pelada.id,
-      user_id: userId,
-      status: pelada.tipo === "aberta" ? "aprovado" : "pendente",
-    });
-    setEntrando(null);
-    if (error) {
-      toast.error("Não deu pra entrar nessa pelada. Ela pode ter lotado.");
-      return;
-    }
-    toast.success(
-      pelada.tipo === "aberta" ? "Você está dentro!" : "Solicitação enviada ao organizador.",
-    );
-    await queryClient.invalidateQueries({ queryKey: ["feed"] });
-  }
-
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
       <header className="sticky top-0 z-20 border-b border-border bg-primary px-4 pt-5 pb-4">
@@ -202,14 +180,7 @@ function Feed() {
             </Button>
           </div>
         ) : (
-          lista.map((p) => (
-            <MatchCard
-              key={p.id}
-              pelada={p}
-              onEntrar={entrar}
-              carregando={entrando === p.id}
-            />
-          ))
+          lista.map((p) => <MatchCard key={p.id} pelada={p} />)
         )}
       </main>
 

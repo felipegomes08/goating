@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { ArrowLeft, Check, Lock, Minus, Plus, Share2 } from "lucide-react";
+import { ArrowLeft, Check, Lock, Minus, Plus, Repeat, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
@@ -8,6 +8,7 @@ import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/criar")({
@@ -139,6 +140,11 @@ function CriarPelada() {
           <p className="mt-1 text-sm text-mint">
             {criada.titulo} · {criada.cidade}
           </p>
+          {criada.total > 1 && (
+            <p className="mt-1 text-xs text-primary-foreground/70">
+              Recorrente: {criada.total} peladas já agendadas, uma por semana.
+            </p>
+          )}
         </header>
         <div className="flex-1 space-y-4 p-5">
           <div className="rounded-2xl border-2 border-dashed border-mint bg-mint-soft p-4 text-center">
@@ -209,6 +215,47 @@ function CriarPelada() {
               className="mt-1"
             />
           </div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-start gap-2">
+              <Repeat className="mt-0.5 size-4 shrink-0 text-primary" />
+              <div>
+                <Label htmlFor="recorrente">Pelada recorrente</Label>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {diaSemana
+                    ? `Cria uma pelada nova ${diaSemana}, toda semana`
+                    : "Repete automaticamente toda semana, no mesmo dia e horário"}
+                </p>
+              </div>
+            </div>
+            <Switch id="recorrente" checked={recorrente} onCheckedChange={setRecorrente} />
+          </div>
+          {recorrente && (
+            <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+              <span className="text-sm text-muted-foreground">Por quantas semanas</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Menos semanas"
+                  onClick={() => setRepeticoes((r) => Math.max(2, r - 1))}
+                  className="flex size-7 items-center justify-center rounded-lg bg-secondary"
+                >
+                  <Minus className="size-3.5" />
+                </button>
+                <span className="w-6 text-center text-sm font-extrabold">{repeticoes}</span>
+                <button
+                  type="button"
+                  aria-label="Mais semanas"
+                  onClick={() => setRepeticoes((r) => Math.min(12, r + 1))}
+                  className="flex size-7 items-center justify-center rounded-lg bg-secondary"
+                >
+                  <Plus className="size-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div>
