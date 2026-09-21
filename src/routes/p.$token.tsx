@@ -37,8 +37,10 @@ export const Route = createFileRoute("/p/$token")({
 type ConviteInfo = {
   match_id: string;
   titulo: string;
+  descricao: string | null;
   data: string;
   horario: string;
+  horario_fim: string | null;
   local: string;
   cidade: string;
   quantidade_vagas: number;
@@ -47,11 +49,11 @@ type ConviteInfo = {
   organizador_nome: string | null;
 };
 
-function dataFormatada(data: string, horario: string) {
+function dataFormatada(data: string, horario: string, horarioFim: string | null) {
   const d = new Date(`${data}T${horario}`);
+  const faixa = horarioFim ? `${horario.slice(0, 5)} às ${horarioFim.slice(0, 5)}` : horario.slice(0, 5);
   return (
-    d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }) +
-    ` · ${horario.slice(0, 5)}`
+    d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }) + ` · ${faixa}`
   );
 }
 
@@ -181,7 +183,7 @@ function Convite() {
         <div className="mt-3 divide-y divide-border rounded-xl bg-secondary/60">
           <p className="flex items-center gap-2 px-3 py-2 text-xs text-foreground capitalize">
             <CalendarDays className="size-4 text-muted-foreground" />
-            {dataFormatada(info.data, info.horario)}
+            {dataFormatada(info.data, info.horario, info.horario_fim)}
           </p>
           <p className="flex items-center gap-2 px-3 py-2 text-xs text-foreground">
             <MapPin className="size-4 text-muted-foreground" />
@@ -193,6 +195,10 @@ function Convite() {
             {lotado && <span className="ml-1 font-bold text-destructive">· LOTADO</span>}
           </p>
         </div>
+
+        {info.descricao && (
+          <p className="mt-3 rounded-xl bg-secondary/60 p-3 text-xs text-foreground">{info.descricao}</p>
+        )}
       </div>
 
       <div className="w-full max-w-xs space-y-2">

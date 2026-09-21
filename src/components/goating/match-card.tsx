@@ -9,6 +9,7 @@ export type PeladaFeed = {
   titulo: string;
   data: string;
   horario: string;
+  horario_fim: string | null;
   local: string;
   cidade: string;
   quantidade_vagas: number;
@@ -30,7 +31,7 @@ function iniciais(nome: string) {
     .join("");
 }
 
-function dataFormatada(data: string, horario: string) {
+function dataFormatada(data: string, horario: string, horarioFim: string | null) {
   const d = new Date(`${data}T${horario}`);
   const semana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][d.getDay()];
   const mes = [
@@ -49,7 +50,8 @@ function dataFormatada(data: string, horario: string) {
   ][d.getMonth()];
   const hh = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${semana}, ${d.getDate()} ${mes} · ${hh}:${mm}`;
+  const faixa = horarioFim ? `${hh}:${mm} às ${horarioFim.slice(0, 5)}` : `${hh}:${mm}`;
+  return `${semana}, ${d.getDate()} ${mes} · ${faixa}`;
 }
 
 export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
@@ -96,7 +98,7 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
       <div className="mt-3 divide-y divide-border rounded-xl bg-secondary/60">
         <p className="flex items-center gap-2 px-3 py-2 text-xs text-foreground">
           <CalendarDays className="size-4 text-muted-foreground" />
-          {dataFormatada(pelada.data, pelada.horario)}
+          {dataFormatada(pelada.data, pelada.horario, pelada.horario_fim)}
         </p>
         <p className="flex items-center gap-2 px-3 py-2 text-xs text-foreground">
           <MapPin className="size-4 text-muted-foreground" />

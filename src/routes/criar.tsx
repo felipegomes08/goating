@@ -9,7 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+
+function somarHora(hhmm: string, horas: number) {
+  const [h, m] = hhmm.split(":").map(Number);
+  const total = ((h * 60 + m + horas * 60) % (24 * 60) + 24 * 60) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
 
 export const Route = createFileRoute("/criar")({
   ssr: false,
@@ -35,6 +42,9 @@ function CriarPelada() {
   const [titulo, setTitulo] = useState("");
   const [data, setData] = useState("");
   const [horario, setHorario] = useState("19:30");
+  const [horarioFim, setHorarioFim] = useState(somarHora("19:30", 1));
+  const [horarioFimTocado, setHorarioFimTocado] = useState(false);
+  const [descricao, setDescricao] = useState("");
   const [local, setLocal] = useState("");
   const [cidade, setCidade] = useState("");
   const [vagas, setVagas] = useState(10);
@@ -89,6 +99,8 @@ function CriarPelada() {
             titulo: titulo.trim(),
             data: d,
             horario,
+            horario_fim: horarioFim,
+            descricao: descricao.trim() || null,
             local: local.trim(),
             cidade: cidadeFinal.trim(),
             quantidade_vagas: vagas,
@@ -206,15 +218,36 @@ function CriarPelada() {
             />
           </div>
           <div>
-            <Label htmlFor="horario">Horário</Label>
+            <Label htmlFor="horario">Início</Label>
             <Input
               id="horario"
               type="time"
               value={horario}
-              onChange={(e) => setHorario(e.target.value)}
+              onChange={(e) => {
+                const novo = e.target.value;
+                setHorario(novo);
+                if (!horarioFimTocado) setHorarioFim(somarHora(novo, 1));
+              }}
               className="mt-1"
             />
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="horarioFim">Término</Label>
+          <Input
+            id="horarioFim"
+            type="time"
+            value={horarioFim}
+            onChange={(e) => {
+              setHorarioFim(e.target.value);
+              setHorarioFimTocado(true);
+            }}
+            className="mt-1"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Já vem 1h depois do início. Muda se sua pelada for mais curta ou mais longa.
+          </p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card p-3">
@@ -341,6 +374,18 @@ function CriarPelada() {
               </p>
             </button>
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="descricao">Descrição (opcional)</Label>
+          <Textarea
+            id="descricao"
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+            placeholder="Ex: R$15 por pessoa via Pix · link do grupo: wa.me/..."
+            className="mt-1"
+            rows={3}
+          />
         </div>
       </div>
 

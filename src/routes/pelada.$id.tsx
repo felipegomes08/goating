@@ -74,13 +74,16 @@ function iniciais(nome: string) {
     .join("");
 }
 
-function dataLonga(data: string, horario: string) {
+function dataLonga(data: string, horario: string, horarioFim?: string | null) {
   const d = new Date(`${data}T${horario}`);
-  return d.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-  }) + ` · ${horario.slice(0, 5)}`;
+  const faixa = horarioFim ? `${horario.slice(0, 5)} às ${horarioFim.slice(0, 5)}` : horario.slice(0, 5);
+  return (
+    d.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+    }) + ` · ${faixa}`
+  );
 }
 
 function DetalhePelada() {
@@ -251,7 +254,7 @@ function DetalhePelada() {
         <div className="divide-y divide-border rounded-2xl bg-card shadow-[var(--shadow-card)]">
           <p className="flex items-center gap-2 px-4 py-3 text-sm text-foreground">
             <CalendarDays className="size-4 text-muted-foreground" />
-            <span className="capitalize">{dataLonga(pelada.data, pelada.horario)}</span>
+            <span className="capitalize">{dataLonga(pelada.data, pelada.horario, pelada.horario_fim)}</span>
           </p>
           <p className="flex items-center gap-2 px-4 py-3 text-sm text-foreground">
             <MapPin className="size-4 text-muted-foreground" />

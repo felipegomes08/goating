@@ -38,6 +38,7 @@ type LinhaPelada = {
   titulo: string;
   data: string;
   horario: string;
+  horario_fim: string | null;
   local: string;
   cidade: string;
   quantidade_vagas: number;
@@ -60,7 +61,7 @@ function Feed() {
       const { data: peladas, error } = await supabase
         .from("matches")
         .select(
-          "id, titulo, data, horario, local, cidade, quantidade_vagas, tipo, organizador_id",
+          "id, titulo, data, horario, horario_fim, local, cidade, quantidade_vagas, tipo, organizador_id",
         )
         .eq("status", "agendada")
         .eq("cidade", cidade!)
