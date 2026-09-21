@@ -93,7 +93,7 @@ function Ranking() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
       <header className="bg-primary px-4 pt-6 pb-6">
-        <h1 className="text-center text-lg font-bold text-primary-foreground">Ranking</h1>
+        <h1 className="text-lg font-bold text-primary-foreground">Ranking</h1>
 
         <div className="mt-4 grid grid-cols-3 gap-1 rounded-xl bg-primary-foreground/10 p-1">
           {(

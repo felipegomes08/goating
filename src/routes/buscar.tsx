@@ -122,7 +122,7 @@ function Comunidade() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
       <header className="bg-primary px-4 pt-6 pb-6">
-        <h1 className="text-center text-lg font-bold text-primary-foreground">Comunidade</h1>
+        <h1 className="text-lg font-bold text-primary-foreground">Comunidade</h1>
 
         <div className="relative mt-4">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
