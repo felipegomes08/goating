@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BuscarRouteImport } from './routes/buscar'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as RedeRouteImport } from './routes/rede'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as JogadorIdRouteImport } from './routes/jogador.$id'
@@ -44,6 +45,11 @@ const CriarRoute = CriarRouteImport.update({
 const PerfilRoute = PerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RankingRoute = RankingRouteImport.update({
+  id: '/ranking',
+  path: '/ranking',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RedeRoute = RedeRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
   '/perfil': typeof PerfilRoute
+  '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/jogador/$id': typeof JogadorIdRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
   '/perfil': typeof PerfilRoute
+  '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/jogador/$id': typeof JogadorIdRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
   '/perfil': typeof PerfilRoute
+  '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/jogador/$id': typeof JogadorIdRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/buscar'
     | '/criar'
     | '/perfil'
+    | '/ranking'
     | '/rede'
     | '/redefinir-senha'
     | '/jogador/$id'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/buscar'
     | '/criar'
     | '/perfil'
+    | '/ranking'
     | '/rede'
     | '/redefinir-senha'
     | '/jogador/$id'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/buscar'
     | '/criar'
     | '/perfil'
+    | '/ranking'
     | '/rede'
     | '/redefinir-senha'
     | '/jogador/$id'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   BuscarRoute: typeof BuscarRoute
   CriarRoute: typeof CriarRoute
   PerfilRoute: typeof PerfilRoute
+  RankingRoute: typeof RankingRoute
   RedeRoute: typeof RedeRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   JogadorIdRoute: typeof JogadorIdRoute
@@ -207,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/perfil'
       preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ranking': {
+      id: '/ranking'
+      path: '/ranking'
+      fullPath: '/ranking'
+      preLoaderRoute: typeof RankingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rede': {
@@ -272,6 +292,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuscarRoute: BuscarRoute,
   CriarRoute: CriarRoute,
   PerfilRoute: PerfilRoute,
+  RankingRoute: RankingRoute,
   RedeRoute: RedeRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
   JogadorIdRoute: JogadorIdRoute,
