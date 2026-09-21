@@ -32,7 +32,7 @@ export const Route = createFileRoute("/buscar")({
 });
 
 const CAMPOS =
-  "id, nome_exibicao, cidade, foto_url, overall, peladas_jogadas, avaliacoes_recebidas";
+  "id, nome_exibicao, cidade, foto_url, overall, peladas_jogadas, xp, tier_reconhecido, avaliacoes_recebidas";
 
 function Comunidade() {
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Lock } from "lucide-react";
+import { Gift, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { type TierConfig, avaliacoesFaltando } from "@/lib/tiers";
@@ -26,6 +26,10 @@ export function PlayerCard({
   tier,
   cardGeradoUrl,
   avaliacoesRecebidas,
+  recompensaPendente = false,
+  abrindo = false,
+  revelando = false,
+  onRevelar,
 }: {
   nome: string;
   posicao: string | null;
@@ -35,6 +39,13 @@ export function PlayerCard({
   tier: TierConfig | null;
   cardGeradoUrl: string | null;
   avaliacoesRecebidas: number;
+  /** Existe um tier novo esperando ser revelado — a carta atual (tier antigo) fica escondida atrás de um presente. */
+  recompensaPendente?: boolean;
+  /** true logo após o clique, durante a suspense antes da carta nova aparecer (presente "tremendo"). */
+  abrindo?: boolean;
+  /** true durante a animação de revelação da carta nova. */
+  revelando?: boolean;
+  onRevelar?: () => void;
 }) {
   const [moldeUrl, setMoldeUrl] = useState<string | null>(null);
   const [cacheUrl, setCacheUrl] = useState<string | null>(null);
@@ -66,7 +77,12 @@ export function PlayerCard({
   const offset = tier?.offsetY ?? 0;
 
   return (
-    <div className="relative mx-auto w-full max-w-[280px]">
+    <div
+      className={cn(
+        "relative mx-auto w-full max-w-[280px]",
+        revelando && "animate-goat-reveal",
+      )}
+    >
       <div className="relative aspect-[1086/1448] overflow-hidden rounded-2xl bg-primary">
         {cacheUrl ? (
           <img src={cacheUrl} alt={`Cartinha de ${nome}`} className="size-full object-cover" />
@@ -134,6 +150,26 @@ export function PlayerCard({
             Faltam {avaliacoesFaltando(avaliacoesRecebidas)} avaliações pós-pelada para liberar seu
             overall e tier.
           </p>
+        </div>
+      )}
+
+      {!bloqueado && recompensaPendente && !revelando && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-primary/95 px-6 text-center">
+          <Gift className={cn("size-8 text-mint", abrindo && "animate-gift-shake")} />
+          {abrindo ? (
+            <p className="text-sm font-bold text-primary-foreground">Abrindo...</p>
+          ) : (
+            <>
+              <p className="text-sm font-bold text-primary-foreground">Recompensa disponível!</p>
+              <button
+                type="button"
+                onClick={onRevelar}
+                className="rounded-full bg-mint px-4 py-2 text-xs font-bold text-mint-foreground"
+              >
+                Toque pra revelar
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

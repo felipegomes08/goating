@@ -20,7 +20,7 @@ import { useSession } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { tierDoJogador } from "@/lib/tiers";
+import { tierPorNome } from "@/lib/tiers";
 
 export const Route = createFileRoute("/pelada/$id")({
   ssr: false,
@@ -61,8 +61,7 @@ type Participante = {
   user_id: string;
   status: string;
   nome: string;
-  overall: number;
-  peladas: number;
+  tier_reconhecido: string | null;
   foto: string | null;
 };
 
@@ -113,7 +112,7 @@ function DetalhePelada() {
       const ids = [...new Set([...(parts ?? []).map((p) => p.user_id), pelada.organizador_id])];
       const { data: perfis } = await supabase
         .from("profiles")
-        .select("id, nome_exibicao, overall, peladas_jogadas, foto_url")
+        .select("id, nome_exibicao, tier_reconhecido, foto_url")
         .in("id", ids);
 
       const lista: Participante[] = (parts ?? []).map((p) => {
@@ -123,8 +122,7 @@ function DetalhePelada() {
           user_id: p.user_id,
           status: p.status,
           nome: perfil?.nome_exibicao ?? "Jogador",
-          overall: Number(perfil?.overall ?? 0),
-          peladas: perfil?.peladas_jogadas ?? 0,
+          tier_reconhecido: perfil?.tier_reconhecido ?? null,
           foto: perfil?.foto_url ?? null,
         };
       });
@@ -331,7 +329,7 @@ function DetalhePelada() {
               <p className="text-sm text-muted-foreground">Ninguém confirmado ainda.</p>
             )}
             {aprovados.map((p) => {
-              const tier = tierDoJogador(p.overall, p.peladas);
+              const tier = tierPorNome(p.tier_reconhecido);
               const ehMvp = pelada.mvp_id === p.user_id;
               return (
                 <div

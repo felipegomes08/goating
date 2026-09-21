@@ -14,12 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   avaliacoesFaltando,
   overallLiberado,
   paraEscalaCard,
   proximoTier,
-  tierDoJogador,
+  tierPorNome,
 } from "@/lib/tiers";
 
 export const Route = createFileRoute("/perfil")({
@@ -58,6 +59,8 @@ function Perfil() {
   const [posicao, setPosicao] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+  const [abrindo, setAbrindo] = useState(false);
+  const [revelando, setRevelando] = useState(false);
 
   useEffect(() => {
     if (!carregando && !userId) navigate({ to: "/auth", replace: true });
@@ -190,10 +193,35 @@ function Perfil() {
   }
 
   const overall = overallLiberado(perfil.avaliacoes_recebidas) ? Number(perfil.overall) : 0;
+  // O tier exibido é sempre o "reconhecido" (já revelado) — nunca pula direto pro tier
+  // calculado ao vivo enquanto tiver recompensa pendente pra abrir.
   const tier = overallLiberado(perfil.avaliacoes_recebidas)
-    ? tierDoJogador(overall, perfil.peladas_jogadas)
+    ? tierPorNome(perfil.tier_reconhecido)
     : null;
-  const proximo = proximoTier(overall, perfil.peladas_jogadas);
+  const proximo = proximoTier(overall, perfil.xp);
+  const xpBase = tier?.xpMinimo ?? 0;
+  const progressoXp = proximo
+    ? Math.min(100, Math.max(0, ((perfil.xp - xpBase) / (proximo.xpMinimo - xpBase)) * 100))
+    : 100;
+  const overallOk = proximo ? overall >= proximo.overallMinimo : true;
+
+  async function revelarTier() {
+    setAbrindo(true);
+    // A confirmação já vai pro banco assim que clica — se o app fechar durante a
+    // suspense ou a animação, ao reabrir já está com o tier novo garantido.
+    const chamada = supabase.rpc("reivindicar_tier");
+    const suspense = new Promise((resolve) => setTimeout(resolve, 1300));
+    const [{ data, error }] = await Promise.all([chamada, suspense]);
+    if (error || !data) {
+      toast.error("Não deu pra revelar sua recompensa agora.");
+      setAbrindo(false);
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["perfil", userId] });
+    setAbrindo(false);
+    setRevelando(true);
+    setTimeout(() => setRevelando(false), 1600);
+  }
   const attrs = medias.data ?? {
     chute: 0,
     drible: 0,
@@ -229,6 +257,10 @@ function Perfil() {
             tier={tier}
             cardGeradoUrl={perfil.card_gerado_url}
             avaliacoesRecebidas={perfil.avaliacoes_recebidas}
+            recompensaPendente={!!perfil.tier_pendente}
+            abrindo={abrindo}
+            revelando={revelando}
+            onRevelar={revelarTier}
           />
         </div>
 
@@ -248,9 +280,10 @@ function Perfil() {
       </header>
 
       <main className="flex-1 space-y-4 px-4 py-4">
-        <section className="grid grid-cols-3 gap-2">
+        <section className="grid grid-cols-2 gap-2">
           {[
             ["Peladas", perfil.peladas_jogadas],
+            ["XP", perfil.xp],
             ["MVPs", perfil.vezes_mvp],
             ["Avaliações", perfil.avaliacoes_recebidas],
           ].map(([label, valor]) => (
@@ -284,11 +317,19 @@ function Perfil() {
           </p>
         )}
 
-        {proximo && (
-          <p className="rounded-2xl bg-card p-4 text-xs text-muted-foreground shadow-[var(--shadow-card)]">
-            Próximo tier: <span className="font-bold text-foreground">{proximo.nome}</span> —
-            precisa de overall {proximo.overallMinimo} e {proximo.peladasMinimas} peladas.
-          </p>
+        {proximo && !perfil.tier_pendente && (
+          <div className="space-y-2 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+            <p className="text-xs text-muted-foreground">
+              Próximo tier: <span className="font-bold text-foreground">{proximo.nome}</span>
+            </p>
+            <Progress value={progressoXp} />
+            <p className="text-[11px] text-muted-foreground">
+              {perfil.xp} / {proximo.xpMinimo} XP
+              {!overallOk && (
+                <> · precisa também de overall {proximo.overallMinimo}+</>
+              )}
+            </p>
+          </div>
         )}
 
         <section className="rounded-2xl bg-primary p-4">

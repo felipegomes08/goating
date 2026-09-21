@@ -34,7 +34,7 @@ export const Route = createFileRoute("/ranking")({
 });
 
 const CAMPOS =
-  "id, nome_exibicao, cidade, foto_url, overall, peladas_jogadas, avaliacoes_recebidas";
+  "id, nome_exibicao, cidade, foto_url, overall, peladas_jogadas, xp, tier_reconhecido, avaliacoes_recebidas";
 
 function Ranking() {
   const navigate = useNavigate();
@@ -66,7 +66,7 @@ function Ranking() {
           .in("id", ids)
           .gte("avaliacoes_recebidas", MIN_AVALIACOES)
           .order("overall", { ascending: false })
-          .order("peladas_jogadas", { ascending: false })
+          .order("xp", { ascending: false })
           .limit(100);
         if (erroPerfis) throw erroPerfis;
         return (data ?? []) as JogadorResumo[];
@@ -79,7 +79,7 @@ function Ranking() {
       if (aba === "cidade" && cidade) q = q.eq("cidade", cidade);
       const { data, error } = await q
         .order("overall", { ascending: false })
-        .order("peladas_jogadas", { ascending: false })
+        .order("xp", { ascending: false })
         .limit(100);
       if (error) throw error;
       return (data ?? []) as JogadorResumo[];

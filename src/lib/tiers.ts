@@ -3,7 +3,7 @@ export type TierNome = "Bronze" | "Prata" | "Ouro" | "Platina" | "Lendário" | "
 export type TierConfig = {
   nome: TierNome;
   overallMinimo: number;
-  peladasMinimas: number;
+  xpMinimo: number;
   ordem: number;
   /** classe de cor de texto usada nos números do card */
   textClass: string;
@@ -14,11 +14,17 @@ export type TierConfig = {
   offsetY: number;
 };
 
+/**
+ * xpMinimo calibrado pra manter o mesmo tempo médio de progressão que existia
+ * com o critério antigo (peladas jogadas), assumindo ~38xp por pelada média
+ * (10xp fixo + ~3 avaliações recebidas com nota ~7 + chance de MVP):
+ * peladas mínimas antigas × 38, arredondado.
+ */
 export const TIERS: TierConfig[] = [
   {
     nome: "Bronze",
     overallMinimo: 0,
-    peladasMinimas: 5,
+    xpMinimo: 200,
     ordem: 1,
     textClass: "text-tier-bronze",
     chipClass: "bg-tier-bronze/15 text-tier-bronze",
@@ -28,7 +34,7 @@ export const TIERS: TierConfig[] = [
   {
     nome: "Prata",
     overallMinimo: 60,
-    peladasMinimas: 8,
+    xpMinimo: 300,
     ordem: 2,
     textClass: "text-tier-prata",
     chipClass: "bg-tier-prata/20 text-tier-prata",
@@ -38,7 +44,7 @@ export const TIERS: TierConfig[] = [
   {
     nome: "Ouro",
     overallMinimo: 70,
-    peladasMinimas: 25,
+    xpMinimo: 950,
     ordem: 3,
     textClass: "text-tier-ouro",
     chipClass: "bg-tier-ouro/20 text-tier-ouro",
@@ -48,7 +54,7 @@ export const TIERS: TierConfig[] = [
   {
     nome: "Platina",
     overallMinimo: 80,
-    peladasMinimas: 50,
+    xpMinimo: 2000,
     ordem: 4,
     textClass: "text-tier-platina",
     chipClass: "bg-tier-platina/20 text-tier-platina",
@@ -58,7 +64,7 @@ export const TIERS: TierConfig[] = [
   {
     nome: "Lendário",
     overallMinimo: 90,
-    peladasMinimas: 100,
+    xpMinimo: 4000,
     ordem: 5,
     textClass: "text-tier-lendario",
     chipClass: "bg-tier-lendario/25 text-tier-lendario",
@@ -68,7 +74,7 @@ export const TIERS: TierConfig[] = [
   {
     nome: "GOAT",
     overallMinimo: 95,
-    peladasMinimas: 180,
+    xpMinimo: 7000,
     ordem: 6,
     textClass: "text-tier-goat",
     chipClass: "bg-tier-goat/20 text-tier-goat",
@@ -79,17 +85,22 @@ export const TIERS: TierConfig[] = [
 
 export const MIN_AVALIACOES = 3;
 
-/** Tier é sempre derivado: overall E peladas precisam bater o mínimo. */
-export function tierDoJogador(overall: number, peladasJogadas: number): TierConfig | null {
+/** Tier é sempre derivado: overall E xp precisam bater o mínimo. */
+export function tierDoJogador(overall: number, xp: number): TierConfig | null {
   let atual: TierConfig | null = null;
   for (const t of TIERS) {
-    if (overall >= t.overallMinimo && peladasJogadas >= t.peladasMinimas) atual = t;
+    if (overall >= t.overallMinimo && xp >= t.xpMinimo) atual = t;
   }
   return atual;
 }
 
-export function proximoTier(overall: number, peladasJogadas: number): TierConfig | null {
-  const atual = tierDoJogador(overall, peladasJogadas);
+/** Busca um tier pelo nome — usado pra exibir o tier "reconhecido" (já revelado) do jogador. */
+export function tierPorNome(nome: string | null | undefined): TierConfig | null {
+  return TIERS.find((t) => t.nome === nome) ?? null;
+}
+
+export function proximoTier(overall: number, xp: number): TierConfig | null {
+  const atual = tierDoJogador(overall, xp);
   const ordem = atual?.ordem ?? 0;
   return TIERS.find((t) => t.ordem === ordem + 1) ?? null;
 }

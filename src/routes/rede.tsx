@@ -37,7 +37,7 @@ export const Route = createFileRoute("/rede")({
 });
 
 const CAMPOS =
-  "id, nome_exibicao, cidade, foto_url, overall, peladas_jogadas, avaliacoes_recebidas";
+  "id, nome_exibicao, cidade, foto_url, overall, peladas_jogadas, xp, tier_reconhecido, avaliacoes_recebidas";
 
 function Rede() {
   const navigate = useNavigate();

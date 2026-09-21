@@ -11,7 +11,7 @@ import { PlayerCard } from "@/components/goating/player-card";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { overallLiberado, paraEscalaCard, tierDoJogador } from "@/lib/tiers";
+import { overallLiberado, paraEscalaCard, tierPorNome } from "@/lib/tiers";
 
 export const Route = createFileRoute("/jogador/$id")({
   ssr: false,
@@ -175,7 +175,7 @@ function JogadorPublico() {
 
   const liberado = overallLiberado(perfil.avaliacoes_recebidas);
   const overall = liberado ? Number(perfil.overall) : 0;
-  const tier = liberado ? tierDoJogador(overall, perfil.peladas_jogadas) : null;
+  const tier = liberado ? tierPorNome(perfil.tier_reconhecido) : null;
   const attrs = medias.data ?? {
     chute: 0,
     drible: 0,
@@ -244,9 +244,10 @@ function JogadorPublico() {
           </p>
         </section>
 
-        <section className="grid grid-cols-3 gap-2">
+        <section className="grid grid-cols-2 gap-2">
           {[
             ["Peladas", perfil.peladas_jogadas],
+            ["XP", perfil.xp],
             ["MVPs", perfil.vezes_mvp],
             ["Avaliações", perfil.avaliacoes_recebidas],
           ].map(([label, valor]) => (

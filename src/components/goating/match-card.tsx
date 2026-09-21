@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { CalendarDays, Check, Lock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { tierDoJogador } from "@/lib/tiers";
+import { tierPorNome } from "@/lib/tiers";
 
 export type PeladaFeed = {
   id: string;
@@ -17,8 +17,7 @@ export type PeladaFeed = {
   confirmados: number;
   organizador: {
     nome_exibicao: string;
-    overall: number;
-    peladas_jogadas: number;
+    tier_reconhecido: string | null;
   } | null;
   minhaSituacao: "nenhuma" | "pendente" | "aprovado";
 };
@@ -58,9 +57,7 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
   const aberta = pelada.tipo === "aberta";
   const lotado = pelada.confirmados >= pelada.quantidade_vagas;
   const proporcao = Math.min(1, pelada.confirmados / pelada.quantidade_vagas);
-  const tier = pelada.organizador
-    ? tierDoJogador(Number(pelada.organizador.overall), pelada.organizador.peladas_jogadas)
-    : null;
+  const tier = pelada.organizador ? tierPorNome(pelada.organizador.tier_reconhecido) : null;
 
   const barra = lotado ? "bg-destructive" : proporcao > 0.7 ? "bg-mint" : "bg-primary";
 

@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { User, UserMinus, UserPlus } from "lucide-react";
 import { useAvatarUrl } from "@/hooks/use-avatar";
 import { cn } from "@/lib/utils";
-import { overallLiberado, tierDoJogador } from "@/lib/tiers";
+import { overallLiberado, tierPorNome } from "@/lib/tiers";
 
 export type JogadorResumo = {
   id: string;
@@ -11,6 +11,8 @@ export type JogadorResumo = {
   foto_url: string | null;
   overall: number | string;
   peladas_jogadas: number;
+  xp: number;
+  tier_reconhecido: string | null;
   avaliacoes_recebidas: number;
 };
 
@@ -29,7 +31,7 @@ export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocup
   const foto = useAvatarUrl(jogador.foto_url);
   const liberado = overallLiberado(jogador.avaliacoes_recebidas);
   const overall = liberado ? Math.round(Number(jogador.overall)) : null;
-  const tier = liberado ? tierDoJogador(Number(jogador.overall), jogador.peladas_jogadas) : null;
+  const tier = liberado ? tierPorNome(jogador.tier_reconhecido) : null;
 
   return (
     <div className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-[var(--shadow-card)]">

@@ -298,7 +298,10 @@ export type Database = {
           perfil_completo: boolean
           plano: string
           posicao_preferida: string | null
+          tier_pendente: string | null
+          tier_reconhecido: string | null
           vezes_mvp: number
+          xp: number
         }
         Insert: {
           avaliacoes_recebidas?: number
@@ -316,7 +319,10 @@ export type Database = {
           perfil_completo?: boolean
           plano?: string
           posicao_preferida?: string | null
+          tier_pendente?: string | null
+          tier_reconhecido?: string | null
           vezes_mvp?: number
+          xp?: number
         }
         Update: {
           avaliacoes_recebidas?: number
@@ -334,7 +340,10 @@ export type Database = {
           perfil_completo?: boolean
           plano?: string
           posicao_preferida?: string | null
+          tier_pendente?: string | null
+          tier_reconhecido?: string | null
           vezes_mvp?: number
+          xp?: number
         }
         Relationships: []
       }
@@ -346,6 +355,10 @@ export type Database = {
       pode_avaliar: {
         Args: { _avaliado: string; _avaliador: string; _match_id: string }
         Returns: boolean
+      }
+      reivindicar_tier: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
     }
     Enums: {
