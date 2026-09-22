@@ -167,7 +167,7 @@ function JogadorPublico() {
       <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <p className="text-sm text-muted-foreground">Não encontramos esse jogador.</p>
         <Button asChild>
-          <Link to="/buscar">Buscar jogadores</Link>
+          <Link to="/ranking">Ver ranking</Link>
         </Button>
       </div>
     );
@@ -197,8 +197,8 @@ function JogadorPublico() {
             size="sm"
             className="text-mint hover:bg-mint/10 hover:text-mint"
           >
-            <Link to="/buscar">
-              <ArrowLeft className="size-4" /> Buscar
+            <Link to="/ranking">
+              <ArrowLeft className="size-4" /> Ranking
             </Link>
           </Button>
           <h1 className="truncate text-lg font-bold text-primary-foreground">

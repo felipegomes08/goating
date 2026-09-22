@@ -129,7 +129,7 @@ function Rede() {
                 : "Ninguém está te seguindo ainda."}
             </p>
             <Button asChild>
-              <Link to="/buscar">Buscar jogadores</Link>
+              <Link to="/ranking">Ver ranking</Link>
             </Button>
           </div>
         ) : (

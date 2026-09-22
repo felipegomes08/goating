@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BuscarRouteImport } from './routes/buscar'
 import { Route as CriarRouteImport } from './routes/criar'
+import { Route as MinhasPartidasRouteImport } from './routes/minhas-partidas'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as RedeRouteImport } from './routes/rede'
@@ -40,6 +41,11 @@ const BuscarRoute = BuscarRouteImport.update({
 const CriarRoute = CriarRouteImport.update({
   id: '/criar',
   path: '/criar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhasPartidasRoute = MinhasPartidasRouteImport.update({
+  id: '/minhas-partidas',
+  path: '/minhas-partidas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PerfilRoute = PerfilRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
+  '/minhas-partidas': typeof MinhasPartidasRoute
   '/perfil': typeof PerfilRoute
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
+  '/minhas-partidas': typeof MinhasPartidasRoute
   '/perfil': typeof PerfilRoute
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
+  '/minhas-partidas': typeof MinhasPartidasRoute
   '/perfil': typeof PerfilRoute
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/buscar'
     | '/criar'
+    | '/minhas-partidas'
     | '/perfil'
     | '/ranking'
     | '/rede'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/buscar'
     | '/criar'
+    | '/minhas-partidas'
     | '/perfil'
     | '/ranking'
     | '/rede'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/buscar'
     | '/criar'
+    | '/minhas-partidas'
     | '/perfil'
     | '/ranking'
     | '/rede'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BuscarRoute: typeof BuscarRoute
   CriarRoute: typeof CriarRoute
+  MinhasPartidasRoute: typeof MinhasPartidasRoute
   PerfilRoute: typeof PerfilRoute
   RankingRoute: typeof RankingRoute
   RedeRoute: typeof RedeRoute
@@ -213,6 +226,13 @@ declare module '@tanstack/react-router' {
       path: '/criar'
       fullPath: '/criar'
       preLoaderRoute: typeof CriarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minhas-partidas': {
+      id: '/minhas-partidas'
+      path: '/minhas-partidas'
+      fullPath: '/minhas-partidas'
+      preLoaderRoute: typeof MinhasPartidasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/perfil': {
@@ -291,6 +311,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BuscarRoute: BuscarRoute,
   CriarRoute: CriarRoute,
+  MinhasPartidasRoute: MinhasPartidasRoute,
   PerfilRoute: PerfilRoute,
   RankingRoute: RankingRoute,
   RedeRoute: RedeRoute,

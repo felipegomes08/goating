@@ -165,6 +165,9 @@ function DetalhePelada() {
   const eu = participantes.find((p) => p.user_id === userId);
   const lotado = aprovados.length >= pelada.quantidade_vagas;
   const finalizada = pelada.status === "finalizada";
+  const mvpNome = pelada.mvp_id
+    ? (participantes.find((p) => p.user_id === pelada.mvp_id)?.nome ?? null)
+    : null;
   const dentroDaJanela =
     finalizada &&
     !!pelada.finalizada_em &&
@@ -235,17 +238,25 @@ function DetalhePelada() {
 
   return (
     <div className="app-shell flex min-h-screen flex-col pb-28">
-      <header className="bg-primary px-4 pt-4 pb-5">
+      <header className={cn("px-4 pt-4 pb-5", finalizada ? "bg-neutral-900" : "bg-primary")}>
         <div className="flex items-center gap-3">
           <Link to="/" aria-label="Voltar">
             <ArrowLeft className="size-5 text-primary-foreground" />
           </Link>
-          <span className="text-xs font-semibold tracking-wide text-mint uppercase">
-            {finalizada ? "Pelada finalizada" : pelada.tipo === "aberta" ? "Pelada aberta" : "Pelada fechada"}
-          </span>
+          {finalizada ? (
+            <span className="flex items-center gap-1 text-xs font-bold tracking-wide text-destructive uppercase">
+              <Flag className="size-3.5" /> Pelada finalizada
+            </span>
+          ) : (
+            <span className="text-xs font-semibold tracking-wide text-mint uppercase">
+              {pelada.tipo === "aberta" ? "Pelada aberta" : "Pelada fechada"}
+            </span>
+          )}
         </div>
         <h1 className="mt-3 text-2xl font-extrabold text-primary-foreground">{pelada.titulo}</h1>
-        <p className="mt-1 text-sm text-mint">por {organizador?.nome_exibicao ?? "organizador"}</p>
+        <p className={cn("mt-1 text-sm", finalizada ? "text-primary-foreground/60" : "text-mint")}>
+          por {organizador?.nome_exibicao ?? "organizador"}
+        </p>
       </header>
 
       <div className="space-y-4 p-4">
@@ -259,20 +270,29 @@ function DetalhePelada() {
             {pelada.local} · {pelada.cidade}
           </p>
           <p className="flex items-center gap-2 px-4 py-3 text-sm text-foreground">
-            {pelada.tipo === "aberta" ? (
+            {finalizada ? (
+              <Flag className="size-4 text-destructive" />
+            ) : pelada.tipo === "aberta" ? (
               <Check className="size-4 text-muted-foreground" />
             ) : (
               <Lock className="size-4 text-muted-foreground" />
             )}
-            {aprovados.length}/{pelada.quantidade_vagas} confirmados
+            {aprovados.length}/{pelada.quantidade_vagas} {finalizada ? "jogaram" : "confirmados"}
           </p>
         </div>
+
+        {finalizada && mvpNome && (
+          <div className="flex items-center gap-2 rounded-2xl border border-tier-ouro/40 bg-tier-ouro/10 px-4 py-3">
+            <Crown className="size-4 text-tier-ouro" />
+            <p className="text-sm font-semibold text-foreground">MVP da partida: {mvpNome}</p>
+          </div>
+        )}
 
         {pelada.descricao && (
           <p className="rounded-2xl bg-secondary/60 p-4 text-sm text-foreground">{pelada.descricao}</p>
         )}
 
-        {linkConvite && (souOrganizador || eu?.status === "aprovado") && (
+        {!finalizada && linkConvite && (souOrganizador || eu?.status === "aprovado") && (
           <Button
             variant="outline"
             className="w-full"
@@ -285,7 +305,7 @@ function DetalhePelada() {
           </Button>
         )}
 
-        {souOrganizador && pendentes.length > 0 && (
+        {!finalizada && souOrganizador && pendentes.length > 0 && (
           <section>
             <h2 className="mb-2 text-sm font-bold text-foreground">
               Pedidos para entrar ({pendentes.length})
@@ -322,7 +342,7 @@ function DetalhePelada() {
 
         <section>
           <h2 className="mb-2 text-sm font-bold text-foreground">
-            Confirmados ({aprovados.length})
+            {finalizada ? "Jogaram" : "Confirmados"} ({aprovados.length})
           </h2>
           <div className="space-y-2">
             {aprovados.length === 0 && (

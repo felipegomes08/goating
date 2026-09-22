@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { House, Plus, Trophy, User, Users } from "lucide-react";
+import { CalendarDays, House, Plus, Trophy, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {
@@ -35,9 +35,9 @@ export function BottomNav() {
           <span className="pt-9 pb-3 text-[11px] font-medium text-muted-foreground">Criar</span>
         </div>
 
-        <Link to="/buscar" className={item(pathname.startsWith("/buscar"))}>
-          <Users className="size-5" strokeWidth={2} />
-          Comunidade
+        <Link to="/minhas-partidas" className={item(pathname.startsWith("/minhas-partidas"))}>
+          <CalendarDays className="size-5" strokeWidth={2} />
+          Partidas
         </Link>
 
         <Link to="/perfil" className={item(pathname.startsWith("/perfil"))}>
