@@ -183,7 +183,13 @@ function MinhasPartidas() {
             )}
           </div>
         ) : (
-          lista.map((p) => <MatchCard key={p.id} pelada={p} />)
+          lista.map((p) => (
+            <MatchCard
+              key={p.id}
+              pelada={p}
+              voltarPara={aba === "passadas" ? "partidas-passadas" : "partidas-proximas"}
+            />
+          ))
         )}
       </main>
 

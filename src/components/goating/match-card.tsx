@@ -56,7 +56,16 @@ function dataFormatada(data: string, horario: string, horarioFim: string | null)
   return `${semana}, ${d.getDate()} ${mes} · ${faixa}`;
 }
 
-export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
+/** Identifica pra onde a seta "voltar" dos detalhes da pelada deve mandar o usuário de volta. */
+export type VoltarPara = "feed" | "partidas-proximas" | "partidas-passadas";
+
+export function MatchCard({
+  pelada,
+  voltarPara = "feed",
+}: {
+  pelada: PeladaFeed;
+  voltarPara?: VoltarPara;
+}) {
   const finalizada = pelada.status === "finalizada";
   const aberta = pelada.tipo === "aberta";
   const lotado = pelada.confirmados >= pelada.quantidade_vagas;
@@ -148,14 +157,14 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
       <div className="mt-4 flex gap-2">
         {finalizada ? (
           <Button asChild variant="outline" className="flex-1">
-            <Link to="/pelada/$id" params={{ id: pelada.id }}>
+            <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
               Ver detalhes
             </Link>
           </Button>
         ) : (
           <>
             <Button asChild variant="outline" className="flex-1">
-              <Link to="/pelada/$id" params={{ id: pelada.id }}>
+              <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
                 Ver detalhes
               </Link>
             </Button>
@@ -173,13 +182,13 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
               </Button>
             ) : aberta ? (
               <Button asChild className="flex-1 bg-mint font-semibold text-mint-foreground hover:bg-mint/90">
-                <Link to="/pelada/$id" params={{ id: pelada.id }}>
+                <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
                   Entrar
                 </Link>
               </Button>
             ) : (
               <Button asChild className="flex-1">
-                <Link to="/pelada/$id" params={{ id: pelada.id }}>
+                <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
                   Solicitar entrada
                 </Link>
               </Button>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -22,8 +22,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { tierPorNome } from "@/lib/tiers";
 
+type VoltarPara = "feed" | "partidas-proximas" | "partidas-passadas";
+
 export const Route = createFileRoute("/pelada/$id")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>): { voltar?: VoltarPara } => ({
+    voltar:
+      search["voltar"] === "partidas-proximas"
+        ? "partidas-proximas"
+        : search["voltar"] === "partidas-passadas"
+          ? "partidas-passadas"
+          : search["voltar"] === "feed"
+            ? "feed"
+            : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Detalhes da pelada · Goating" },
@@ -87,9 +99,20 @@ function dataLonga(data: string, horario: string, horarioFim?: string | null) {
 
 function DetalhePelada() {
   const { id } = useParams({ from: "/pelada/$id" });
+  const { voltar: voltarPara } = useSearch({ from: "/pelada/$id" });
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  function voltar() {
+    if (voltarPara === "partidas-proximas") {
+      navigate({ to: "/minhas-partidas", search: { aba: "proximas" } });
+    } else if (voltarPara === "partidas-passadas") {
+      navigate({ to: "/minhas-partidas", search: { aba: "passadas" } });
+    } else {
+      navigate({ to: "/" });
+    }
+  }
   const [ocupado, setOcupado] = useState(false);
 
   const consulta = useQuery({
@@ -240,9 +263,9 @@ function DetalhePelada() {
     <div className="app-shell flex min-h-screen flex-col pb-28">
       <header className={cn("px-4 pt-4 pb-5", finalizada ? "bg-neutral-900" : "bg-primary")}>
         <div className="flex items-center gap-3">
-          <Link to="/" aria-label="Voltar">
+          <button type="button" aria-label="Voltar" onClick={voltar}>
             <ArrowLeft className="size-5 text-primary-foreground" />
-          </Link>
+          </button>
           {finalizada ? (
             <span className="flex items-center gap-1 text-xs font-bold tracking-wide text-destructive uppercase">
               <Flag className="size-3.5" /> Pelada finalizada
