@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { tierPorNome } from "@/lib/tiers";
+import { TierBadge } from "@/components/goating/tier-badge";
 
 type VoltarPara = "feed" | "partidas-proximas" | "partidas-passadas";
 
@@ -73,6 +74,7 @@ type Participante = {
   user_id: string;
   status: string;
   nome: string;
+  overall: number | string | null;
   tier_reconhecido: string | null;
   foto: string | null;
 };
@@ -135,7 +137,7 @@ function DetalhePelada() {
       const ids = [...new Set([...(parts ?? []).map((p) => p.user_id), pelada.organizador_id])];
       const { data: perfis } = await supabase
         .from("profiles")
-        .select("id, nome_exibicao, tier_reconhecido, foto_url")
+        .select("id, nome_exibicao, overall, tier_reconhecido, foto_url")
         .in("id", ids);
 
       const lista: Participante[] = (parts ?? []).map((p) => {
@@ -145,6 +147,7 @@ function DetalhePelada() {
           user_id: p.user_id,
           status: p.status,
           nome: perfil?.nome_exibicao ?? "Jogador",
+          overall: perfil?.overall ?? null,
           tier_reconhecido: perfil?.tier_reconhecido ?? null,
           foto: perfil?.foto_url ?? null,
         };
@@ -380,11 +383,12 @@ function DetalhePelada() {
                   className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-[var(--shadow-card)]"
                 >
                   <Avatar nome={p.nome} foto={p.foto} />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      {p.nome}
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                      <TierBadge tier={tier} overall={p.overall} size={18} />
+                      <span className="truncate">{p.nome}</span>
                       {p.user_id === pelada.organizador_id && (
-                        <span className="ml-2 text-[10px] font-bold text-muted-foreground">ORG</span>
+                        <span className="shrink-0 text-[10px] font-bold text-muted-foreground">ORG</span>
                       )}
                     </p>
                     {tier && (

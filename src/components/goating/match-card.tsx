@@ -3,6 +3,7 @@ import { CalendarDays, Check, Crown, Flag, Lock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { tierPorNome } from "@/lib/tiers";
+import { TierBadge } from "@/components/goating/tier-badge";
 
 export type PeladaFeed = {
   id: string;
@@ -20,6 +21,7 @@ export type PeladaFeed = {
   confirmados: number;
   organizador: {
     nome_exibicao: string;
+    overall: number | string | null;
     tier_reconhecido: string | null;
   } | null;
   minhaSituacao: "nenhuma" | "pendente" | "aprovado";
@@ -113,14 +115,13 @@ export function MatchCard({
         <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
           {iniciais(pelada.organizador?.nome_exibicao ?? "?")}
         </span>
-        <span className="text-xs text-muted-foreground">
-          por <span className="font-semibold text-foreground">{pelada.organizador?.nome_exibicao}</span>
-        </span>
-        {tier && (
-          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", tier.chipClass)}>
-            {tier.nome}
+        <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+          por
+          <TierBadge tier={tier} overall={pelada.organizador?.overall} size={16} />
+          <span className="truncate font-semibold text-foreground">
+            {pelada.organizador?.nome_exibicao}
           </span>
-        )}
+        </span>
       </div>
 
       <div className="mt-3 divide-y divide-border rounded-xl bg-secondary/60">

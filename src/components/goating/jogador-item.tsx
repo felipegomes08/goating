@@ -3,6 +3,7 @@ import { User, UserMinus, UserPlus } from "lucide-react";
 import { useAvatarUrl } from "@/hooks/use-avatar";
 import { cn } from "@/lib/utils";
 import { overallLiberado, tierPorNome } from "@/lib/tiers";
+import { TierBadge } from "@/components/goating/tier-badge";
 
 export type JogadorResumo = {
   id: string;
@@ -66,8 +67,11 @@ export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocup
         </span>
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-bold text-foreground">
-            {jogador.nome_exibicao}
+          <span className="flex items-center gap-1.5">
+            <TierBadge tier={tier} overall={overall} size={18} />
+            <span className="truncate text-sm font-bold text-foreground">
+              {jogador.nome_exibicao}
+            </span>
           </span>
           <span className="block truncate text-xs text-muted-foreground">
             {jogador.cidade ?? "Cidade não informada"}

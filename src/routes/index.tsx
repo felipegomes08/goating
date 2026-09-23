@@ -80,7 +80,7 @@ function Feed() {
         supabase.from("match_participants").select("match_id, user_id, status").in("match_id", ids),
         supabase
           .from("profiles")
-          .select("id, nome_exibicao, tier_reconhecido")
+          .select("id, nome_exibicao, overall, tier_reconhecido")
           .in("id", organizadores),
       ]);
 
@@ -94,6 +94,7 @@ function Feed() {
           organizador: org
             ? {
                 nome_exibicao: org.nome_exibicao,
+                overall: org.overall,
                 tier_reconhecido: org.tier_reconhecido,
               }
             : null,

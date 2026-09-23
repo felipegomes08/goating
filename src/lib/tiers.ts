@@ -12,6 +12,8 @@ export type TierConfig = {
   molde: string;
   /** ajuste vertical (px) do bloco de nome/atributos por molde */
   offsetY: number;
+  /** iconezinho do tier (public/tier-badges), usado na frente do nome do jogador */
+  icone: string;
 };
 
 /**
@@ -30,6 +32,7 @@ export const TIERS: TierConfig[] = [
     chipClass: "bg-tier-bronze/15 text-tier-bronze",
     molde: "bronze.png",
     offsetY: 0,
+    icone: "/tier-badges/bronze.png",
   },
   {
     nome: "Prata",
@@ -40,6 +43,7 @@ export const TIERS: TierConfig[] = [
     chipClass: "bg-tier-prata/20 text-tier-prata",
     molde: "prata.png",
     offsetY: 0,
+    icone: "/tier-badges/prata.png",
   },
   {
     nome: "Ouro",
@@ -50,6 +54,7 @@ export const TIERS: TierConfig[] = [
     chipClass: "bg-tier-ouro/20 text-tier-ouro",
     molde: "ouro.png",
     offsetY: -2,
+    icone: "/tier-badges/ouro.png",
   },
   {
     nome: "Platina",
@@ -60,6 +65,7 @@ export const TIERS: TierConfig[] = [
     chipClass: "bg-tier-platina/20 text-tier-platina",
     molde: "platina.png",
     offsetY: -2,
+    icone: "/tier-badges/platina.png",
   },
   {
     nome: "Lendário",
@@ -70,6 +76,7 @@ export const TIERS: TierConfig[] = [
     chipClass: "bg-tier-lendario/25 text-tier-lendario",
     molde: "lendario.png",
     offsetY: -4,
+    icone: "/tier-badges/lendario.png",
   },
   {
     nome: "GOAT",
@@ -80,6 +87,7 @@ export const TIERS: TierConfig[] = [
     chipClass: "bg-tier-goat/20 text-tier-goat",
     molde: "goat.png",
     offsetY: -4,
+    icone: "/tier-badges/goat.png",
   },
 ];
 

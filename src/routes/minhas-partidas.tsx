@@ -97,7 +97,10 @@ function MinhasPartidas() {
 
       const [{ data: participantes }, { data: perfis }] = await Promise.all([
         supabase.from("match_participants").select("match_id, user_id, status").in("match_id", ids),
-        supabase.from("profiles").select("id, nome_exibicao, tier_reconhecido").in("id", pessoas),
+        supabase
+          .from("profiles")
+          .select("id, nome_exibicao, overall, tier_reconhecido")
+          .in("id", pessoas),
       ]);
 
       return linhas.map((p) => {
@@ -111,6 +114,7 @@ function MinhasPartidas() {
           organizador: org
             ? {
                 nome_exibicao: org.nome_exibicao,
+                overall: org.overall,
                 tier_reconhecido: org.tier_reconhecido,
               }
             : null,
