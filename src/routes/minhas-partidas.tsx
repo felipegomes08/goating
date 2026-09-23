@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { BottomNav } from "@/components/goating/bottom-nav";
-import { MatchCard, type PeladaFeed } from "@/components/goating/match-card";
+import { MatchCard, estaPendenteAvaliacao, type PeladaFeed } from "@/components/goating/match-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -47,6 +47,7 @@ type LinhaPelada = {
   status: string;
   organizador_id: string;
   mvp_id: string | null;
+  finalizada_em: string | null;
 };
 
 function MinhasPartidas() {
@@ -78,7 +79,7 @@ function MinhasPartidas() {
       const { data: peladas, error } = await supabase
         .from("matches")
         .select(
-          "id, titulo, data, horario, horario_fim, local, cidade, quantidade_vagas, tipo, status, organizador_id, mvp_id",
+          "id, titulo, data, horario, horario_fim, local, cidade, quantidade_vagas, tipo, status, organizador_id, mvp_id, finalizada_em",
         )
         .or(filtro)
         .order("data", { ascending: true })
@@ -130,11 +131,16 @@ function MinhasPartidas() {
     },
   });
 
-  const proximas = (minhas.data ?? [])
-    .filter((p) => p.status !== "finalizada")
-    .sort((a, b) => `${a.data}${a.horario}`.localeCompare(`${b.data}${b.horario}`));
+  const emAberto = (minhas.data ?? []).filter((p) => p.status !== "finalizada");
+  const pendentesAvaliacao = (minhas.data ?? [])
+    .filter((p) => estaPendenteAvaliacao(p))
+    .sort((a, b) => (b.finalizada_em ?? "").localeCompare(a.finalizada_em ?? ""));
+  const proximas = [
+    ...pendentesAvaliacao,
+    ...emAberto.sort((a, b) => `${a.data}${a.horario}`.localeCompare(`${b.data}${b.horario}`)),
+  ];
   const passadas = (minhas.data ?? [])
-    .filter((p) => p.status === "finalizada")
+    .filter((p) => p.status === "finalizada" && !estaPendenteAvaliacao(p))
     .sort((a, b) => `${b.data}${b.horario}`.localeCompare(`${a.data}${a.horario}`));
 
   const lista = aba === "passadas" ? passadas : proximas;

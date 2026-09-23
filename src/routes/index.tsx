@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { GoatingLogo } from "@/components/goating/logo";
 import { BottomNav } from "@/components/goating/bottom-nav";
-import { MatchCard, type PeladaFeed } from "@/components/goating/match-card";
+import { MatchCard, estaPendenteAvaliacao, type PeladaFeed } from "@/components/goating/match-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,6 +44,11 @@ type LinhaPelada = {
   quantidade_vagas: number;
   tipo: string;
   organizador_id: string;
+};
+
+type LinhaPeladaFinalizada = LinhaPelada & {
+  status: string;
+  finalizada_em: string | null;
 };
 
 function Feed() {
@@ -109,6 +114,75 @@ function Feed() {
     },
   });
 
+  /** Peladas minhas (organizo ou joguei) que já acabaram e ainda estão na janela de 24h de avaliação. */
+  const pendentesAvaliacao = useQuery({
+    queryKey: ["feed-pendentes-avaliacao", userId],
+    enabled: !!userId,
+    queryFn: async (): Promise<PeladaFeed[]> => {
+      const { data: vinculos, error: erroVinculos } = await supabase
+        .from("match_participants")
+        .select("match_id")
+        .eq("user_id", userId!)
+        .eq("status", "aprovado");
+      if (erroVinculos) throw erroVinculos;
+      const idsParticipante = (vinculos ?? []).map((v) => v.match_id);
+
+      const filtro =
+        idsParticipante.length > 0
+          ? `organizador_id.eq.${userId},id.in.(${idsParticipante.join(",")})`
+          : `organizador_id.eq.${userId}`;
+
+      const { data: peladas, error } = await supabase
+        .from("matches")
+        .select(
+          "id, titulo, data, horario, horario_fim, local, cidade, quantidade_vagas, tipo, organizador_id, status, finalizada_em",
+        )
+        .or(filtro)
+        .eq("status", "finalizada")
+        .order("finalizada_em", { ascending: false });
+      if (error) throw error;
+      const linhas = ((peladas ?? []) as LinhaPeladaFinalizada[]).filter((p) =>
+        estaPendenteAvaliacao(p),
+      );
+      if (linhas.length === 0) return [];
+
+      const ids = linhas.map((p) => p.id);
+      const organizadores = [...new Set(linhas.map((p) => p.organizador_id))];
+
+      const [{ data: participantes }, { data: perfis }] = await Promise.all([
+        supabase.from("match_participants").select("match_id, user_id, status").in("match_id", ids),
+        supabase
+          .from("profiles")
+          .select("id, nome_exibicao, overall, tier_reconhecido")
+          .in("id", organizadores),
+      ]);
+
+      return linhas.map((p) => {
+        const doJogo = (participantes ?? []).filter((x) => x.match_id === p.id);
+        const meu = doJogo.find((x) => x.user_id === userId);
+        const org = (perfis ?? []).find((x) => x.id === p.organizador_id);
+        return {
+          ...p,
+          confirmados: doJogo.filter((x) => x.status === "aprovado").length,
+          organizador: org
+            ? {
+                nome_exibicao: org.nome_exibicao,
+                overall: org.overall,
+                tier_reconhecido: org.tier_reconhecido,
+              }
+            : null,
+          mvp: null,
+          minhaSituacao:
+            meu?.status === "aprovado"
+              ? "aprovado"
+              : meu?.status === "pendente"
+                ? "pendente"
+                : "nenhuma",
+        } satisfies PeladaFeed;
+      });
+    },
+  });
+
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     if (!termo) return feed.data ?? [];
@@ -147,6 +221,17 @@ function Feed() {
       </header>
 
       <main className="flex-1 space-y-3 px-4 py-4">
+        {!!pendentesAvaliacao.data?.length && (
+          <div className="space-y-3">
+            <h2 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+              Pendente de avaliação
+            </h2>
+            {pendentesAvaliacao.data.map((p) => (
+              <MatchCard key={p.id} pelada={p} voltarPara="feed" />
+            ))}
+          </div>
+        )}
+
         {carregando || carregandoPerfil || (!!cidade && feed.isLoading) ? (
           [0, 1, 2].map((i) => <Skeleton key={i} className="h-56 w-full rounded-2xl" />)
         ) : !userId ? (

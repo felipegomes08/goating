@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarDays, Check, Crown, Flag, Lock, MapPin } from "lucide-react";
+import { CalendarDays, Check, Crown, Flag, Lock, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { tierPorNome } from "@/lib/tiers";
@@ -17,6 +17,8 @@ export type PeladaFeed = {
   tipo: string;
   /** Opcional: quando ausente, o card assume que a pelada ainda não terminou (uso no feed). */
   status?: string;
+  /** Quando a pelada foi finalizada — define a janela de 24h de avaliação. */
+  finalizada_em?: string | null;
   mvp?: { nome_exibicao: string } | null;
   confirmados: number;
   organizador: {
@@ -61,6 +63,17 @@ function dataFormatada(data: string, horario: string, horarioFim: string | null)
 /** Identifica pra onde a seta "voltar" dos detalhes da pelada deve mandar o usuário de volta. */
 export type VoltarPara = "feed" | "partidas-proximas" | "partidas-passadas";
 
+export const JANELA_AVALIACAO_MS = 24 * 60 * 60 * 1000;
+
+/** true enquanto a pelada finalizada ainda está dentro das 24h de avaliação. */
+export function estaPendenteAvaliacao(pelada: Pick<PeladaFeed, "status" | "finalizada_em">) {
+  return (
+    pelada.status === "finalizada" &&
+    !!pelada.finalizada_em &&
+    Date.now() - new Date(pelada.finalizada_em).getTime() < JANELA_AVALIACAO_MS
+  );
+}
+
 export function MatchCard({
   pelada,
   voltarPara = "feed",
@@ -69,10 +82,13 @@ export function MatchCard({
   voltarPara?: VoltarPara;
 }) {
   const finalizada = pelada.status === "finalizada";
+  const pendenteAvaliacao = estaPendenteAvaliacao(pelada);
+  const avaliacaoEncerrada = finalizada && !pendenteAvaliacao;
   const aberta = pelada.tipo === "aberta";
   const lotado = pelada.confirmados >= pelada.quantidade_vagas;
   const proporcao = Math.min(1, pelada.confirmados / pelada.quantidade_vagas);
   const tier = pelada.organizador ? tierPorNome(pelada.organizador.tier_reconhecido) : null;
+  const podeAvaliar = pendenteAvaliacao && pelada.minhaSituacao === "aprovado" && pelada.confirmados > 1;
 
   const barra = finalizada
     ? "bg-muted-foreground/40"
@@ -86,12 +102,18 @@ export function MatchCard({
     <article
       className={cn(
         "rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]",
-        finalizada && "border-l-4 border-destructive/70 opacity-80",
+        avaliacaoEncerrada && "border-l-4 border-destructive/70 opacity-80",
+        pendenteAvaliacao && "border-l-4 border-tier-ouro",
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-bold text-foreground">{pelada.titulo}</h3>
-        {finalizada ? (
+        {pendenteAvaliacao ? (
+          <span className="flex shrink-0 items-center gap-1 rounded-full border border-tier-ouro bg-tier-ouro/10 px-2 py-1 text-[10px] font-bold tracking-wide text-tier-ouro">
+            <Star className="size-3" />
+            AVALIAR
+          </span>
+        ) : avaliacaoEncerrada ? (
           <span className="flex shrink-0 items-center gap-1 rounded-full border border-destructive bg-destructive/10 px-2 py-1 text-[10px] font-bold tracking-wide text-destructive">
             <Flag className="size-3" />
             FINALIZADA
@@ -156,7 +178,23 @@ export function MatchCard({
       )}
 
       <div className="mt-4 flex gap-2">
-        {finalizada ? (
+        {pendenteAvaliacao ? (
+          <>
+            <Button asChild variant="outline" className="flex-1">
+              <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
+                Ver detalhes
+              </Link>
+            </Button>
+            {podeAvaliar && (
+              <Button asChild className="flex-1 bg-tier-ouro font-semibold text-primary hover:bg-tier-ouro/90">
+                <Link to="/pelada/$id/avaliar" params={{ id: pelada.id }}>
+                  <Star className="mr-1.5 size-4" />
+                  Avaliar
+                </Link>
+              </Button>
+            )}
+          </>
+        ) : finalizada ? (
           <Button asChild variant="outline" className="flex-1">
             <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
               Ver detalhes
