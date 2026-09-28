@@ -152,7 +152,7 @@ function JogadorPublico() {
       <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <p className="text-sm text-muted-foreground">Não encontramos esse jogador.</p>
         <Button asChild>
-          <Link to="/ranking">Ver ranking</Link>
+          <Link to="/ranking" search={{ aba: "cidade" }}>Ver ranking</Link>
         </Button>
       </div>
     );
@@ -174,7 +174,7 @@ function JogadorPublico() {
             size="sm"
             className="text-mint hover:bg-mint/10 hover:text-mint"
           >
-            <Link to="/ranking">
+            <Link to="/ranking" search={{ aba: "cidade" }}>
               <ArrowLeft className="size-4" /> Ranking
             </Link>
           </Button>

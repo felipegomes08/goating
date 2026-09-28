@@ -19,7 +19,11 @@ export function BottomNav() {
           Feed
         </Link>
 
-        <Link to="/ranking" className={item(pathname.startsWith("/ranking"))}>
+        <Link
+          to="/ranking"
+          search={{ aba: "cidade" }}
+          className={item(pathname.startsWith("/ranking"))}
+        >
           <Trophy className="size-5" strokeWidth={2} />
           Ranking
         </Link>
@@ -35,7 +39,11 @@ export function BottomNav() {
           <span className="pt-9 pb-3 text-[11px] font-medium text-muted-foreground">Criar</span>
         </div>
 
-        <Link to="/minhas-partidas" className={item(pathname.startsWith("/minhas-partidas"))}>
+        <Link
+          to="/minhas-partidas"
+          search={{ aba: "proximas" }}
+          className={item(pathname.startsWith("/minhas-partidas"))}
+        >
           <CalendarDays className="size-5" strokeWidth={2} />
           Partidas
         </Link>

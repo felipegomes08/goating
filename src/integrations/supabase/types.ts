@@ -223,6 +223,7 @@ export type Database = {
           descricao: string | null
           finalizada_em: string | null
           horario: string
+          horario_fim: string | null
           id: string
           local: string
           mvp_id: string | null
@@ -239,6 +240,7 @@ export type Database = {
           descricao?: string | null
           finalizada_em?: string | null
           horario: string
+          horario_fim?: string | null
           id?: string
           local: string
           mvp_id?: string | null
@@ -255,6 +257,7 @@ export type Database = {
           descricao?: string | null
           finalizada_em?: string | null
           horario?: string
+          horario_fim?: string | null
           id?: string
           local?: string
           mvp_id?: string | null
@@ -288,6 +291,7 @@ export type Database = {
           card_gerado_url: string | null
           cidade: string | null
           criado_em: string
+          eh_convidado: boolean
           email: string | null
           foto_url: string | null
           handle: string | null
@@ -309,6 +313,7 @@ export type Database = {
           card_gerado_url?: string | null
           cidade?: string | null
           criado_em?: string
+          eh_convidado?: boolean
           email?: string | null
           foto_url?: string | null
           handle?: string | null
@@ -330,6 +335,7 @@ export type Database = {
           card_gerado_url?: string | null
           cidade?: string | null
           criado_em?: string
+          eh_convidado?: boolean
           email?: string | null
           foto_url?: string | null
           handle?: string | null
@@ -352,14 +358,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calcular_xp: { Args: { _uid: string }; Returns: number }
+      convite_info: {
+        Args: { p_token: string }
+        Returns: {
+          cidade: string
+          confirmados: number
+          data: string
+          descricao: string
+          horario: string
+          horario_fim: string
+          local: string
+          match_id: string
+          organizador_nome: string
+          quantidade_vagas: number
+          tipo: string
+          titulo: string
+        }[]
+      }
+      finalizar_peladas_vencidas: { Args: never; Returns: undefined }
       pode_avaliar: {
         Args: { _avaliado: string; _avaliador: string; _match_id: string }
         Returns: boolean
       }
-      reivindicar_tier: {
-        Args: Record<PropertyKey, never>
+      reivindicar_tier: { Args: never; Returns: string }
+      tier_do_jogador: {
+        Args: { _avaliacoes: number; _overall: number; _xp: number }
         Returns: string
       }
+      tier_ordem: { Args: { _nome: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

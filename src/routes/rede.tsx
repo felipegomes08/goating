@@ -129,7 +129,7 @@ function Rede() {
                 : "Ninguém está te seguindo ainda."}
             </p>
             <Button asChild>
-              <Link to="/ranking">Ver ranking</Link>
+              <Link to="/ranking" search={{ aba: "cidade" }}>Ver ranking</Link>
             </Button>
           </div>
         ) : (

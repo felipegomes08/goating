@@ -20,10 +20,10 @@ export type JogadorResumo = {
 type Props = {
   jogador: JogadorResumo;
   /** Número de posição (ranking). Quando presente, aparece à esquerda do avatar. */
-  posicao?: number;
+  posicao?: number | undefined;
   /** Quando presente, mostra o botão de seguir/deixar de seguir à direita. */
-  seguindo?: boolean;
-  onAlternarSeguir?: () => void;
+  seguindo?: boolean | undefined;
+  onAlternarSeguir?: (() => void) | undefined;
   ocupado?: boolean;
 };
 

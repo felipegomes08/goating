@@ -4,6 +4,6 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 // Rota mantida só pra não quebrar link antigo/favorito de alguém.
 export const Route = createFileRoute("/buscar")({
   beforeLoad: () => {
-    throw redirect({ to: "/ranking" });
+    throw redirect({ to: "/ranking", search: { aba: "cidade" } });
   },
 });

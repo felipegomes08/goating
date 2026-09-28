@@ -29,7 +29,7 @@ type VoltarPara = "feed" | "partidas-proximas" | "partidas-passadas";
 
 export const Route = createFileRoute("/pelada/$id")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { voltar?: VoltarPara } => ({
+  validateSearch: (search: Record<string, unknown>): { voltar?: VoltarPara | undefined } => ({
     voltar:
       search["voltar"] === "partidas-proximas"
         ? "partidas-proximas"
