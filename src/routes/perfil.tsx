@@ -9,6 +9,7 @@ import { BottomNav } from "@/components/goating/bottom-nav";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import { PlayerCard } from "@/components/goating/player-card";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
+import { MEDIAS_ZERADAS, SELECT_ATRIBUTOS, mediasAtributos } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,6 @@ import { Progress } from "@/components/ui/progress";
 import {
   avaliacoesFaltando,
   overallLiberado,
-  paraEscalaCard,
   proximoTier,
   tierPorNome,
 } from "@/lib/tiers";
@@ -98,26 +98,10 @@ function Perfil() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("evaluations")
-        .select("chute, drible, velocidade, toque, posicionamento, comportamento, pontualidade")
+        .select(SELECT_ATRIBUTOS)
         .eq("avaliado_id", userId!);
       if (error) throw error;
-      const linhas = data ?? [];
-      const media = (chave: keyof (typeof linhas)[number]) => {
-        const valores = linhas
-          .map((l) => l[chave])
-          .filter((v): v is number => v !== null && v !== undefined);
-        if (valores.length === 0) return 0;
-        return paraEscalaCard(valores.reduce((a, b) => a + Number(b), 0) / valores.length);
-      };
-      return {
-        chute: media("chute"),
-        drible: media("drible"),
-        velocidade: media("velocidade"),
-        toque: media("toque"),
-        posicionamento: media("posicionamento"),
-        comportamento: media("comportamento"),
-        pontualidade: media("pontualidade"),
-      };
+      return mediasAtributos(data ?? []);
     },
   });
 
@@ -222,15 +206,7 @@ function Perfil() {
     setRevelando(true);
     setTimeout(() => setRevelando(false), 1600);
   }
-  const attrs = medias.data ?? {
-    chute: 0,
-    drible: 0,
-    velocidade: 0,
-    toque: 0,
-    posicionamento: 0,
-    comportamento: 0,
-    pontualidade: 0,
-  };
+  const attrs = medias.data ?? MEDIAS_ZERADAS;
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
