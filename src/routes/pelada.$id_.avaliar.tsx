@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, ChevronDown, ChevronLeft, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,6 +90,7 @@ function Avaliar() {
   const { id } = useParams({ from: "/pelada/$id_/avaliar" });
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // null = ainda não navegou; começa no primeiro jogador pendente.
   const [indiceEscolhido, setIndiceEscolhido] = useState<number | null>(null);
@@ -288,6 +289,10 @@ function Avaliar() {
       enviadoEste ? `Nota de ${jogador.nome} atualizada.` : `Nota enviada para ${jogador.nome}.`,
     );
     setEnviadosAgora((s) => new Set(s).add(jogador.id));
+    // Cards e detalhe da pelada passam a refletir "já avaliei".
+    void queryClient.invalidateQueries({ queryKey: ["pelada", id] });
+    void queryClient.invalidateQueries({ queryKey: ["feed-pendentes-avaliacao"] });
+    void queryClient.invalidateQueries({ queryKey: ["minhas-partidas"] });
     if (ultimo) {
       setConcluido(true);
     } else {

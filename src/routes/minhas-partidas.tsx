@@ -4,7 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { BottomNav } from "@/components/goating/bottom-nav";
-import { MatchCard, estaPendenteAvaliacao, type PeladaFeed } from "@/components/goating/match-card";
+import {
+  MatchCard,
+  avaliouTodos,
+  estaPendenteAvaliacao,
+  type PeladaFeed,
+} from "@/components/goating/match-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -96,13 +101,23 @@ function MinhasPartidas() {
         ]),
       ];
 
-      const [{ data: participantes }, { data: perfis }] = await Promise.all([
-        supabase.from("match_participants").select("match_id, user_id, status").in("match_id", ids),
-        supabase
-          .from("profiles")
-          .select("id, nome_exibicao, overall, tier_reconhecido")
-          .in("id", pessoas),
-      ]);
+      const idsFinalizadas = linhas.filter((p) => estaPendenteAvaliacao(p)).map((p) => p.id);
+
+      const [{ data: participantes }, { data: perfis }, { data: minhasAvaliacoes }] =
+        await Promise.all([
+          supabase.from("match_participants").select("match_id, user_id, status").in("match_id", ids),
+          supabase
+            .from("profiles")
+            .select("id, nome_exibicao, overall, tier_reconhecido")
+            .in("id", pessoas),
+          idsFinalizadas.length
+            ? supabase
+                .from("evaluations")
+                .select("match_id, avaliado_id")
+                .eq("avaliador_id", userId!)
+                .in("match_id", idsFinalizadas)
+            : Promise.resolve({ data: [] as { match_id: string; avaliado_id: string }[] }),
+        ]);
 
       return linhas.map((p) => {
         const doJogo = (participantes ?? []).filter((x) => x.match_id === p.id);
@@ -120,6 +135,11 @@ function MinhasPartidas() {
               }
             : null,
           mvp: mvp ? { nome_exibicao: mvp.nome_exibicao } : null,
+          jaAvaliei: avaliouTodos(
+            doJogo,
+            (minhasAvaliacoes ?? []).filter((a) => a.match_id === p.id).map((a) => a.avaliado_id),
+            userId!,
+          ),
           minhaSituacao:
             meu?.status === "aprovado"
               ? "aprovado"
@@ -134,7 +154,12 @@ function MinhasPartidas() {
   const emAberto = (minhas.data ?? []).filter((p) => p.status !== "finalizada");
   const pendentesAvaliacao = (minhas.data ?? [])
     .filter((p) => estaPendenteAvaliacao(p))
-    .sort((a, b) => (b.finalizada_em ?? "").localeCompare(a.finalizada_em ?? ""));
+    // Primeiro as que ainda dependem de mim; as já avaliadas vêm depois.
+    .sort(
+      (a, b) =>
+        Number(!!a.jaAvaliei) - Number(!!b.jaAvaliei) ||
+        (b.finalizada_em ?? "").localeCompare(a.finalizada_em ?? ""),
+    );
   const proximas = [
     ...pendentesAvaliacao,
     ...emAberto.sort((a, b) => `${a.data}${a.horario}`.localeCompare(`${b.data}${b.horario}`)),

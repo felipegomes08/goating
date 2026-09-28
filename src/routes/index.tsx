@@ -6,7 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { GoatingLogo } from "@/components/goating/logo";
 import { BottomNav } from "@/components/goating/bottom-nav";
-import { MatchCard, estaPendenteAvaliacao, type PeladaFeed } from "@/components/goating/match-card";
+import {
+  MatchCard,
+  avaliouTodos,
+  estaPendenteAvaliacao,
+  type PeladaFeed,
+} from "@/components/goating/match-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -149,18 +154,27 @@ function Feed() {
       const ids = linhas.map((p) => p.id);
       const organizadores = [...new Set(linhas.map((p) => p.organizador_id))];
 
-      const [{ data: participantes }, { data: perfis }] = await Promise.all([
-        supabase.from("match_participants").select("match_id, user_id, status").in("match_id", ids),
-        supabase
-          .from("profiles")
-          .select("id, nome_exibicao, overall, tier_reconhecido")
-          .in("id", organizadores),
-      ]);
+      const [{ data: participantes }, { data: perfis }, { data: minhasAvaliacoes }] =
+        await Promise.all([
+          supabase.from("match_participants").select("match_id, user_id, status").in("match_id", ids),
+          supabase
+            .from("profiles")
+            .select("id, nome_exibicao, overall, tier_reconhecido")
+            .in("id", organizadores),
+          supabase
+            .from("evaluations")
+            .select("match_id, avaliado_id")
+            .eq("avaliador_id", userId!)
+            .in("match_id", ids),
+        ]);
 
       return linhas.map((p) => {
         const doJogo = (participantes ?? []).filter((x) => x.match_id === p.id);
         const meu = doJogo.find((x) => x.user_id === userId);
         const org = (perfis ?? []).find((x) => x.id === p.organizador_id);
+        const avaliadosPorMim = (minhasAvaliacoes ?? [])
+          .filter((a) => a.match_id === p.id)
+          .map((a) => a.avaliado_id);
         return {
           ...p,
           confirmados: doJogo.filter((x) => x.status === "aprovado").length,
@@ -172,6 +186,7 @@ function Feed() {
               }
             : null,
           mvp: null,
+          jaAvaliei: avaliouTodos(doJogo, avaliadosPorMim, userId!),
           minhaSituacao:
             meu?.status === "aprovado"
               ? "aprovado"
@@ -182,6 +197,9 @@ function Feed() {
       });
     },
   });
+
+  // No feed só aparece o que ainda depende de mim; quem já avaliou revisa por "Minhas partidas".
+  const aAvaliar = (pendentesAvaliacao.data ?? []).filter((p) => !p.jaAvaliei);
 
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -221,12 +239,12 @@ function Feed() {
       </header>
 
       <main className="flex-1 space-y-3 px-4 py-4">
-        {!!pendentesAvaliacao.data?.length && (
+        {aAvaliar.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
               Pendente de avaliação
             </h2>
-            {pendentesAvaliacao.data.map((p) => (
+            {aAvaliar.map((p) => (
               <MatchCard key={p.id} pelada={p} voltarPara="feed" />
             ))}
           </div>

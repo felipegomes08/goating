@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   CalendarDays,
   Check,
+  CheckCheck,
   Crown,
   Flag,
   Lock,
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
+import { avaliouTodos } from "@/components/goating/match-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { tierPorNome } from "@/lib/tiers";
@@ -129,9 +131,14 @@ function DetalhePelada() {
       if (error) throw error;
       if (!pelada) return null;
 
-      const [{ data: parts }, { data: convite }] = await Promise.all([
+      const [{ data: parts }, { data: convite }, { data: minhasAvaliacoes }] = await Promise.all([
         supabase.from("match_participants").select("id, user_id, status").eq("match_id", id),
         supabase.from("match_invite_links").select("token").eq("match_id", id).eq("ativo", true).maybeSingle(),
+        supabase
+          .from("evaluations")
+          .select("avaliado_id")
+          .eq("match_id", id)
+          .eq("avaliador_id", userId!),
       ]);
 
       const ids = [...new Set([...(parts ?? []).map((p) => p.user_id), pelada.organizador_id])];
@@ -158,6 +165,7 @@ function DetalhePelada() {
         participantes: lista,
         organizador: (perfis ?? []).find((x) => x.id === pelada.organizador_id) ?? null,
         token: convite?.token ?? null,
+        avaliadosPorMim: (minhasAvaliacoes ?? []).map((a) => a.avaliado_id),
       };
     },
   });
@@ -184,7 +192,7 @@ function DetalhePelada() {
 
   if (!consulta.data) return <Aviso texto="Essa pelada não existe mais." />;
 
-  const { pelada, participantes, organizador, token } = consulta.data;
+  const { pelada, participantes, organizador, token, avaliadosPorMim } = consulta.data;
   const souOrganizador = pelada.organizador_id === userId;
   const aprovados = participantes.filter((p) => p.status === "aprovado");
   const pendentes = participantes.filter((p) => p.status === "pendente");
@@ -198,6 +206,13 @@ function DetalhePelada() {
     finalizada &&
     !!pelada.finalizada_em &&
     Date.now() - new Date(pelada.finalizada_em).getTime() < 24 * 60 * 60 * 1000;
+  const jaAvaliei = avaliouTodos(participantes, avaliadosPorMim, userId);
+  const fimDaJanela = pelada.finalizada_em
+    ? new Date(new Date(pelada.finalizada_em).getTime() + 24 * 60 * 60 * 1000)
+    : null;
+  const fimDaJanelaTexto = fimDaJanela
+    ? `${fimDaJanela.toDateString() === new Date().toDateString() ? "hoje" : "amanhã"} às ${fimDaJanela.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+    : null;
   const linkConvite = token ? `${window.location.origin}/p/${token}` : null;
 
   async function atualizar() {
@@ -422,7 +437,22 @@ function DetalhePelada() {
 
       <div className="sticky bottom-0 space-y-2 border-t border-border bg-card p-4">
         {finalizada ? (
-          dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 ? (
+          dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 && jaAvaliei ? (
+            <>
+              <p className="flex items-center justify-center gap-1.5 text-center text-xs font-medium text-primary">
+                <CheckCheck className="size-4" />
+                Você já avaliou todo mundo
+                {fimDaJanelaTexto ? ` · dá pra revisar até ${fimDaJanelaTexto}` : ""}
+              </p>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate({ to: "/pelada/$id/avaliar", params: { id } })}
+              >
+                Revisar minhas notas
+              </Button>
+            </>
+          ) : dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 ? (
             <Button
               className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
               onClick={() => navigate({ to: "/pelada/$id/avaliar", params: { id } })}

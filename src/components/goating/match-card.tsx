@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarDays, Check, Crown, Flag, Lock, MapPin, Star } from "lucide-react";
+import { CalendarDays, Check, CheckCheck, Crown, Flag, Lock, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { tierPorNome } from "@/lib/tiers";
@@ -27,6 +27,8 @@ export type PeladaFeed = {
     tier_reconhecido: string | null;
   } | null;
   minhaSituacao: "nenhuma" | "pendente" | "aprovado";
+  /** true quando eu já avaliei todos os outros jogadores (a avaliação some do "pendente"). */
+  jaAvaliei?: boolean;
 };
 
 function iniciais(nome: string) {
@@ -74,6 +76,17 @@ export function estaPendenteAvaliacao(pelada: Pick<PeladaFeed, "status" | "final
   );
 }
 
+/** true quando o usuário já avaliou todos os outros jogadores aprovados da pelada. */
+export function avaliouTodos(
+  participantes: { user_id: string; status: string }[],
+  avaliadosPorMim: Iterable<string>,
+  userId: string,
+) {
+  const feitos = new Set(avaliadosPorMim);
+  const outros = participantes.filter((p) => p.status === "aprovado" && p.user_id !== userId);
+  return outros.length > 0 && outros.every((p) => feitos.has(p.user_id));
+}
+
 export function MatchCard({
   pelada,
   voltarPara = "feed",
@@ -89,6 +102,9 @@ export function MatchCard({
   const proporcao = Math.min(1, pelada.confirmados / pelada.quantidade_vagas);
   const tier = pelada.organizador ? tierPorNome(pelada.organizador.tier_reconhecido) : null;
   const podeAvaliar = pendenteAvaliacao && pelada.minhaSituacao === "aprovado" && pelada.confirmados > 1;
+  // Amarelo só quando tem avaliação minha de fato pendente.
+  const avaliacaoPendente = podeAvaliar && !pelada.jaAvaliei;
+  const jaAvaliada = podeAvaliar && !!pelada.jaAvaliei;
 
   const barra = finalizada
     ? "bg-muted-foreground/40"
@@ -103,15 +119,26 @@ export function MatchCard({
       className={cn(
         "rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]",
         avaliacaoEncerrada && "border-l-4 border-destructive/70 opacity-80",
-        pendenteAvaliacao && "border-l-4 border-tier-ouro",
+        avaliacaoPendente && "border-l-4 border-tier-ouro",
+        jaAvaliada && "border-l-4 border-mint",
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-base font-bold text-foreground">{pelada.titulo}</h3>
-        {pendenteAvaliacao ? (
+        {avaliacaoPendente ? (
           <span className="flex shrink-0 items-center gap-1 rounded-full border border-tier-ouro bg-tier-ouro/10 px-2 py-1 text-[10px] font-bold tracking-wide text-tier-ouro">
             <Star className="size-3" />
             AVALIAR
+          </span>
+        ) : jaAvaliada ? (
+          <span className="flex shrink-0 items-center gap-1 rounded-full border border-mint bg-mint-soft px-2 py-1 text-[10px] font-bold tracking-wide text-primary">
+            <CheckCheck className="size-3" />
+            AVALIADA
+          </span>
+        ) : pendenteAvaliacao ? (
+          <span className="flex shrink-0 items-center gap-1 rounded-full border border-border bg-muted px-2 py-1 text-[10px] font-bold tracking-wide text-muted-foreground">
+            <Star className="size-3" />
+            EM AVALIAÇÃO
           </span>
         ) : avaliacaoEncerrada ? (
           <span className="flex shrink-0 items-center gap-1 rounded-full border border-destructive bg-destructive/10 px-2 py-1 text-[10px] font-bold tracking-wide text-destructive">
@@ -185,11 +212,18 @@ export function MatchCard({
                 Ver detalhes
               </Link>
             </Button>
-            {podeAvaliar && (
+            {avaliacaoPendente && (
               <Button asChild className="flex-1 bg-tier-ouro font-semibold text-primary hover:bg-tier-ouro/90">
                 <Link to="/pelada/$id/avaliar" params={{ id: pelada.id }}>
                   <Star className="mr-1.5 size-4" />
                   Avaliar
+                </Link>
+              </Button>
+            )}
+            {jaAvaliada && (
+              <Button asChild variant="ghost" className="flex-1 text-primary">
+                <Link to="/pelada/$id/avaliar" params={{ id: pelada.id }}>
+                  Revisar notas
                 </Link>
               </Button>
             )}
