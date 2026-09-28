@@ -21,7 +21,7 @@ import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as JogadorIdRouteImport } from './routes/jogador.$id'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PeladaIdRouteImport } from './routes/pelada.$id'
-import { Route as PeladaIdAvaliarRouteImport } from './routes/pelada.$id.avaliar'
+import { Route as PeladaIdAvaliarRouteImport } from './routes/pelada.$id_.avaliar'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -84,9 +84,9 @@ const PeladaIdRoute = PeladaIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const PeladaIdAvaliarRoute = PeladaIdAvaliarRouteImport.update({
-  id: '/avaliar',
-  path: '/avaliar',
-  getParentRoute: () => PeladaIdRoute,
+  id: '/pelada/$id_/avaliar',
+  path: '/pelada/$id/avaliar',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -101,7 +101,7 @@ export interface FileRoutesByFullPath {
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
-  '/pelada/$id': typeof PeladaIdRouteWithChildren
+  '/pelada/$id': typeof PeladaIdRoute
   '/pelada/$id/avaliar': typeof PeladaIdAvaliarRoute
 }
 export interface FileRoutesByTo {
@@ -116,7 +116,7 @@ export interface FileRoutesByTo {
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
-  '/pelada/$id': typeof PeladaIdRouteWithChildren
+  '/pelada/$id': typeof PeladaIdRoute
   '/pelada/$id/avaliar': typeof PeladaIdAvaliarRoute
 }
 export interface FileRoutesById {
@@ -132,8 +132,8 @@ export interface FileRoutesById {
   '/redefinir-senha': typeof RedefinirSenhaRoute
   '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
-  '/pelada/$id': typeof PeladaIdRouteWithChildren
-  '/pelada/$id/avaliar': typeof PeladaIdAvaliarRoute
+  '/pelada/$id': typeof PeladaIdRoute
+  '/pelada/$id_/avaliar': typeof PeladaIdAvaliarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,7 +180,7 @@ export interface FileRouteTypes {
     | '/jogador/$id'
     | '/p/$token'
     | '/pelada/$id'
-    | '/pelada/$id/avaliar'
+    | '/pelada/$id_/avaliar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -195,7 +195,8 @@ export interface RootRouteChildren {
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
   JogadorIdRoute: typeof JogadorIdRoute
   PTokenRoute: typeof PTokenRoute
-  PeladaIdRoute: typeof PeladaIdRouteWithChildren
+  PeladaIdRoute: typeof PeladaIdRoute
+  PeladaIdAvaliarRoute: typeof PeladaIdAvaliarRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -284,27 +285,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PeladaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pelada/$id/avaliar': {
-      id: '/pelada/$id/avaliar'
-      path: '/avaliar'
+    '/pelada/$id_/avaliar': {
+      id: '/pelada/$id_/avaliar'
+      path: '/pelada/$id/avaliar'
       fullPath: '/pelada/$id/avaliar'
       preLoaderRoute: typeof PeladaIdAvaliarRouteImport
-      parentRoute: typeof PeladaIdRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface PeladaIdRouteChildren {
-  PeladaIdAvaliarRoute: typeof PeladaIdAvaliarRoute
-}
-
-const PeladaIdRouteChildren: PeladaIdRouteChildren = {
-  PeladaIdAvaliarRoute: PeladaIdAvaliarRoute,
-}
-
-const PeladaIdRouteWithChildren = PeladaIdRoute._addFileChildren(
-  PeladaIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -318,7 +307,8 @@ const rootRouteChildren: RootRouteChildren = {
   RedefinirSenhaRoute: RedefinirSenhaRoute,
   JogadorIdRoute: JogadorIdRoute,
   PTokenRoute: PTokenRoute,
-  PeladaIdRoute: PeladaIdRouteWithChildren,
+  PeladaIdRoute: PeladaIdRoute,
+  PeladaIdAvaliarRoute: PeladaIdAvaliarRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
