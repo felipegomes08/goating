@@ -21,6 +21,10 @@ export type TierConfig = {
   ordem: number;
   /** classe de cor de texto usada nos números do card */
   textClass: string;
+  /** cor do tier como valor CSS — usada no brilho do fundo, partículas e barra de XP */
+  cor: string;
+  /** cor legível em cima de fundo claro (texto e barra de XP) — só difere no Lendário, que é quase branco */
+  destaque: string;
   chipClass: string;
   /** molde da cartinha (public/card-moldes), com o escudo da foto vazado */
   molde: string;
@@ -43,6 +47,8 @@ export const TIERS: TierConfig[] = [
     xpMinimo: 200,
     ordem: 1,
     textClass: "text-tier-bronze",
+    cor: "var(--tier-bronze)",
+    destaque: "var(--tier-bronze)",
     chipClass: "bg-tier-bronze/15 text-tier-bronze",
     molde: "/card-moldes/bronze.webp",
     layout: {
@@ -59,6 +65,8 @@ export const TIERS: TierConfig[] = [
     xpMinimo: 300,
     ordem: 2,
     textClass: "text-tier-prata",
+    cor: "var(--tier-prata)",
+    destaque: "oklch(0.6 0.02 250)",
     chipClass: "bg-tier-prata/20 text-tier-prata",
     molde: "/card-moldes/prata.webp",
     layout: {
@@ -75,6 +83,8 @@ export const TIERS: TierConfig[] = [
     xpMinimo: 950,
     ordem: 3,
     textClass: "text-tier-ouro",
+    cor: "var(--tier-ouro)",
+    destaque: "oklch(0.72 0.15 80)",
     chipClass: "bg-tier-ouro/20 text-tier-ouro",
     molde: "/card-moldes/ouro.webp",
     layout: {
@@ -91,6 +101,8 @@ export const TIERS: TierConfig[] = [
     xpMinimo: 2000,
     ordem: 4,
     textClass: "text-tier-platina",
+    cor: "var(--tier-platina)",
+    destaque: "oklch(0.62 0.1 170)",
     chipClass: "bg-tier-platina/20 text-tier-platina",
     molde: "/card-moldes/platina.webp",
     layout: {
@@ -107,6 +119,8 @@ export const TIERS: TierConfig[] = [
     xpMinimo: 4000,
     ordem: 5,
     textClass: "text-tier-lendario",
+    cor: "var(--tier-lendario)",
+    destaque: "oklch(0.74 0.12 85)",
     chipClass: "bg-tier-lendario/25 text-tier-lendario",
     molde: "/card-moldes/lendario.webp",
     layout: {
@@ -123,6 +137,8 @@ export const TIERS: TierConfig[] = [
     xpMinimo: 7000,
     ordem: 6,
     textClass: "text-tier-goat",
+    cor: "var(--tier-goat)",
+    destaque: "var(--tier-goat)",
     chipClass: "bg-tier-goat/20 text-tier-goat",
     molde: "/card-moldes/goat.webp",
     layout: {
@@ -136,6 +152,15 @@ export const TIERS: TierConfig[] = [
 ];
 
 export const MIN_AVALIACOES = 3;
+
+/** XP médio que uma pelada rende (mesma premissa usada na calibragem dos tiers acima). */
+export const XP_POR_PELADA_MEDIA = 38;
+
+/** Próximo degrau a partir do tier já reconhecido (null = jogador ainda sem tier). */
+export function tierSeguinte(atual: TierConfig | null): TierConfig | null {
+  const ordem = atual?.ordem ?? 0;
+  return TIERS.find((t) => t.ordem === ordem + 1) ?? null;
+}
 
 /** Tier é sempre derivado: overall E xp precisam bater o mínimo. */
 export function tierDoJogador(overall: number, xp: number): TierConfig | null {

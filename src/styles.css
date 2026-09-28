@@ -251,3 +251,178 @@
 .animate-goat-reveal {
   animation: goat-reveal 1600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
+
+/* ---------- Perfil gamificado ---------- */
+
+/* Carta flutuando de leve, pra não ficar "parada". */
+@keyframes card-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-card-float {
+  animation: card-float 4.5s ease-in-out infinite;
+}
+
+/* Inclinação 3D seguindo o ponteiro (variáveis --rx/--ry setadas no PlayerCard). */
+.carta-tilt {
+  --rx: 0deg;
+  --ry: 0deg;
+  --gx: 50%;
+  --gy: 50%;
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 450ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.carta-tilt[data-ativo] {
+  transition: transform 80ms linear;
+}
+
+/* Faixa de luz holográfica que atravessa a carta de tempos em tempos. */
+@keyframes card-shine {
+  0%,
+  55% {
+    background-position: 160% 0;
+  }
+  100% {
+    background-position: -60% 0;
+  }
+}
+
+.carta-brilho,
+.carta-reflexo {
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+}
+
+.carta-brilho {
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    oklch(1 0 0 / 0.08) 42%,
+    oklch(0.95 0.12 200 / 0.35) 47%,
+    oklch(1 0 0 / 0.55) 50%,
+    oklch(0.9 0.15 330 / 0.35) 53%,
+    oklch(1 0 0 / 0.08) 58%,
+    transparent 65%
+  );
+  background-size: 250% 100%;
+  mix-blend-mode: overlay;
+  animation: card-shine 5s ease-in-out infinite;
+}
+
+/* Reflexo que acompanha o dedo/mouse — só aparece enquanto está inclinando. */
+.carta-reflexo {
+  background: radial-gradient(
+    circle at var(--gx) var(--gy),
+    oklch(1 0 0 / 0.45),
+    transparent 45%
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0;
+  transition: opacity 300ms;
+}
+
+.carta-tilt[data-ativo] .carta-reflexo {
+  opacity: 1;
+}
+
+/* Fundo do topo do perfil: raios girando e partículas na cor do tier. */
+@keyframes aura-giro {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+.aura-raios {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 190%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in oklch, var(--aura) 22%, transparent) 0deg 8deg,
+    transparent 8deg 22deg
+  );
+  mask-image: radial-gradient(circle, black 8%, transparent 55%);
+  -webkit-mask-image: radial-gradient(circle, black 8%, transparent 55%);
+  animation: aura-giro 60s linear infinite;
+}
+
+@keyframes particula-sobe {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-160px) scale(1);
+    opacity: 0;
+  }
+}
+
+.aura-particula {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--aura);
+  box-shadow: 0 0 8px var(--aura);
+  animation: particula-sobe linear infinite;
+}
+
+/* Tier atual pulsando na trilha. */
+@keyframes tier-pulso {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--aura) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.animate-tier-pulso {
+  animation: tier-pulso 2s ease-in-out infinite;
+}
+
+/* Barra de XP com brilho correndo. */
+@keyframes xp-brilho {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.xp-brilho {
+  animation: xp-brilho 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-card-float,
+  .carta-brilho,
+  .aura-raios,
+  .aura-particula,
+  .animate-tier-pulso,
+  .xp-brilho {
+    animation: none;
+  }
+  .aura-particula {
+    opacity: 0.5;
+  }
+  .carta-tilt {
+    transform: none;
+  }
+}

@@ -7,7 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
+import { AuraTier } from "@/components/goating/aura-tier";
 import { PlayerCard } from "@/components/goating/player-card";
+import { ProgressoTier } from "@/components/goating/progresso-tier";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
 import { MEDIAS_ZERADAS, SELECT_ATRIBUTOS, mediasAtributos } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
@@ -15,13 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
-import {
-  avaliacoesFaltando,
-  overallLiberado,
-  proximoTier,
-  tierPorNome,
-} from "@/lib/tiers";
+import { avaliacoesFaltando, overallLiberado, tierPorNome } from "@/lib/tiers";
 
 export const Route = createFileRoute("/perfil")({
   ssr: false,
@@ -182,12 +178,6 @@ function Perfil() {
   const tier = overallLiberado(perfil.avaliacoes_recebidas)
     ? tierPorNome(perfil.tier_reconhecido)
     : null;
-  const proximo = proximoTier(overall, perfil.xp);
-  const xpBase = tier?.xpMinimo ?? 0;
-  const progressoXp = proximo
-    ? Math.min(100, Math.max(0, ((perfil.xp - xpBase) / (proximo.xpMinimo - xpBase)) * 100))
-    : 100;
-  const overallOk = proximo ? overall >= proximo.overallMinimo : true;
 
   async function revelarTier() {
     setAbrindo(true);
@@ -210,8 +200,9 @@ function Perfil() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
-      <header className="bg-primary px-4 pt-6 pb-8">
-        <div className="flex items-center justify-between">
+      <header className="relative isolate overflow-hidden bg-primary px-4 pt-6 pb-8">
+        <AuraTier tier={tier} />
+        <div className="relative flex items-center justify-between">
           <h1 className="text-lg font-bold text-primary-foreground">Meu perfil</h1>
           <Button
             variant="ghost"
@@ -223,7 +214,7 @@ function Perfil() {
           </Button>
         </div>
 
-        <div className="mt-5">
+        <div className="relative mt-5">
           <PlayerCard
             nome={perfil.nome_exibicao}
             posicao={perfil.posicao_preferida}
@@ -240,7 +231,7 @@ function Perfil() {
           />
         </div>
 
-        <label className="mx-auto mt-4 flex w-fit cursor-pointer items-center gap-2 rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint">
+        <label className="relative mx-auto mt-4 flex w-fit cursor-pointer items-center gap-2 rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint">
           <Camera className="size-4" />
           Trocar foto
           <input
@@ -263,7 +254,10 @@ function Perfil() {
             ["MVPs", perfil.vezes_mvp],
             ["Avaliações", perfil.avaliacoes_recebidas],
           ].map(([label, valor]) => (
-            <div key={String(label)} className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]">
+            <div
+              key={String(label)}
+              className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]"
+            >
               <p className="text-xl font-extrabold text-foreground">{valor}</p>
               <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
             </div>
@@ -277,7 +271,9 @@ function Perfil() {
             className="flex items-center gap-2 text-sm text-muted-foreground"
           >
             <Users className="size-4" />
-            <span className="font-bold text-foreground">{seguidores.data?.seguidores ?? 0}</span>{" "}
+            <span className="font-bold text-foreground">
+              {seguidores.data?.seguidores ?? 0}
+            </span>{" "}
             seguidores
           </Link>
           <Link to="/rede" search={{ aba: "seguindo" }} className="text-sm text-muted-foreground">
@@ -293,20 +289,13 @@ function Perfil() {
           </p>
         )}
 
-        {proximo && !perfil.tier_pendente && (
-          <div className="space-y-2 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
-            <p className="text-xs text-muted-foreground">
-              Próximo tier: <span className="font-bold text-foreground">{proximo.nome}</span>
-            </p>
-            <Progress value={progressoXp} />
-            <p className="text-[11px] text-muted-foreground">
-              {perfil.xp} / {proximo.xpMinimo} XP
-              {!overallOk && (
-                <> · precisa também de overall {proximo.overallMinimo}+</>
-              )}
-            </p>
-          </div>
-        )}
+        <ProgressoTier
+          tier={tier}
+          overall={overall}
+          xp={perfil.xp}
+          avaliacoes={perfil.avaliacoes_recebidas}
+          recompensaPendente={!!perfil.tier_pendente}
+        />
 
         <section className="rounded-2xl bg-primary p-4">
           <h2 className="mb-2 text-sm font-bold text-primary-foreground">Atributos</h2>

@@ -1,6 +1,7 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, type PointerEvent, useEffect, useRef, useState } from "react";
 import { Gift, Lock, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useContador } from "@/hooks/use-contador";
 import { cn } from "@/lib/utils";
 import { type CaixaCarta, type TierConfig, TIERS, avaliacoesFaltando } from "@/lib/tiers";
 
@@ -40,6 +41,7 @@ export function PlayerCard({
   abrindo = false,
   revelando = false,
   onRevelar,
+  interativa = true,
 }: {
   nome: string;
   posicao: string | null;
@@ -56,6 +58,8 @@ export function PlayerCard({
   /** true durante a animação de revelação da carta nova. */
   revelando?: boolean;
   onRevelar?: () => void;
+  /** Inclina seguindo o dedo/mouse, flutua e tem brilho holográfico. */
+  interativa?: boolean;
 }) {
   const [cacheUrl, setCacheUrl] = useState<string | null>(null);
   const bloqueado = avaliacoesFaltando(avaliacoesRecebidas) > 0;
@@ -80,96 +84,148 @@ export function PlayerCard({
   const { hex, escudo, nome: faixaNome, atrib } = visual.layout;
   const cor = visual.textClass;
 
+  // Inclinação 3D: grava a posição do ponteiro em variáveis CSS direto no elemento,
+  // sem re-render a cada movimento.
+  const tiltRef = useRef<HTMLDivElement>(null);
+  function inclinar(e: PointerEvent<HTMLDivElement>) {
+    const el = tiltRef.current;
+    if (!el || !interativa) return;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    el.style.setProperty("--rx", `${(0.5 - py) * 16}deg`);
+    el.style.setProperty("--ry", `${(px - 0.5) * 16}deg`);
+    el.style.setProperty("--gx", `${px * 100}%`);
+    el.style.setProperty("--gy", `${py * 100}%`);
+    el.dataset["ativo"] = "true";
+  }
+  function soltar() {
+    const el = tiltRef.current;
+    if (!el) return;
+    el.style.setProperty("--rx", "0deg");
+    el.style.setProperty("--ry", "0deg");
+    delete el.dataset["ativo"];
+  }
+
   return (
     <div
-      className={cn(
-        "relative mx-auto w-full max-w-[280px]",
-        revelando && "animate-goat-reveal",
-      )}
+      className={cn("relative mx-auto w-full max-w-[280px]", revelando && "animate-goat-reveal")}
     >
-      {/* @container: os textos usam cqw pra escalar junto com a largura da carta */}
-      <div className="@container relative aspect-[1086/1448] overflow-hidden rounded-2xl">
-        {cacheUrl ? (
-          <img src={cacheUrl} alt={`Cartinha de ${nome}`} className="size-full object-cover" />
-        ) : (
-          <>
-            {/* Foto atrás do molde: o escudo vazado do PNG faz a máscara. Sobra 1% de cada lado pra não vazar fresta. */}
-            <div
-              className="absolute flex items-center justify-center bg-primary"
-              style={caixa(escudo, 1)}
-            >
-              {fotoUrl ? (
-                <img src={fotoUrl} alt="" className="size-full object-cover object-top" />
-              ) : (
-                <User className="size-1/2 text-mint/40" strokeWidth={1.5} />
-              )}
-            </div>
+      <div className={cn(interativa && !revelando && "animate-card-float")}>
+        <div
+          ref={tiltRef}
+          onPointerMove={inclinar}
+          onPointerLeave={soltar}
+          onPointerCancel={soltar}
+          className={cn("carta-tilt", interativa && "carta-tilt-ativa")}
+        >
+          {/* @container: os textos usam cqw pra escalar junto com a largura da carta */}
+          <div className="@container relative aspect-[1086/1448] overflow-hidden rounded-2xl">
+            {cacheUrl ? (
+              <img src={cacheUrl} alt={`Cartinha de ${nome}`} className="size-full object-cover" />
+            ) : (
+              <>
+                {/* Foto atrás do molde: o escudo vazado do PNG faz a máscara. Sobra 1% de cada lado pra não vazar fresta. */}
+                <div
+                  className="absolute flex items-center justify-center bg-primary"
+                  style={caixa(escudo, 1)}
+                >
+                  {fotoUrl ? (
+                    <img src={fotoUrl} alt="" className="size-full object-cover object-top" />
+                  ) : (
+                    <User className="size-1/2 text-mint/40" strokeWidth={1.5} />
+                  )}
+                </div>
 
-            <img
-              src={visual.molde}
-              alt=""
-              draggable={false}
-              className="absolute inset-0 size-full select-none"
-            />
+                <img
+                  src={visual.molde}
+                  alt=""
+                  draggable={false}
+                  className="absolute inset-0 size-full select-none"
+                />
 
-            <div
-              className="absolute flex flex-col items-center justify-center"
-              style={caixa(hex)}
-            >
-              <p
-                className={cn("leading-none font-extrabold tabular-nums", cor)}
-                style={{ fontSize: "10cqw" }}
-              >
-                {Math.round(overall)}
-              </p>
-              <p
-                className={cn("mt-[0.6cqw] font-bold tracking-widest", cor)}
-                style={{ fontSize: "3.6cqw" }}
-              >
-                {posicao ?? "—"}
-              </p>
-            </div>
-
-            <div className="absolute flex items-center justify-center" style={caixa(faixaNome)}>
-              <p
-                className={cn("truncate px-[3cqw] font-extrabold tracking-wide uppercase", cor)}
-                style={{ fontSize: "5.2cqw" }}
-              >
-                {nome}
-              </p>
-            </div>
-
-            <div
-              className="absolute grid grid-cols-5 items-center px-[2cqw]"
-              style={caixa(atrib)}
-            >
-              {(
-                [
-                  ["CHU", atributos.chute],
-                  ["DRI", atributos.drible],
-                  ["VEL", atributos.velocidade],
-                  ["TOQ", atributos.toque],
-                  ["POS", atributos.posicionamento],
-                ] as const
-              ).map(([label, valor]) => (
-                <div key={label} className="text-center">
+                <div
+                  className="absolute flex flex-col items-center justify-center"
+                  style={caixa(hex)}
+                >
                   <p
                     className={cn("leading-none font-extrabold tabular-nums", cor)}
-                    style={{ fontSize: "6.4cqw" }}
+                    style={{ fontSize: "10cqw" }}
                   >
-                    {valor}
+                    <NumeroAnimado valor={overall} />
                   </p>
                   <p
-                    className={cn("mt-[1cqw] font-semibold tracking-wider opacity-80", cor)}
-                    style={{ fontSize: "3cqw" }}
+                    className={cn("mt-[0.6cqw] font-bold tracking-widest", cor)}
+                    style={{ fontSize: "3.6cqw" }}
                   >
-                    {label}
+                    {posicao ?? "—"}
                   </p>
                 </div>
-              ))}
-            </div>
-          </>
-        )}
+
+                <div className="absolute flex items-center justify-center" style={caixa(faixaNome)}>
+                  <p
+                    className={cn("truncate px-[3cqw] font-extrabold tracking-wide uppercase", cor)}
+                    style={{ fontSize: "5.2cqw" }}
+                  >
+                    {nome}
+                  </p>
+                </div>
+
+                <div
+                  className="absolute grid grid-cols-5 items-center px-[2cqw]"
+                  style={caixa(atrib)}
+                >
+                  {(
+                    [
+                      ["CHU", atributos.chute],
+                      ["DRI", atributos.drible],
+                      ["VEL", atributos.velocidade],
+                      ["TOQ", atributos.toque],
+                      ["POS", atributos.posicionamento],
+                    ] as const
+                  ).map(([label, valor]) => (
+                    <div key={label} className="text-center">
+                      <p
+                        className={cn("leading-none font-extrabold tabular-nums", cor)}
+                        style={{ fontSize: "6.4cqw" }}
+                      >
+                        <NumeroAnimado valor={valor} />
+                      </p>
+                      <p
+                        className={cn("mt-[1cqw] font-semibold tracking-wider opacity-80", cor)}
+                        style={{ fontSize: "3cqw" }}
+                      >
+                        {label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {interativa && !cacheUrl && (
+              <>
+                {/* Brilho recortado no formato do molde (a máscara é o próprio PNG). */}
+                <div
+                  aria-hidden
+                  className="carta-brilho pointer-events-none absolute inset-0"
+                  style={{
+                    maskImage: `url(${visual.molde})`,
+                    WebkitMaskImage: `url(${visual.molde})`,
+                  }}
+                />
+                <div
+                  aria-hidden
+                  className="carta-reflexo pointer-events-none absolute inset-0"
+                  style={{
+                    maskImage: `url(${visual.molde})`,
+                    WebkitMaskImage: `url(${visual.molde})`,
+                  }}
+                />
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {bloqueado && (
@@ -204,4 +260,9 @@ export function PlayerCard({
       )}
     </div>
   );
+}
+
+/** Número inteiro que conta até o valor quando a carta aparece ou o valor muda. */
+function NumeroAnimado({ valor }: { valor: number }) {
+  return <>{Math.round(useContador(valor))}</>;
 }
