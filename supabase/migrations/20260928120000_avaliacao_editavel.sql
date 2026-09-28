@@ -4,9 +4,12 @@
 --    estiver aberta (mesma regra do INSERT, via pode_avaliar).
 -- 2. A nota geral passa a ser sempre a média dos 7 atributos quando todos
 --    estiverem preenchidos — o banco garante, não só a tela.
--- 3. Overall do jogador e MVP da partida são recalculados também no UPDATE.
+-- 3. Overall, XP do jogador e MVP da partida são recalculados também no UPDATE.
 
--- 1. UPDATE só nas colunas de nota (partida/avaliador/avaliado ficam imutáveis)
+-- 1. UPDATE só nas colunas de nota (partida/avaliador/avaliado ficam imutáveis).
+--    O Supabase dá UPDATE na tabela inteira para authenticated por padrão; troca
+--    por grant só nas colunas de nota.
+REVOKE UPDATE ON public.evaluations FROM authenticated;
 GRANT UPDATE (nota_geral, chute, drible, velocidade, toque, posicionamento, comportamento, pontualidade)
   ON public.evaluations TO authenticated;
 
@@ -42,7 +45,7 @@ CREATE TRIGGER evaluations_normalizar_geral
 BEFORE INSERT OR UPDATE ON public.evaluations
 FOR EACH ROW EXECUTE FUNCTION public.normalizar_nota_geral();
 
--- 3. Recalcular overall e MVP também quando a avaliação é corrigida
+-- 3. Recalcular overall, MVP e XP também quando a avaliação é corrigida
 DROP TRIGGER IF EXISTS evaluations_recalc ON public.evaluations;
 CREATE TRIGGER evaluations_recalc
 AFTER INSERT OR UPDATE ON public.evaluations
@@ -52,3 +55,8 @@ DROP TRIGGER IF EXISTS evaluations_recalc_mvp ON public.evaluations;
 CREATE TRIGGER evaluations_recalc_mvp
 AFTER INSERT OR UPDATE ON public.evaluations
 FOR EACH ROW EXECUTE FUNCTION public.recalcular_mvp_partida();
+
+DROP TRIGGER IF EXISTS evaluations_recalc_xp ON public.evaluations;
+CREATE TRIGGER evaluations_recalc_xp
+AFTER INSERT OR UPDATE ON public.evaluations
+FOR EACH ROW EXECUTE FUNCTION public.recalcular_xp_avaliacao();
