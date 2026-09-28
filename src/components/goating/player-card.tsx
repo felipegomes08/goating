@@ -1,8 +1,18 @@
-import { useEffect, useState } from "react";
-import { Gift, Lock } from "lucide-react";
+import { type CSSProperties, useEffect, useState } from "react";
+import { Gift, Lock, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { type TierConfig, avaliacoesFaltando } from "@/lib/tiers";
+import { type CaixaCarta, type TierConfig, TIERS, avaliacoesFaltando } from "@/lib/tiers";
+
+/** Posiciona um elemento numa área do molde (em %), com folga opcional em cada lado. */
+function caixa({ x, y, w, h }: CaixaCarta, folga = 0): CSSProperties {
+  return {
+    left: `${x - folga}%`,
+    top: `${y - folga}%`,
+    width: `${w + folga * 2}%`,
+    height: `${h + folga * 2}%`,
+  };
+}
 
 export type AtributosCard = {
   chute: number;
@@ -15,7 +25,7 @@ export type AtributosCard = {
 /**
  * Renderiza a cartinha. Prioridade:
  * 1. imagem já composta e salva no Storage (users.card_gerado_url) — cache
- * 2. composição ao vivo: foto atrás + molde PNG do tier por cima
+ * 2. composição ao vivo: foto atrás + molde do tier por cima + textos nas áreas do layout
  */
 export function PlayerCard({
   nome,
@@ -47,34 +57,28 @@ export function PlayerCard({
   revelando?: boolean;
   onRevelar?: () => void;
 }) {
-  const [moldeUrl, setMoldeUrl] = useState<string | null>(null);
   const [cacheUrl, setCacheUrl] = useState<string | null>(null);
   const bloqueado = avaliacoesFaltando(avaliacoesRecebidas) > 0;
 
   useEffect(() => {
     let ativo = true;
     async function carregar() {
-      if (cardGeradoUrl) {
-        const { data } = await supabase.storage
-          .from("player-cards")
-          .createSignedUrl(cardGeradoUrl, 3600);
-        if (ativo) setCacheUrl(data?.signedUrl ?? null);
-      }
-      if (tier) {
-        const { data } = await supabase.storage
-          .from("card-moldes")
-          .createSignedUrl(tier.molde, 3600);
-        if (ativo) setMoldeUrl(data?.signedUrl ?? null);
-      }
+      if (!cardGeradoUrl) return;
+      const { data } = await supabase.storage
+        .from("player-cards")
+        .createSignedUrl(cardGeradoUrl, 3600);
+      if (ativo) setCacheUrl(data?.signedUrl ?? null);
     }
     void carregar();
     return () => {
       ativo = false;
     };
-  }, [cardGeradoUrl, tier]);
+  }, [cardGeradoUrl]);
 
-  const cor = tier?.textClass ?? "text-mint";
-  const offset = tier?.offsetY ?? 0;
+  // Sem tier ainda (jogador novo) a carta usa o visual do Bronze, o primeiro degrau.
+  const visual = tier ?? TIERS[0]!;
+  const { hex, escudo, nome: faixaNome, atrib } = visual.layout;
+  const cor = visual.textClass;
 
   return (
     <div
@@ -83,45 +87,61 @@ export function PlayerCard({
         revelando && "animate-goat-reveal",
       )}
     >
-      <div className="relative aspect-[1086/1448] overflow-hidden rounded-2xl bg-primary">
+      {/* @container: os textos usam cqw pra escalar junto com a largura da carta */}
+      <div className="@container relative aspect-[1086/1448] overflow-hidden rounded-2xl">
         {cacheUrl ? (
           <img src={cacheUrl} alt={`Cartinha de ${nome}`} className="size-full object-cover" />
         ) : (
           <>
-            {fotoUrl && (
-              <img
-                src={fotoUrl}
-                alt=""
-                className="absolute inset-x-0 top-[14%] mx-auto h-[46%] object-contain"
-              />
-            )}
-            {moldeUrl ? (
-              <img src={moldeUrl} alt="" className="absolute inset-0 size-full object-contain" />
-            ) : (
-              <div className="absolute inset-0 rounded-2xl border-2 border-mint/30" />
-            )}
-
+            {/* Foto atrás do molde: o escudo vazado do PNG faz a máscara. Sobra 1% de cada lado pra não vazar fresta. */}
             <div
-              className="absolute top-[8%] left-[8%] text-center"
-              style={{ transform: `translateY(${offset}px)` }}
+              className="absolute flex items-center justify-center bg-primary"
+              style={caixa(escudo, 1)}
             >
-              <p className={cn("text-3xl leading-none font-extrabold", cor)}>{overall}</p>
-              <p className={cn("text-[11px] font-bold tracking-widest", cor)}>{posicao ?? "—"}</p>
+              {fotoUrl ? (
+                <img src={fotoUrl} alt="" className="size-full object-cover object-top" />
+              ) : (
+                <User className="size-1/2 text-mint/40" strokeWidth={1.5} />
+              )}
             </div>
 
-            <p
-              className={cn(
-                "absolute inset-x-0 top-[62%] truncate px-6 text-center text-lg font-extrabold tracking-wide uppercase",
-                cor,
-              )}
-              style={{ transform: `translateY(${offset}px)` }}
-            >
-              {nome}
-            </p>
+            <img
+              src={visual.molde}
+              alt=""
+              draggable={false}
+              className="absolute inset-0 size-full select-none"
+            />
 
             <div
-              className="absolute inset-x-0 bottom-[10%] grid grid-cols-5 gap-1 px-5"
-              style={{ transform: `translateY(${offset}px)` }}
+              className="absolute flex flex-col items-center justify-center"
+              style={caixa(hex)}
+            >
+              <p
+                className={cn("leading-none font-extrabold tabular-nums", cor)}
+                style={{ fontSize: "10cqw" }}
+              >
+                {Math.round(overall)}
+              </p>
+              <p
+                className={cn("mt-[0.6cqw] font-bold tracking-widest", cor)}
+                style={{ fontSize: "3.6cqw" }}
+              >
+                {posicao ?? "—"}
+              </p>
+            </div>
+
+            <div className="absolute flex items-center justify-center" style={caixa(faixaNome)}>
+              <p
+                className={cn("truncate px-[3cqw] font-extrabold tracking-wide uppercase", cor)}
+                style={{ fontSize: "5.2cqw" }}
+              >
+                {nome}
+              </p>
+            </div>
+
+            <div
+              className="absolute grid grid-cols-5 items-center px-[2cqw]"
+              style={caixa(atrib)}
             >
               {(
                 [
@@ -133,8 +153,18 @@ export function PlayerCard({
                 ] as const
               ).map(([label, valor]) => (
                 <div key={label} className="text-center">
-                  <p className={cn("text-base leading-none font-extrabold", cor)}>{valor}</p>
-                  <p className={cn("text-[9px] font-semibold opacity-80", cor)}>{label}</p>
+                  <p
+                    className={cn("leading-none font-extrabold tabular-nums", cor)}
+                    style={{ fontSize: "6.4cqw" }}
+                  >
+                    {valor}
+                  </p>
+                  <p
+                    className={cn("mt-[1cqw] font-semibold tracking-wider opacity-80", cor)}
+                    style={{ fontSize: "3cqw" }}
+                  >
+                    {label}
+                  </p>
                 </div>
               ))}
             </div>

@@ -1,5 +1,19 @@
 export type TierNome = "Bronze" | "Prata" | "Ouro" | "Platina" | "Lendário" | "GOAT";
 
+/** Caixa em % da carta (x/w sobre a largura, y/h sobre a altura). */
+export type CaixaCarta = { x: number; y: number; w: number; h: number };
+
+export type LayoutCarta = {
+  /** hexágono do overall + posição */
+  hex: CaixaCarta;
+  /** recorte transparente onde a foto aparece */
+  escudo: CaixaCarta;
+  /** faixa do nome */
+  nome: CaixaCarta;
+  /** caixa dos 5 atributos */
+  atrib: CaixaCarta;
+};
+
 export type TierConfig = {
   nome: TierNome;
   overallMinimo: number;
@@ -8,10 +22,10 @@ export type TierConfig = {
   /** classe de cor de texto usada nos números do card */
   textClass: string;
   chipClass: string;
-  /** caminho do molde PNG dentro do bucket card-moldes */
+  /** molde da cartinha (public/card-moldes), com o escudo da foto vazado */
   molde: string;
-  /** ajuste vertical (px) do bloco de nome/atributos por molde */
-  offsetY: number;
+  /** onde cada área do molde fica — cada tier tem um desenho um pouco diferente */
+  layout: LayoutCarta;
   /** iconezinho do tier (public/tier-badges), usado na frente do nome do jogador */
   icone: string;
 };
@@ -30,8 +44,13 @@ export const TIERS: TierConfig[] = [
     ordem: 1,
     textClass: "text-tier-bronze",
     chipClass: "bg-tier-bronze/15 text-tier-bronze",
-    molde: "bronze.png",
-    offsetY: 0,
+    molde: "/card-moldes/bronze.webp",
+    layout: {
+      hex: { x: 8.93, y: 10.64, w: 19.43, h: 16.92 },
+      escudo: { x: 32.78, y: 16.85, w: 34.44, h: 42.96 },
+      nome: { x: 13.54, y: 62.09, w: 72.93, h: 5.59 },
+      atrib: { x: 9.3, y: 70.51, w: 81.4, h: 15.68 },
+    },
     icone: "/tier-badges/bronze.png",
   },
   {
@@ -41,8 +60,13 @@ export const TIERS: TierConfig[] = [
     ordem: 2,
     textClass: "text-tier-prata",
     chipClass: "bg-tier-prata/20 text-tier-prata",
-    molde: "prata.png",
-    offsetY: 0,
+    molde: "/card-moldes/prata.webp",
+    layout: {
+      hex: { x: 8.56, y: 10.01, w: 19.89, h: 17.47 },
+      escudo: { x: 32.69, y: 16.51, w: 34.71, h: 43.72 },
+      nome: { x: 12.98, y: 62.09, w: 73.94, h: 4.7 },
+      atrib: { x: 8.84, y: 70.17, w: 82.32, h: 15.88 },
+    },
     icone: "/tier-badges/prata.png",
   },
   {
@@ -52,8 +76,13 @@ export const TIERS: TierConfig[] = [
     ordem: 3,
     textClass: "text-tier-ouro",
     chipClass: "bg-tier-ouro/20 text-tier-ouro",
-    molde: "ouro.png",
-    offsetY: -2,
+    molde: "/card-moldes/ouro.webp",
+    layout: {
+      hex: { x: 8.29, y: 9.81, w: 18.6, h: 16.99 },
+      escudo: { x: 31.77, y: 15.81, w: 35.82, h: 42.89 },
+      nome: { x: 12.98, y: 60.84, w: 73.85, h: 4.83 },
+      atrib: { x: 8.84, y: 69.41, w: 82.23, h: 15.95 },
+    },
     icone: "/tier-badges/ouro.png",
   },
   {
@@ -63,8 +92,13 @@ export const TIERS: TierConfig[] = [
     ordem: 4,
     textClass: "text-tier-platina",
     chipClass: "bg-tier-platina/20 text-tier-platina",
-    molde: "platina.png",
-    offsetY: -2,
+    molde: "/card-moldes/platina.webp",
+    layout: {
+      hex: { x: 8.38, y: 9.74, w: 19.34, h: 16.78 },
+      escudo: { x: 31.86, y: 15.81, w: 36, h: 42.4 },
+      nome: { x: 13.17, y: 60.91, w: 73.3, h: 5.66 },
+      atrib: { x: 8.75, y: 69.82, w: 82.23, h: 16.3 },
+    },
     icone: "/tier-badges/platina.png",
   },
   {
@@ -74,8 +108,13 @@ export const TIERS: TierConfig[] = [
     ordem: 5,
     textClass: "text-tier-lendario",
     chipClass: "bg-tier-lendario/25 text-tier-lendario",
-    molde: "lendario.png",
-    offsetY: -4,
+    molde: "/card-moldes/lendario.webp",
+    layout: {
+      hex: { x: 9.94, y: 11.46, w: 17.86, h: 15.68 },
+      escudo: { x: 32.69, y: 15.68, w: 34.35, h: 44.96 },
+      nome: { x: 15.01, y: 62.5, w: 69.8, h: 4.01 },
+      atrib: { x: 10.96, y: 71.27, w: 77.99, h: 12.57 },
+    },
     icone: "/tier-badges/lendario.png",
   },
   {
@@ -85,8 +124,13 @@ export const TIERS: TierConfig[] = [
     ordem: 6,
     textClass: "text-tier-goat",
     chipClass: "bg-tier-goat/20 text-tier-goat",
-    molde: "goat.png",
-    offsetY: -4,
+    molde: "/card-moldes/goat.webp",
+    layout: {
+      hex: { x: 9.67, y: 11.12, w: 18.51, h: 15.68 },
+      escudo: { x: 33.33, y: 17.13, w: 33.33, h: 43.09 },
+      nome: { x: 14.83, y: 62.36, w: 70.26, h: 3.31 },
+      atrib: { x: 11.33, y: 71.2, w: 77.26, h: 12.36 },
+    },
     icone: "/tier-badges/goat.png",
   },
 ];
