@@ -5,6 +5,7 @@ import { ArrowLeft, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useVoltar } from "@/hooks/use-voltar";
 import { useAvatarUrl } from "@/hooks/use-avatar";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { PlayerCard } from "@/components/goating/player-card";
@@ -39,6 +40,7 @@ export const Route = createFileRoute("/jogador/$id")({
 function JogadorPublico() {
   const { id } = useParams({ from: "/jogador/$id" });
   const navigate = useNavigate();
+  const voltar = useVoltar(() => void navigate({ to: "/ranking", search: { aba: "cidade" } }));
   const queryClient = useQueryClient();
   const { userId, carregando } = useSession();
 
@@ -169,14 +171,12 @@ function JogadorPublico() {
       <header className="bg-primary px-4 pt-6 pb-8">
         <div className="flex items-center justify-between">
           <Button
-            asChild
             variant="ghost"
             size="sm"
+            onClick={voltar}
             className="text-mint hover:bg-mint/10 hover:text-mint"
           >
-            <Link to="/ranking" search={{ aba: "cidade" }}>
-              <ArrowLeft className="size-4" /> Ranking
-            </Link>
+            <ArrowLeft className="size-4" /> Voltar
           </Button>
           <h1 className="truncate text-lg font-bold text-primary-foreground">
             {perfil.nome_exibicao}

@@ -1,9 +1,10 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Crown, Share2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useVoltar } from "@/hooks/use-voltar";
 import { TabelaTimes } from "@/components/goating/tabela-times";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/pelada/$id_/resumo")({
 function ResumoDaPelada() {
   const { id } = useParams({ from: "/pelada/$id_/resumo" });
   const { userId, carregando } = useSession();
+  const navigate = useNavigate();
+  const voltar = useVoltar(() => void navigate({ to: "/pelada/$id", params: { id } }));
 
   const consulta = useQuery({
     queryKey: ["pelada-resumo", id],
@@ -125,9 +128,9 @@ function ResumoDaPelada() {
     <div className="app-shell flex min-h-screen flex-col pb-28">
       <header className="bg-primary px-4 pt-4 pb-6">
         <div className="flex items-center gap-3">
-          <Link to="/pelada/$id" params={{ id }} aria-label="Voltar">
+          <button type="button" aria-label="Voltar" onClick={voltar}>
             <ArrowLeft className="size-5 text-primary-foreground" />
-          </Link>
+          </button>
           <span className="text-xs font-semibold tracking-wide text-mint uppercase">
             Resumo da pelada
           </span>

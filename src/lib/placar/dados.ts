@@ -40,6 +40,16 @@ function paraJogador(
   };
 }
 
+/** Organizador da pelada, ou dono/administrador da turma dela. */
+export async function podeGerirPelada(
+  pelada: Pick<Pelada, "id" | "organizador_id">,
+  userId: string,
+) {
+  if (pelada.organizador_id === userId) return true;
+  const { data } = await supabase.rpc("gere_pelada", { p_match_id: pelada.id });
+  return data === true;
+}
+
 /** Pelada antiga (sem turma) ganha uma turma com o nome dela na primeira vez que monta os times. */
 async function garantirTurma(pelada: Pelada) {
   if (pelada.crew_id) return pelada.crew_id;
@@ -69,7 +79,7 @@ export async function prepararTimes(matchId: string, userId: string) {
     .maybeSingle();
   if (error) throw error;
   if (!pelada) return null;
-  if (pelada.organizador_id !== userId) return { pelada, souOrganizador: false as const };
+  if (!(await podeGerirPelada(pelada, userId))) return { pelada, souOrganizador: false as const };
 
   const crewId = await garantirTurma(pelada);
 

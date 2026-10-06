@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useVoltar } from "@/hooks/use-voltar";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,7 @@ function PaginaDaTurma() {
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const voltar = useVoltar(() => void navigate({ to: "/turmas" }));
   const aba = abaDaUrl ?? "ranking";
   const [periodo, setPeriodo] = useState<Periodo>("mes");
   const [criterio, setCriterio] = useState<Criterio>("gols");
@@ -83,7 +85,11 @@ function PaginaDaTurma() {
     queryFn: async () => {
       const [turmaRes, membrosRes, peladasRes] = await Promise.all([
         supabase.from("crews").select("id, nome, dono_id").eq("id", id).maybeSingle(),
-        supabase.from("crew_members").select("id, user_id, nome").eq("crew_id", id).order("nome"),
+        supabase
+          .from("crew_members")
+          .select("id, user_id, nome, admin")
+          .eq("crew_id", id)
+          .order("nome"),
         supabase
           .from("matches")
           .select("id, titulo, data, horario, status, placar_finalizado_em")
@@ -162,6 +168,8 @@ function PaginaDaTurma() {
   const dados = turma.data;
   const souDono = dados.dono_id === userId;
   const souMembro = dados.membros.some((m) => m.user_id === userId);
+  // dono e administradores cuidam da lista de jogadores e das peladas
+  const souGestor = souDono || dados.membros.some((m) => m.user_id === userId && m.admin);
   const semConta = dados.membros.filter((m) => !m.user_id);
   const contasNaTurma = dados.membros.flatMap((m) => (m.user_id ? [m.user_id] : []));
   const link = `${window.location.origin}/turma/${id}`;
@@ -247,6 +255,13 @@ function PaginaDaTurma() {
       "Não deu pra tirar esse jogador.",
     );
 
+  const definirAdmin = (memberId: string, nome: string, admin: boolean) =>
+    executar(
+      () => supabase.rpc("definir_admin", { p_member_id: memberId, p_admin: admin }),
+      admin ? `${nome} agora é administrador da turma.` : `${nome} não é mais administrador.`,
+      "Não deu pra mudar o administrador.",
+    );
+
   async function convidar() {
     const resultado = await compartilhar(`Entra na turma "${dados.nome}" no Goating:\n${link}`);
     if (resultado === "copiado") toast.success("Link copiado. Manda no grupo!");
@@ -290,9 +305,9 @@ function PaginaDaTurma() {
     <div className="app-shell flex min-h-screen flex-col pb-28">
       <header className="bg-primary px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
-          <Link to="/turmas" aria-label="Voltar">
+          <button type="button" aria-label="Voltar" onClick={voltar}>
             <ArrowLeft className="size-5 text-primary-foreground" />
-          </Link>
+          </button>
           <span className="flex-1 text-xs font-semibold tracking-wide text-mint uppercase">
             Turma
           </span>
@@ -395,7 +410,7 @@ function PaginaDaTurma() {
 
         {aba === "peladas" && (
           <>
-            {souDono && (
+            {souGestor && (
               <Button
                 asChild
                 className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
@@ -419,7 +434,7 @@ function PaginaDaTurma() {
 
         {aba === "membros" && (
           <>
-            {souDono && (
+            {souGestor && (
               <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
                 <h2 className="text-sm font-bold text-foreground">Chamar a galera</h2>
                 <Button variant="outline" className="w-full" onClick={convidar}>
@@ -466,9 +481,11 @@ function PaginaDaTurma() {
                       <span className="block text-[11px] text-muted-foreground">
                         {m.user_id === dados.dono_id
                           ? "Dono da turma"
-                          : m.user_id
-                            ? "Com conta"
-                            : "Sem conta"}
+                          : m.admin
+                            ? "Administrador"
+                            : m.user_id
+                              ? "Com conta"
+                              : "Sem conta"}
                       </span>
                     </span>
                     {m.user_id && m.user_id !== userId && (
@@ -480,7 +497,17 @@ function PaginaDaTurma() {
                         Perfil
                       </Link>
                     )}
-                    {souDono && !m.user_id && (
+                    {souDono && m.user_id && m.user_id !== dados.dono_id && (
+                      <button
+                        type="button"
+                        disabled={ocupado}
+                        onClick={() => definirAdmin(m.id, m.nome, !m.admin)}
+                        className="rounded-lg border border-border px-2 py-1 text-xs font-semibold"
+                      >
+                        {m.admin ? "Tirar admin" : "Tornar admin"}
+                      </button>
+                    )}
+                    {souGestor && !m.user_id && (
                       <button
                         type="button"
                         onClick={() => setFolha({ tipo: "vincular", memberId: m.id, nome: m.nome })}
@@ -489,17 +516,20 @@ function PaginaDaTurma() {
                         Vincular conta
                       </button>
                     )}
-                    {souDono && !m.jaJogou && m.user_id !== userId && (
-                      <button
-                        type="button"
-                        aria-label={`Tirar ${m.nome} da turma`}
-                        disabled={ocupado}
-                        onClick={() => remover(m.id, m.nome)}
-                        className="flex size-8 items-center justify-center rounded-lg text-muted-foreground"
-                      >
-                        <X className="size-4" />
-                      </button>
-                    )}
+                    {souGestor &&
+                      !m.jaJogou &&
+                      m.user_id !== userId &&
+                      m.user_id !== dados.dono_id && (
+                        <button
+                          type="button"
+                          aria-label={`Tirar ${m.nome} da turma`}
+                          disabled={ocupado}
+                          onClick={() => remover(m.id, m.nome)}
+                          className="flex size-8 items-center justify-center rounded-lg text-muted-foreground"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      )}
                   </div>
                 ))}
               </div>

@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useVoltar } from "@/hooks/use-voltar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +43,7 @@ function TimesDaPelada() {
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const voltar = useVoltar(() => void navigate({ to: "/pelada/$id", params: { id } }));
 
   const consulta = useQuery({
     queryKey: ["pelada-times", id, userId],
@@ -85,7 +87,7 @@ function TimesDaPelada() {
         <p className="text-sm text-muted-foreground">
           {consulta.isError
             ? "Não conseguimos carregar os times."
-            : "Só o organizador monta os times dessa pelada."}
+            : "Só o organizador ou um administrador da turma monta os times."}
         </p>
         <Button asChild>
           <Link to="/pelada/$id" params={{ id }}>
@@ -330,9 +332,9 @@ function TimesDaPelada() {
     <div className="app-shell flex min-h-screen flex-col pb-28">
       <header className="bg-primary px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
-          <Link to="/pelada/$id" params={{ id }} aria-label="Voltar">
+          <button type="button" aria-label="Voltar" onClick={voltar}>
             <ArrowLeft className="size-5 text-primary-foreground" />
-          </Link>
+          </button>
           <span className="text-xs font-semibold tracking-wide text-mint uppercase">
             Montar os times
           </span>

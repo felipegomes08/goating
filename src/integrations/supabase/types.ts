@@ -40,6 +40,7 @@ export type Database = {
       }
       crew_members: {
         Row: {
+          admin: boolean
           crew_id: string
           criado_em: string
           estrelas: number | null
@@ -49,6 +50,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          admin?: boolean
           crew_id: string
           criado_em?: string
           estrelas?: number | null
@@ -58,6 +60,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          admin?: boolean
           crew_id?: string
           criado_em?: string
           estrelas?: number | null
@@ -669,11 +672,17 @@ export type Database = {
           vitorias: number
         }[]
       }
+      definir_admin: {
+        Args: { p_admin: boolean; p_member_id: string }
+        Returns: undefined
+      }
       entrar_na_turma: {
         Args: { p_crew_id: string; p_member_id?: string }
         Returns: string
       }
       finalizar_peladas_vencidas: { Args: never; Returns: undefined }
+      gere_pelada: { Args: { p_match_id: string }; Returns: boolean }
+      gere_turma: { Args: { p_crew_id: string }; Returns: boolean }
       minhas_turmas: {
         Args: never
         Returns: {
@@ -688,6 +697,7 @@ export type Database = {
           proxima_data: string | null
           proxima_horario: string | null
           proxima_id: string | null
+          sou_admin: boolean
           sou_dono: boolean
         }[]
       }

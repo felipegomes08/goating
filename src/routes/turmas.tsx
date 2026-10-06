@@ -133,9 +133,9 @@ function MinhasTurmas() {
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-1.5 text-base font-extrabold text-foreground">
                     <span className="truncate">{t.nome}</span>
-                    {t.sou_dono && (
+                    {(t.sou_dono || t.sou_admin) && (
                       <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                        DONO
+                        {t.sou_dono ? "DONO" : "ADMIN"}
                       </span>
                     )}
                   </p>

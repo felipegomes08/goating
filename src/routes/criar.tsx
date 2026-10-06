@@ -76,13 +76,12 @@ function CriarPelada() {
     queryKey: ["minhas-turmas", userId],
     enabled: !!userId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("crews")
-        .select("id, nome")
-        .eq("dono_id", userId!)
-        .order("criado_em", { ascending: false });
+      const { data, error } = await supabase.rpc("minhas_turmas");
       if (error) throw error;
-      return data;
+      // só dá pra criar pelada em turma que eu gero
+      return data
+        .filter((t) => t.sou_dono || t.sou_admin)
+        .map((t) => ({ id: t.crew_id, nome: t.nome }));
     },
   });
   const [criada, setCriada] = useState<{

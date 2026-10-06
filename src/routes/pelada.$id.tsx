@@ -21,10 +21,12 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useVoltar } from "@/hooks/use-voltar";
 import { Button } from "@/components/ui/button";
 import { avaliouTodos } from "@/components/goating/match-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { podeGerirPelada } from "@/lib/placar/dados";
 import { tierPorNome } from "@/lib/tiers";
 import { TierBadge } from "@/components/goating/tier-badge";
 
@@ -113,7 +115,7 @@ function DetalhePelada() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  function voltar() {
+  const voltar = useVoltar(() => {
     if (voltarPara === "partidas-proximas") {
       navigate({ to: "/minhas-partidas", search: { aba: "proximas" } });
     } else if (voltarPara === "partidas-passadas") {
@@ -121,7 +123,7 @@ function DetalhePelada() {
     } else {
       navigate({ to: "/" });
     }
-  }
+  });
   const [ocupado, setOcupado] = useState(false);
 
   const consulta = useQuery({
@@ -152,6 +154,7 @@ function DetalhePelada() {
             .eq("avaliador_id", userId!),
           supabase.from("match_players").select("time").eq("match_id", id),
         ]);
+      const podeGerir = await podeGerirPelada(pelada, userId!);
 
       const ids = [...new Set([...(parts ?? []).map((p) => p.user_id), pelada.organizador_id])];
       const { data: perfis } = await supabase
@@ -174,6 +177,7 @@ function DetalhePelada() {
 
       return {
         pelada,
+        podeGerir,
         participantes: lista,
         organizador: (perfis ?? []).find((x) => x.id === pelada.organizador_id) ?? null,
         token: convite?.token ?? null,
@@ -206,7 +210,7 @@ function DetalhePelada() {
 
   if (!consulta.data) return <Aviso texto="Essa pelada não existe mais." />;
 
-  const { pelada, participantes, organizador, token, avaliadosPorMim, timesMontados } =
+  const { pelada, podeGerir, participantes, organizador, token, avaliadosPorMim, timesMontados } =
     consulta.data;
   const souOrganizador = pelada.organizador_id === userId;
   const aprovados = participantes.filter((p) => p.status === "aprovado");
@@ -478,7 +482,7 @@ function DetalhePelada() {
       </div>
 
       <div className="sticky bottom-0 space-y-2 border-t border-border bg-card p-4">
-        {finalizada && souOrganizador && temPlacar && (
+        {finalizada && podeGerir && temPlacar && (
           <Button asChild variant="ghost" className="w-full">
             <Link to="/pelada/$id/placar" params={{ id }}>
               Corrigir placar
@@ -515,7 +519,7 @@ function DetalhePelada() {
                 : "A janela de 24h para avaliações já fechou."}
             </p>
           )
-        ) : souOrganizador ? (
+        ) : podeGerir ? (
           <>
             {timesMontados ? (
               <div className="flex gap-2">

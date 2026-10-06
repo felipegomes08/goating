@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import { useSession } from "@/hooks/use-session";
+import { useVoltar } from "@/hooks/use-voltar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,7 @@ import {
   vibrar,
 } from "@/lib/placar/alarme";
 import { TabelaTimes } from "@/components/goating/tabela-times";
-import { carregarElenco, type LinhaElenco } from "@/lib/placar/dados";
+import { carregarElenco, podeGerirPelada, type LinhaElenco } from "@/lib/placar/dados";
 import {
   corDoTime,
   decorridoMs,
@@ -61,6 +62,7 @@ function PlacarDaPelada() {
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const voltar = useVoltar(() => void navigate({ to: "/pelada/$id", params: { id } }));
 
   const consulta = useQuery({
     queryKey: ["placar", id, userId],
@@ -75,7 +77,11 @@ function PlacarDaPelada() {
         .maybeSingle();
       if (error) throw error;
       if (!pelada) return null;
-      return { pelada, elenco: await carregarElenco(id) };
+      const [elenco, podeGerir] = await Promise.all([
+        carregarElenco(id),
+        podeGerirPelada(pelada, userId!),
+      ]);
+      return { pelada, elenco, podeGerir };
     },
   });
 
@@ -94,7 +100,7 @@ function PlacarDaPelada() {
   const ultimoToque = useRefDeToque();
 
   const dados = consulta.data;
-  const souOrganizador = !!dados && dados.pelada.organizador_id === userId;
+  const souOrganizador = !!dados?.podeGerir;
 
   // O aparelho é a fonte da verdade durante o jogo (quadra costuma ter sinal ruim);
   // o banco guarda uma cópia pra recuperar se trocar de aparelho.
@@ -173,7 +179,7 @@ function PlacarDaPelada() {
           {consulta.isError
             ? "Não conseguimos carregar o placar."
             : dados
-              ? "Só o organizador marca o placar dessa pelada."
+              ? "Só o organizador ou um administrador da turma marca o placar."
               : "Essa pelada não existe mais."}
         </p>
         <Button asChild>
@@ -376,14 +382,14 @@ function PlacarDaPelada() {
       // sem acesso ao armazenamento: nada a limpar
     }
     await queryClient.invalidateQueries({ queryKey: ["pelada", id] });
-    await navigate({ to: "/pelada/$id/resumo", params: { id } });
+    await navigate({ to: "/pelada/$id/resumo", params: { id }, replace: true });
   }
 
   const cabecalho = (
     <header className="flex items-center gap-3 bg-primary px-4 py-3">
-      <Link to="/pelada/$id" params={{ id }} aria-label="Voltar">
+      <button type="button" aria-label="Voltar" onClick={voltar}>
         <ArrowLeft className="size-5 text-primary-foreground" />
-      </Link>
+      </button>
       <h1 className="min-w-0 flex-1 truncate text-base font-extrabold text-primary-foreground">
         {pelada.titulo}
       </h1>
