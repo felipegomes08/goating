@@ -37,7 +37,7 @@ export const Route = createFileRoute("/ranking")({
 });
 
 const CAMPOS =
-  "id, nome_exibicao, cidade, foto_url, overall, peladas_jogadas, xp, tier_reconhecido, avaliacoes_recebidas";
+  "id, nome_exibicao, handle, cidade, foto_url, overall, peladas_jogadas, xp, tier_reconhecido, avaliacoes_recebidas";
 
 function Ranking() {
   const navigate = useNavigate();
@@ -79,12 +79,14 @@ function Ranking() {
     enabled: !!userId,
     queryFn: async (): Promise<JogadorResumo[]> => {
       if (busca) {
+        // vírgula, parênteses e % quebrariam o filtro "or"; o @ é só enfeite de quem digita
+        const termoLimpo = busca.replace(/^@/, "").replace(/[,()%*\\]/g, " ");
         const { data, error } = await supabase
           .from("profiles")
           .select(CAMPOS)
           .neq("id", userId!)
-          .ilike("nome_exibicao", `%${busca}%`)
-          .gte("avaliacoes_recebidas", MIN_AVALIACOES)
+          .eq("eh_convidado", false)
+          .or(`nome_exibicao.ilike.%${termoLimpo}%,handle.ilike.%${termoLimpo}%`)
           .order("overall", { ascending: false })
           .limit(30);
         if (error) throw error;
@@ -164,7 +166,7 @@ function Ranking() {
           <Input
             value={termo}
             onChange={(e) => setTermo(e.target.value)}
-            placeholder="Buscar jogador pelo nome"
+            placeholder="Buscar jogador pelo nome ou @nick"
             className="bg-card pl-9"
             aria-label="Buscar por nome de exibição"
           />

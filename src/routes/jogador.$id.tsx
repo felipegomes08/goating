@@ -239,7 +239,8 @@ function JogadorPublico() {
         </section>
 
         <section className="rounded-2xl bg-card p-4 text-sm shadow-[var(--shadow-card)]">
-          <p className="text-muted-foreground">
+          {perfil.handle && <p className="font-bold text-primary">@{perfil.handle}</p>}
+          <p className="mt-1 text-muted-foreground">
             Cidade:{" "}
             <span className="font-semibold text-foreground">
               {perfil.cidade ?? "não informada"}

@@ -8,6 +8,7 @@ import { TierBadge } from "@/components/goating/tier-badge";
 export type JogadorResumo = {
   id: string;
   nome_exibicao: string;
+  handle?: string | null;
   cidade: string | null;
   foto_url: string | null;
   overall: number | string;
@@ -74,7 +75,12 @@ export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocup
             </span>
           </span>
           <span className="block truncate text-xs text-muted-foreground">
-            {jogador.cidade ?? "Cidade não informada"}
+            {[
+              jogador.handle ? `@${jogador.handle}` : null,
+              jogador.cidade ?? "Cidade não informada",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </span>
         </span>
 
@@ -93,7 +99,11 @@ export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocup
           type="button"
           disabled={ocupado}
           onClick={onAlternarSeguir}
-          aria-label={seguindo ? `Deixar de seguir ${jogador.nome_exibicao}` : `Seguir ${jogador.nome_exibicao}`}
+          aria-label={
+            seguindo
+              ? `Deixar de seguir ${jogador.nome_exibicao}`
+              : `Seguir ${jogador.nome_exibicao}`
+          }
           className={cn(
             "flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold transition-colors",
             seguindo ? "bg-mint/15 text-mint" : "bg-mint text-mint-foreground",
