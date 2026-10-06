@@ -11,8 +11,11 @@ import {
   Lock,
   LogOut,
   MapPin,
+  Play,
   Share2,
+  Shuffle,
   Star,
+  Trophy,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -91,7 +94,9 @@ function iniciais(nome: string) {
 
 function dataLonga(data: string, horario: string, horarioFim?: string | null) {
   const d = new Date(`${data}T${horario}`);
-  const faixa = horarioFim ? `${horario.slice(0, 5)} às ${horarioFim.slice(0, 5)}` : horario.slice(0, 5);
+  const faixa = horarioFim
+    ? `${horario.slice(0, 5)} às ${horarioFim.slice(0, 5)}`
+    : horario.slice(0, 5);
   return (
     d.toLocaleDateString("pt-BR", {
       weekday: "long",
@@ -131,15 +136,22 @@ function DetalhePelada() {
       if (error) throw error;
       if (!pelada) return null;
 
-      const [{ data: parts }, { data: convite }, { data: minhasAvaliacoes }] = await Promise.all([
-        supabase.from("match_participants").select("id, user_id, status").eq("match_id", id),
-        supabase.from("match_invite_links").select("token").eq("match_id", id).eq("ativo", true).maybeSingle(),
-        supabase
-          .from("evaluations")
-          .select("avaliado_id")
-          .eq("match_id", id)
-          .eq("avaliador_id", userId!),
-      ]);
+      const [{ data: parts }, { data: convite }, { data: minhasAvaliacoes }, { data: elenco }] =
+        await Promise.all([
+          supabase.from("match_participants").select("id, user_id, status").eq("match_id", id),
+          supabase
+            .from("match_invite_links")
+            .select("token")
+            .eq("match_id", id)
+            .eq("ativo", true)
+            .maybeSingle(),
+          supabase
+            .from("evaluations")
+            .select("avaliado_id")
+            .eq("match_id", id)
+            .eq("avaliador_id", userId!),
+          supabase.from("match_players").select("time").eq("match_id", id),
+        ]);
 
       const ids = [...new Set([...(parts ?? []).map((p) => p.user_id), pelada.organizador_id])];
       const { data: perfis } = await supabase
@@ -166,6 +178,8 @@ function DetalhePelada() {
         organizador: (perfis ?? []).find((x) => x.id === pelada.organizador_id) ?? null,
         token: convite?.token ?? null,
         avaliadosPorMim: (minhasAvaliacoes ?? []).map((a) => a.avaliado_id),
+        timesMontados:
+          new Set((elenco ?? []).flatMap((j) => (j.time === null ? [] : [j.time]))).size >= 2,
       };
     },
   });
@@ -192,13 +206,16 @@ function DetalhePelada() {
 
   if (!consulta.data) return <Aviso texto="Essa pelada não existe mais." />;
 
-  const { pelada, participantes, organizador, token, avaliadosPorMim } = consulta.data;
+  const { pelada, participantes, organizador, token, avaliadosPorMim, timesMontados } =
+    consulta.data;
   const souOrganizador = pelada.organizador_id === userId;
   const aprovados = participantes.filter((p) => p.status === "aprovado");
   const pendentes = participantes.filter((p) => p.status === "pendente");
   const eu = participantes.find((p) => p.user_id === userId);
   const lotado = aprovados.length >= pelada.quantidade_vagas;
   const finalizada = pelada.status === "finalizada";
+  const emAndamento = pelada.status === "em_andamento";
+  const temPlacar = !!pelada.placar_finalizado_em;
   const mvpNome = pelada.mvp_id
     ? (participantes.find((p) => p.user_id === pelada.mvp_id)?.nome ?? null)
     : null;
@@ -304,7 +321,9 @@ function DetalhePelada() {
         <div className="divide-y divide-border rounded-2xl bg-card shadow-[var(--shadow-card)]">
           <p className="flex items-center gap-2 px-4 py-3 text-sm text-foreground">
             <CalendarDays className="size-4 text-muted-foreground" />
-            <span className="capitalize">{dataLonga(pelada.data, pelada.horario, pelada.horario_fim)}</span>
+            <span className="capitalize">
+              {dataLonga(pelada.data, pelada.horario, pelada.horario_fim)}
+            </span>
           </p>
           <p className="flex items-center gap-2 px-4 py-3 text-sm text-foreground">
             <MapPin className="size-4 text-muted-foreground" />
@@ -329,8 +348,29 @@ function DetalhePelada() {
           </div>
         )}
 
+        {temPlacar && (
+          <Button
+            asChild
+            className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
+          >
+            <Link to="/pelada/$id/resumo" params={{ id }}>
+              <Trophy className="mr-2 size-4" /> Ver placar e artilharia
+            </Link>
+          </Button>
+        )}
+
+        {pelada.crew_id && (
+          <Button asChild variant="outline" className="w-full">
+            <Link to="/turma/$id" params={{ id: pelada.crew_id }}>
+              <Trophy className="mr-2 size-4" /> Ranking da turma
+            </Link>
+          </Button>
+        )}
+
         {pelada.descricao && (
-          <p className="rounded-2xl bg-secondary/60 p-4 text-sm text-foreground">{pelada.descricao}</p>
+          <p className="rounded-2xl bg-secondary/60 p-4 text-sm text-foreground">
+            {pelada.descricao}
+          </p>
         )}
 
         {!finalizada && linkConvite && (souOrganizador || eu?.status === "aprovado") && (
@@ -403,7 +443,9 @@ function DetalhePelada() {
                       <TierBadge tier={tier} overall={p.overall} size={18} />
                       <span className="truncate">{p.nome}</span>
                       {p.user_id === pelada.organizador_id && (
-                        <span className="shrink-0 text-[10px] font-bold text-muted-foreground">ORG</span>
+                        <span className="shrink-0 text-[10px] font-bold text-muted-foreground">
+                          ORG
+                        </span>
                       )}
                     </p>
                     {tier && (
@@ -436,6 +478,13 @@ function DetalhePelada() {
       </div>
 
       <div className="sticky bottom-0 space-y-2 border-t border-border bg-card p-4">
+        {finalizada && souOrganizador && temPlacar && (
+          <Button asChild variant="ghost" className="w-full">
+            <Link to="/pelada/$id/placar" params={{ id }}>
+              Corrigir placar
+            </Link>
+          </Button>
+        )}
         {finalizada ? (
           dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 && jaAvaliei ? (
             <>
@@ -467,9 +516,38 @@ function DetalhePelada() {
             </p>
           )
         ) : souOrganizador ? (
-          <Button className="w-full" disabled={ocupado} onClick={finalizar}>
-            <Flag className="mr-2 size-4" /> Finalizar pelada
-          </Button>
+          <>
+            {timesMontados ? (
+              <div className="flex gap-2">
+                <Button asChild variant="outline" className="flex-1">
+                  <Link to="/pelada/$id/times" params={{ id }}>
+                    <Shuffle className="mr-2 size-4" /> Times
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  className="flex-[2] bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
+                >
+                  <Link to="/pelada/$id/placar" params={{ id }}>
+                    <Play className="mr-2 size-4" />{" "}
+                    {emAndamento ? "Voltar pro placar" : "Iniciar partida"}
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <Button
+                asChild
+                className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
+              >
+                <Link to="/pelada/$id/times" params={{ id }}>
+                  <Shuffle className="mr-2 size-4" /> Sortear times
+                </Link>
+              </Button>
+            )}
+            <Button variant="ghost" className="w-full" disabled={ocupado} onClick={finalizar}>
+              <Flag className="mr-2 size-4" /> Finalizar sem placar
+            </Button>
+          </>
         ) : eu?.status === "aprovado" ? (
           <Button variant="outline" className="w-full" disabled={ocupado} onClick={sair}>
             <LogOut className="mr-2 size-4" /> Sair da pelada
@@ -477,6 +555,10 @@ function DetalhePelada() {
         ) : eu?.status === "pendente" ? (
           <Button variant="outline" className="w-full" disabled={ocupado} onClick={sair}>
             Cancelar solicitação
+          </Button>
+        ) : emAndamento ? (
+          <Button disabled className="w-full">
+            Pelada em andamento
           </Button>
         ) : lotado ? (
           <Button disabled className="w-full">
