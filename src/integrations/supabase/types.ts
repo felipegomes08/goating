@@ -669,12 +669,34 @@ export type Database = {
           vitorias: number
         }[]
       }
+      entrar_na_turma: {
+        Args: { p_crew_id: string; p_member_id?: string }
+        Returns: string
+      }
       finalizar_peladas_vencidas: { Args: never; Returns: undefined }
+      minhas_turmas: {
+        Args: never
+        Returns: {
+          artilheiro: string | null
+          artilheiro_gols: number | null
+          crew_id: string
+          membros: number
+          meus_gols: number
+          minha_posicao: number | null
+          nome: string
+          peladas: number
+          proxima_data: string | null
+          proxima_horario: string | null
+          proxima_id: string | null
+          sou_dono: boolean
+        }[]
+      }
       pode_avaliar: {
         Args: { _avaliado: string; _avaliador: string; _match_id: string }
         Returns: boolean
       }
       reivindicar_tier: { Args: never; Returns: string }
+      sair_da_turma: { Args: { p_crew_id: string }; Returns: undefined }
       salvar_placar: {
         Args: { p_match_id: string; p_payload: Json }
         Returns: undefined
@@ -684,6 +706,10 @@ export type Database = {
         Returns: string
       }
       tier_ordem: { Args: { _nome: string }; Returns: number }
+      vincular_membro: {
+        Args: { p_member_id: string; p_user_id: string }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

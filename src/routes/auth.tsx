@@ -30,14 +30,18 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const search = useRouterState({ select: (s) => s.location.search }) as { convite?: string };
+  const search = useRouterState({ select: (s) => s.location.search }) as { convite?: string; turma?: string };
   const [modo, setModo] = useState<"entrar" | "criar" | "recuperar">("entrar");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  const destino = search?.convite ? `/p/${search.convite}` : "/";
+  const destino = search?.convite
+    ? `/p/${search.convite}`
+    : search?.turma
+      ? `/turma/${search.turma}`
+      : "/";
 
   async function enviarRecuperacao(e: React.FormEvent) {
     e.preventDefault();

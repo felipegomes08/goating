@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarDays, House, Plus, Trophy, User } from "lucide-react";
+import { CalendarDays, House, Plus, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function BottomNav() {
@@ -19,13 +19,9 @@ export function BottomNav() {
           Feed
         </Link>
 
-        <Link
-          to="/ranking"
-          search={{ aba: "cidade" }}
-          className={item(pathname.startsWith("/ranking"))}
-        >
-          <Trophy className="size-5" strokeWidth={2} />
-          Ranking
+        <Link to="/turmas" className={item(pathname.startsWith("/turma"))}>
+          <Users className="size-5" strokeWidth={2} />
+          Turmas
         </Link>
 
         <div className="flex flex-1 justify-center">

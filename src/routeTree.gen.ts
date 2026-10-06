@@ -18,6 +18,7 @@ import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as RedeRouteImport } from './routes/rede'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
+import { Route as TurmasRouteImport } from './routes/turmas'
 import { Route as JogadorIdRouteImport } from './routes/jogador.$id'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PeladaIdRouteImport } from './routes/pelada.$id'
@@ -72,6 +73,11 @@ const RedefinirSenhaRoute = RedefinirSenhaRouteImport.update({
   path: '/redefinir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TurmasRoute = TurmasRouteImport.update({
+  id: '/turmas',
+  path: '/turmas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JogadorIdRoute = JogadorIdRouteImport.update({
   id: '/jogador/$id',
   path: '/jogador/$id',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/turmas': typeof TurmasRoute
   '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/turmas': typeof TurmasRoute
   '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
+  '/turmas': typeof TurmasRoute
   '/jogador/$id': typeof JogadorIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRoute
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/rede'
     | '/redefinir-senha'
+    | '/turmas'
     | '/jogador/$id'
     | '/p/$token'
     | '/pelada/$id'
@@ -202,6 +212,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/rede'
     | '/redefinir-senha'
+    | '/turmas'
     | '/jogador/$id'
     | '/p/$token'
     | '/pelada/$id'
@@ -221,6 +232,7 @@ export interface FileRouteTypes {
     | '/ranking'
     | '/rede'
     | '/redefinir-senha'
+    | '/turmas'
     | '/jogador/$id'
     | '/p/$token'
     | '/pelada/$id'
@@ -241,6 +253,7 @@ export interface RootRouteChildren {
   RankingRoute: typeof RankingRoute
   RedeRoute: typeof RedeRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
+  TurmasRoute: typeof TurmasRoute
   JogadorIdRoute: typeof JogadorIdRoute
   PTokenRoute: typeof PTokenRoute
   PeladaIdRoute: typeof PeladaIdRoute
@@ -316,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RedefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/turmas': {
+      id: '/turmas'
+      path: '/turmas'
+      fullPath: '/turmas'
+      preLoaderRoute: typeof TurmasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jogador/$id': {
       id: '/jogador/$id'
       path: '/jogador/$id'
@@ -385,6 +405,7 @@ const rootRouteChildren: RootRouteChildren = {
   RankingRoute: RankingRoute,
   RedeRoute: RedeRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,
+  TurmasRoute: TurmasRoute,
   JogadorIdRoute: JogadorIdRoute,
   PTokenRoute: PTokenRoute,
   PeladaIdRoute: PeladaIdRoute,

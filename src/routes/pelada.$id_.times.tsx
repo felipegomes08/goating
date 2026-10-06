@@ -18,6 +18,7 @@ import { useSession } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
 import { cn } from "@/lib/utils";
 import {
   compartilhar,
@@ -28,7 +29,7 @@ import {
 } from "@/lib/placar/dados";
 import { NOMES_PADRAO, corDoTime, nomeDoTime } from "@/lib/placar/estado";
 import { acharMembro, lerLista } from "@/lib/placar/lista";
-import { ESTRELAS_PADRAO, POSICOES, sortearTimes } from "@/lib/placar/sorteio";
+import { ESTRELAS_PADRAO, POSICOES, estrelasDoOverall, sortearTimes } from "@/lib/placar/sorteio";
 
 export const Route = createFileRoute("/pelada/$id_/times")({
   ssr: false,
@@ -273,6 +274,42 @@ function TimesDaPelada() {
     }
   }
 
+  /** Quem já tem conta no Goating: entra na turma (se ainda não é) e no elenco de hoje. */
+  async function adicionarConta(perfil: PerfilAchado) {
+    setOcupado(true);
+    try {
+      let membro = membros.find((m) => m.user_id === perfil.id);
+      if (!membro) {
+        const { data: criado, error } = await supabase
+          .from("crew_members")
+          .insert({ crew_id: crewId, user_id: perfil.id, nome: perfil.nome_exibicao })
+          .select("*")
+          .single();
+        if (error) throw error;
+        membro = criado;
+        setMembros((atuais) => [...atuais, criado]);
+      }
+      const novo: JogadorDoDia = {
+        memberId: membro.id,
+        userId: perfil.id,
+        nome: membro.nome,
+        posicao: membro.posicao ?? perfil.posicao_preferida,
+        estrelas:
+          membro.estrelas ??
+          estrelasDoOverall(perfil.overall, perfil.avaliacoes_recebidas) ??
+          ESTRELAS_PADRAO,
+        time: null,
+      };
+      setConfirmadosFora((fora) => fora.filter((f) => f.memberId !== novo.memberId));
+      await gravarTimes([...jogadores.filter((j) => j.memberId !== novo.memberId), novo]);
+      toast.success(`${novo.nome} entrou no elenco.`);
+    } catch {
+      toast.error("Não deu pra adicionar esse jogador.");
+    } finally {
+      setOcupado(false);
+    }
+  }
+
   async function adicionarConfirmados() {
     const fora = confirmadosFora;
     setConfirmadosFora([]);
@@ -322,6 +359,11 @@ function TimesDaPelada() {
           <Button className="w-full" disabled={ocupado || !texto.trim()} onClick={adicionarDaLista}>
             Adicionar ao elenco
           </Button>
+          <BuscaJogador
+            ignorar={jogadores.flatMap((j) => (j.userId ? [j.userId] : []))}
+            ocupado={ocupado}
+            onEscolher={adicionarConta}
+          />
           {confirmadosFora.length > 0 && (
             <Button variant="outline" className="w-full" onClick={adicionarConfirmados}>
               Trazer {confirmadosFora.length} confirmado{confirmadosFora.length === 1 ? "" : "s"}{" "}

@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Search } from "lucide-react";
+import { MapPin, Search, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { GoatingLogo } from "@/components/goating/logo";
 import { BottomNav } from "@/components/goating/bottom-nav";
+import { FaixaTurmas } from "@/components/goating/faixa-turmas";
 import {
   MatchCard,
   avaliouTodos,
@@ -215,10 +216,12 @@ function Feed() {
         <div className="flex items-center justify-between">
           <GoatingLogo withWordmark iconTone="light" wordmarkTone="dark" />
           <Link
-            to="/perfil"
-            className="rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint"
+            to="/ranking"
+            search={{ aba: "cidade" }}
+            aria-label="Ranking de jogadores"
+            className="flex items-center gap-1.5 rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint"
           >
-            Meu perfil
+            <Trophy className="size-4" /> Ranking
           </Link>
         </div>
         {cidade && (
@@ -239,6 +242,8 @@ function Feed() {
       </header>
 
       <main className="flex-1 space-y-3 px-4 py-4">
+        {userId && <FaixaTurmas userId={userId} />}
+
         {aAvaliar.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Check, Lock, Minus, Plus, Repeat, Share2 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,6 +28,9 @@ function somarHora(hhmm: string, horas: number) {
 
 export const Route = createFileRoute("/criar")({
   ssr: false,
+  validateSearch: (search: Record<string, unknown>): { turma?: string | undefined } => ({
+    turma: typeof search["turma"] === "string" ? search["turma"] : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Criar pelada · Goating" },
@@ -66,7 +69,8 @@ function CriarPelada() {
   /** "agora": já tenho a lista do WhatsApp e quero ir direto pros times e pro placar. */
   const [modo, setModo] = useState<"agendar" | "agora">("agendar");
   const [config, setConfig] = useState<ConfigJogo>(CONFIG_PADRAO);
-  const [turmaManual, setTurmaManual] = useState<string | null>(null);
+  const { turma: turmaDaUrl } = useSearch({ from: "/criar" });
+  const [turmaManual, setTurmaManual] = useState<string | null>(turmaDaUrl ?? null);
 
   const turmas = useQuery({
     queryKey: ["minhas-turmas", userId],
