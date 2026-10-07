@@ -40,11 +40,13 @@ function escrever(
     cor: string;
     largura: number;
     alinhar?: CanvasTextAlign;
+    /** menor letra aceita antes de cortar o texto com reticências */
+    minimo?: number;
   },
 ) {
   let tamanho = opcoes.tamanho;
   ctx.font = fonte(opcoes.peso, tamanho);
-  while (ctx.measureText(texto).width > opcoes.largura && tamanho > 22) {
+  while (ctx.measureText(texto).width > opcoes.largura && tamanho > (opcoes.minimo ?? 22)) {
     tamanho -= 2;
     ctx.font = fonte(opcoes.peso, tamanho);
   }
@@ -269,9 +271,154 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
   return canvas;
 }
 
+export type LinhaDoRanking = {
+  nome: string;
+  jogos: number;
+  vitorias: number;
+  gols: number;
+  /** já formatada: "1,2" */
+  media: string;
+  aproveitamento: number;
+};
+
+export type DadosDoRanking = {
+  turma: string;
+  periodo: string;
+  /** índice da coluna que ordena a tabela (0 = J ... 4 = %) */
+  colunaOrdenada: number;
+  linhas: LinhaDoRanking[];
+};
+
+const COLUNAS_RANKING = ["J", "V", "G", "M", "%"];
+const MAX_LINHAS_RANKING = 15;
+
+/** Tabela do ranking da turma como imagem: altura acompanha a quantidade de jogadores. */
+export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvasElement> {
+  await Promise.all(
+    [600, 800, 900].map((peso) => document.fonts.load(fonte(peso, 40)).catch(() => undefined)),
+  );
+
+  const linhas = dados.linhas.slice(0, MAX_LINHAS_RANKING);
+  const ALTURA_LINHA = 78;
+  const TOPO_TABELA = 400;
+  const altura = TOPO_TABELA + linhas.length * ALTURA_LINHA + 190;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = LARGURA;
+  canvas.height = altura;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Esse navegador não desenha imagens.");
+  const util = LARGURA - MARGEM * 2;
+  ctx.textBaseline = "alphabetic";
+
+  ctx.fillStyle = VERDE;
+  ctx.fillRect(0, 0, LARGURA, altura);
+  const luz = ctx.createRadialGradient(LARGURA / 2, 200, 60, LARGURA / 2, 200, 900);
+  luz.addColorStop(0, VERDE_CLARO);
+  luz.addColorStop(1, "rgba(15,61,46,0)");
+  ctx.fillStyle = luz;
+  ctx.fillRect(0, 0, LARGURA, altura);
+
+  escrever(ctx, "GOATING", MARGEM, 120, { peso: 900, tamanho: 38, cor: MENTA, largura: 300 });
+  escrever(ctx, "RANKING DA TURMA", LARGURA - MARGEM, 120, {
+    peso: 600,
+    tamanho: 26,
+    cor: APAGADO,
+    largura: 500,
+    alinhar: "right",
+  });
+  escrever(ctx, dados.turma, MARGEM, 220, { peso: 800, tamanho: 64, cor: BRANCO, largura: util });
+  escrever(ctx, dados.periodo, MARGEM, 272, { peso: 600, tamanho: 30, cor: MENTA, largura: util });
+
+  // colunas de número, da direita pra esquerda
+  const LARGURA_COLUNA = 104;
+  const xColuna = (i: number) =>
+    LARGURA - MARGEM - 24 - (COLUNAS_RANKING.length - 1 - i) * LARGURA_COLUNA;
+  const xNome = MARGEM + 96;
+  const larguraNome = xColuna(0) - LARGURA_COLUNA + 20 - xNome;
+
+  COLUNAS_RANKING.forEach((rotulo, i) => {
+    escrever(ctx, rotulo, xColuna(i), TOPO_TABELA - 30, {
+      peso: 800,
+      tamanho: 28,
+      cor: i === dados.colunaOrdenada ? MENTA : APAGADO,
+      largura: LARGURA_COLUNA,
+      alinhar: "right",
+    });
+  });
+  escrever(ctx, "JOGADOR", xNome, TOPO_TABELA - 30, {
+    peso: 800,
+    tamanho: 24,
+    cor: APAGADO,
+    largura: larguraNome,
+  });
+
+  linhas.forEach((l, i) => {
+    const topo = TOPO_TABELA + i * ALTURA_LINHA;
+    const base = topo + 52;
+    if (i % 2 === 0) {
+      ctx.fillStyle = i === 0 ? "rgba(127,224,160,0.16)" : "rgba(255,255,255,0.05)";
+      retanguloArredondado(ctx, MARGEM, topo, util, ALTURA_LINHA - 8, 20);
+      ctx.fill();
+    }
+    if (i === 0) coroa(ctx, MARGEM + 22, base - 34, 42);
+    else {
+      escrever(ctx, `${i + 1}`, MARGEM + 64, base, {
+        peso: 800,
+        tamanho: 32,
+        cor: APAGADO,
+        largura: 60,
+        alinhar: "right",
+      });
+    }
+    escrever(ctx, l.nome, xNome, base, {
+      peso: i === 0 ? 800 : 600,
+      tamanho: 36,
+      cor: BRANCO,
+      largura: larguraNome,
+      minimo: 30,
+    });
+    [String(l.jogos), String(l.vitorias), String(l.gols), l.media, `${l.aproveitamento}`].forEach(
+      (valor, c) => {
+        const ordenada = c === dados.colunaOrdenada;
+        escrever(ctx, valor, xColuna(c), base, {
+          peso: ordenada ? 900 : 600,
+          tamanho: ordenada ? 38 : 34,
+          cor: ordenada ? (i === 0 ? OURO : MENTA) : BRANCO,
+          largura: LARGURA_COLUNA - 8,
+          alinhar: "right",
+        });
+      },
+    );
+  });
+
+  const rodape = TOPO_TABELA + linhas.length * ALTURA_LINHA + 50;
+  escrever(
+    ctx,
+    "J jogos  ·  V vitórias  ·  G gols  ·  M gols por jogo  ·  % aproveitamento",
+    LARGURA / 2,
+    rodape,
+    { peso: 600, tamanho: 24, cor: APAGADO, largura: util, alinhar: "center" },
+  );
+  escrever(ctx, window.location.host, LARGURA / 2, altura - 60, {
+    peso: 600,
+    tamanho: 26,
+    cor: APAGADO,
+    largura: util,
+    alinhar: "center",
+  });
+
+  return canvas;
+}
+
+export const compartilharPoster = async (dados: DadosDoPoster, nomeDoArquivo: string) =>
+  compartilharCanvas(await desenharPoster(dados), nomeDoArquivo);
+
+export const compartilharRanking = async (dados: DadosDoRanking, nomeDoArquivo: string) =>
+  compartilharCanvas(await desenharRanking(dados), nomeDoArquivo);
+
 /** Abre a folha de compartilhar do celular com a imagem; onde não dá, baixa o arquivo. */
-export async function compartilharPoster(dados: DadosDoPoster, nomeDoArquivo: string) {
-  const canvas = await desenharPoster(dados);
+async function compartilharCanvas(canvas: HTMLCanvasElement, nomeDoArquivo: string) {
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("Não deu pra gerar a imagem.");
   const arquivo = new File([blob], nomeDoArquivo, { type: "image/png" });

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   CalendarDays,
+  Image as ImageIcon,
   Link2,
   LogOut,
   Plus,
@@ -17,15 +18,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useVoltar } from "@/hooks/use-voltar";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
+import {
+  COLUNAS_RANKING,
+  TabelaRanking,
+  formatarMedia,
+  type ColunaRanking,
+} from "@/components/goating/tabela-ranking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { compartilhar } from "@/lib/placar/dados";
+import { compartilharRanking } from "@/lib/placar/poster";
 
 type Aba = "ranking" | "peladas" | "membros";
 type Periodo = "mes" | "ano" | "tudo";
-type Criterio = "gols" | "vitorias" | "aproveitamento";
 
 export const Route = createFileRoute("/turma/$id")({
   ssr: false,
@@ -47,11 +54,6 @@ const PERIODOS: { id: Periodo; rotulo: string }[] = [
   { id: "ano", rotulo: "Ano" },
   { id: "tudo", rotulo: "Tudo" },
 ];
-const CRITERIOS: { id: Criterio; rotulo: string }[] = [
-  { id: "gols", rotulo: "Gols" },
-  { id: "vitorias", rotulo: "Vitórias" },
-  { id: "aproveitamento", rotulo: "Aproveitamento" },
-];
 
 function inicioDoPeriodo(periodo: Periodo) {
   const hoje = new Date();
@@ -69,7 +71,8 @@ function PaginaDaTurma() {
   const voltar = useVoltar(() => void navigate({ to: "/turmas" }));
   const aba = abaDaUrl ?? "ranking";
   const [periodo, setPeriodo] = useState<Periodo>("mes");
-  const [criterio, setCriterio] = useState<Criterio>("gols");
+  const [ordem, setOrdem] = useState<ColunaRanking>("gols");
+  const [gerandoImagem, setGerandoImagem] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [nomeNovo, setNomeNovo] = useState("");
   const [folha, setFolha] = useState<
@@ -132,6 +135,7 @@ function PaginaDaTurma() {
         // 3 pontos por vitória, 1 por empate, sobre o máximo possível
         aproveitamento:
           l.jogos > 0 ? Math.round(((l.vitorias * 3 + l.empates) / (l.jogos * 3)) * 100) : 0,
+        media: l.jogos > 0 ? l.gols / l.jogos : 0,
       }));
     },
   });
@@ -269,7 +273,7 @@ function PaginaDaTurma() {
 
   const linhas = [...(ranking.data ?? [])].sort(
     (a, b) =>
-      b[criterio] - a[criterio] ||
+      b[ordem] - a[ordem] ||
       b.gols - a.gols ||
       b.vitorias - a.vitorias ||
       a.nome.localeCompare(b.nome),
@@ -280,19 +284,51 @@ function PaginaDaTurma() {
       : periodo === "ano"
         ? String(new Date().getFullYear())
         : "desde o começo";
-  const valor = (l: (typeof linhas)[number]) =>
-    criterio === "aproveitamento" ? `${l.aproveitamento}%` : l[criterio];
+  const colunaOrdenada = COLUNAS_RANKING.find((c) => c.id === ordem);
 
-  async function compartilharRanking() {
-    const rotulo = CRITERIOS.find((c) => c.id === criterio)?.rotulo ?? "";
+  /** Texto pro WhatsApp: um jogador por bloco, com todos os números. */
+  async function compartilharTexto() {
     const medalhas = ["🥇", "🥈", "🥉"];
     const texto = [
-      `🏆 ${dados.nome} · ${rotulo} · ${rotuloPeriodo}`,
+      `🏆 *${dados.nome}*`,
+      `Ranking de ${rotuloPeriodo}, por ${colunaOrdenada?.nome ?? "gols"}`,
       "",
-      ...linhas.slice(0, 10).map((l, i) => `${medalhas[i] ?? `${i + 1}.`} ${l.nome}: ${valor(l)}`),
+      ...linhas
+        .slice(0, 15)
+        .flatMap((l, i) => [
+          `${medalhas[i] ?? `${i + 1}.`} *${l.nome}*`,
+          `   ${l.jogos} ${l.jogos === 1 ? "jogo" : "jogos"} · ${l.vitorias} ${l.vitorias === 1 ? "vitória" : "vitórias"} · ${l.gols} ${l.gols === 1 ? "gol" : "gols"} · ${formatarMedia(l.media)} por jogo · ${l.aproveitamento}%`,
+        ]),
     ].join("\n");
     const resultado = await compartilhar(texto);
     if (resultado === "copiado") toast.success("Ranking copiado. Cola no grupo!");
+  }
+
+  async function compartilharTabela() {
+    setGerandoImagem(true);
+    try {
+      const resultado = await compartilharRanking(
+        {
+          turma: dados.nome,
+          periodo: rotuloPeriodo,
+          colunaOrdenada: COLUNAS_RANKING.findIndex((c) => c.id === ordem),
+          linhas: linhas.map((l) => ({
+            nome: l.nome,
+            jogos: l.jogos,
+            vitorias: l.vitorias,
+            gols: l.gols,
+            media: formatarMedia(l.media),
+            aproveitamento: l.aproveitamento,
+          })),
+        },
+        "goating-ranking.png",
+      );
+      if (resultado === "baixado") toast.success("Tabela baixada. Manda no grupo!");
+    } catch {
+      toast.error("Não deu pra gerar a tabela.");
+    } finally {
+      setGerandoImagem(false);
+    }
   }
 
   const hoje = new Date().toLocaleDateString("sv-SE");
@@ -353,57 +389,12 @@ function PaginaDaTurma() {
         {aba === "ranking" && (
           <>
             <Abas opcoes={PERIODOS} valor={periodo} onMudar={setPeriodo} />
-            <Abas opcoes={CRITERIOS} valor={criterio} onMudar={setCriterio} />
             {ranking.isLoading ? (
               <Skeleton className="h-64 w-full rounded-2xl" />
             ) : linhas.length === 0 ? (
               <Vazio>Nenhuma pelada com placar nesse período ainda.</Vazio>
             ) : (
-              <div className="divide-y divide-border rounded-2xl bg-card shadow-[var(--shadow-card)]">
-                {linhas.map((l, i) => {
-                  const corpo = (
-                    <>
-                      <span
-                        className={cn(
-                          "w-6 text-center text-sm font-extrabold",
-                          i === 0 ? "text-tier-ouro" : "text-muted-foreground",
-                        )}
-                      >
-                        {i + 1}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-foreground">
-                          {l.nome}
-                          {l.user_id === userId && (
-                            <span className="text-muted-foreground"> (você)</span>
-                          )}
-                        </span>
-                        <span className="block text-[11px] text-muted-foreground">
-                          {l.peladas} {l.peladas === 1 ? "pelada" : "peladas"} · {l.vitorias}V{" "}
-                          {l.empates}E {l.derrotas}D · {l.gols} {l.gols === 1 ? "gol" : "gols"}
-                        </span>
-                      </span>
-                      <span className="text-xl font-extrabold text-foreground tabular-nums">
-                        {valor(l)}
-                      </span>
-                    </>
-                  );
-                  return l.user_id ? (
-                    <Link
-                      key={l.member_id}
-                      to="/jogador/$id"
-                      params={{ id: l.user_id }}
-                      className="flex items-center gap-3 px-3 py-2.5"
-                    >
-                      {corpo}
-                    </Link>
-                  ) : (
-                    <div key={l.member_id} className="flex items-center gap-3 px-3 py-2.5">
-                      {corpo}
-                    </div>
-                  );
-                })}
-              </div>
+              <TabelaRanking linhas={linhas} ordem={ordem} onOrdenar={setOrdem} userId={userId} />
             )}
           </>
         )}
@@ -547,13 +538,20 @@ function PaginaDaTurma() {
 
       {aba === "ranking" && linhas.length > 0 && (
         <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
-          <Button
-            variant={souMembro || souDono ? "default" : "outline"}
-            className="w-full"
-            onClick={compartilharRanking}
-          >
-            <Share2 className="mr-2 size-4" /> Compartilhar ranking
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={compartilharTexto}>
+              <Share2 className="mr-2 size-4" /> Texto
+            </Button>
+            <Button
+              variant={souMembro || souDono ? "default" : "outline"}
+              className="flex-[2]"
+              disabled={gerandoImagem}
+              onClick={compartilharTabela}
+            >
+              <ImageIcon className="mr-2 size-4" />{" "}
+              {gerandoImagem ? "Gerando…" : "Compartilhar tabela"}
+            </Button>
+          </div>
         </div>
       )}
 
