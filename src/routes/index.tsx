@@ -52,7 +52,37 @@ type LinhaPelada = {
   quantidade_vagas: number;
   tipo: string;
   organizador_id: string;
+  crew_id?: string | null;
 };
+
+/** Quantos dias pra frente o feed mostra. Além disso, só em "Partidas". */
+const DIAS_NO_FEED = 7;
+
+/** Data no fuso do aparelho (AAAA-MM-DD). toISOString usaria UTC e viraria o dia às 21h no Brasil. */
+function dataLocal(daquiADias = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + daquiADias);
+  return d.toLocaleDateString("sv-SE");
+}
+
+/**
+ * Pelada recorrente vira uma só no feed: fica a próxima data de cada série
+ * (mesmo organizador, turma, título e horário). A lista já vem em ordem de data.
+ */
+function soProximaDeCadaSerie<T extends LinhaPelada>(peladas: T[]) {
+  const vistas = new Set<string>();
+  return peladas.filter((p) => {
+    const serie = [
+      p.organizador_id,
+      p.crew_id ?? "",
+      p.titulo.trim().toLowerCase(),
+      p.horario,
+    ].join("|");
+    if (vistas.has(serie)) return false;
+    vistas.add(serie);
+    return true;
+  });
+}
 
 type LinhaPeladaFinalizada = LinhaPelada & {
   status: string;
@@ -70,20 +100,20 @@ function Feed() {
     queryKey: ["feed", userId, cidade],
     enabled: !!userId && !!cidade,
     queryFn: async (): Promise<PeladaFeed[]> => {
-      const hoje = new Date().toISOString().slice(0, 10);
+      const hoje = dataLocal();
       const { data: peladas, error } = await supabase
         .from("matches")
         .select(
-          "id, titulo, data, horario, horario_fim, local, cidade, quantidade_vagas, tipo, organizador_id",
+          "id, titulo, data, horario, horario_fim, local, cidade, quantidade_vagas, tipo, organizador_id, crew_id",
         )
         .eq("status", "agendada")
         .eq("cidade", cidade!)
         .gte("data", hoje)
         .order("data", { ascending: true })
         .order("horario", { ascending: true })
-        .limit(50);
+        .limit(100);
       if (error) throw error;
-      const linhas = (peladas ?? []) as LinhaPelada[];
+      const linhas = soProximaDeCadaSerie((peladas ?? []) as LinhaPelada[]);
       if (linhas.length === 0) return [];
 
       const ids = linhas.map((p) => p.id);
@@ -207,12 +237,23 @@ function Feed() {
   // No feed só aparece o que ainda depende de mim; quem já avaliou revisa por "Minhas partidas".
   const aAvaliar = (pendentesAvaliacao.data ?? []).filter((p) => !p.jaAvaliei);
 
-  const lista = useMemo(() => {
+  const buscando = !!busca.trim();
+  const { lista, maisPraFrente } = useMemo(() => {
+    const todas = feed.data ?? [];
     const termo = busca.trim().toLowerCase();
-    if (!termo) return feed.data ?? [];
-    return (feed.data ?? []).filter((p) =>
-      [p.titulo, p.cidade, p.local].some((c) => c.toLowerCase().includes(termo)),
-    );
+    // a busca procura em tudo; sem busca, só a semana que vem
+    if (termo) {
+      return {
+        lista: todas.filter((p) =>
+          [p.titulo, p.cidade, p.local].some((c) => c.toLowerCase().includes(termo)),
+        ),
+        maisPraFrente: [],
+      };
+    }
+    const limite = dataLocal(DIAS_NO_FEED);
+    const semana = todas.filter((p) => p.data <= limite);
+    // semana vazia não vira tela vazia: mostra o que vem depois
+    return { lista: semana, maisPraFrente: semana.length === 0 ? todas.slice(0, 3) : [] };
   }, [feed.data, busca]);
 
   return (
@@ -285,16 +326,28 @@ function Feed() {
               <Link to="/perfil">Completar cadastro</Link>
             </Button>
           </div>
+        ) : lista.length === 0 && maisPraFrente.length > 0 ? (
+          <div className="space-y-3">
+            <p className="rounded-2xl bg-card p-4 text-sm text-muted-foreground shadow-[var(--shadow-card)]">
+              Nenhuma pelada aberta em {cidade} nos próximos {DIAS_NO_FEED} dias.
+            </p>
+            <h2 className="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+              Mais pra frente
+            </h2>
+            {maisPraFrente.map((p) => (
+              <MatchCard key={p.id} pelada={p} />
+            ))}
+          </div>
         ) : lista.length === 0 ? (
           <div className="mt-12 flex flex-col items-center px-6 text-center">
             <span className="flex size-16 items-center justify-center rounded-full bg-mint-soft">
               <CalendarPlus className="size-7 text-primary" strokeWidth={1.8} />
             </span>
             <p className="mt-4 text-base font-semibold text-foreground">
-              {busca.trim() ? "Nada com esse nome" : `Nenhuma pelada aberta em ${cidade}`}
+              {buscando ? "Nada com esse nome" : `Nenhuma pelada aberta em ${cidade}`}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {busca.trim()
+              {buscando
                 ? "Tenta outro nome de quadra ou de pelada."
                 : "Toque no + aqui embaixo pra organizar a primeira."}
             </p>
