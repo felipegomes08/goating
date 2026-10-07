@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { overallLiberado } from "@/lib/tiers";
 import { ESTRELAS_PADRAO, estrelasDoOverall } from "./sorteio";
 
 export type Pelada = Tables<"matches">;
@@ -11,8 +12,19 @@ export type JogadorDoDia = {
   nome: string;
   posicao: string | null;
   estrelas: number;
+  /** overall do Goating, só quando já está liberado (mínimo de avaliações) */
+  overall: number | null;
   time: number | null;
 };
+
+/** Overall pra usar no sorteio: nulo enquanto o jogador não tem avaliações suficientes. */
+export function overallDoPerfil(
+  perfil: { overall: number | string | null; avaliacoes_recebidas: number } | undefined,
+) {
+  const overall = Number(perfil?.overall);
+  if (!perfil || !overallLiberado(perfil.avaliacoes_recebidas) || !(overall > 0)) return null;
+  return Math.round(overall);
+}
 
 type PerfilResumo = {
   id: string;
@@ -36,6 +48,7 @@ function paraJogador(
       membro.estrelas ??
       estrelasDoOverall(perfil?.overall, perfil?.avaliacoes_recebidas) ??
       ESTRELAS_PADRAO,
+    overall: overallDoPerfil(perfil),
     time,
   };
 }

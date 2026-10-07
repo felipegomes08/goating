@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { carregarElenco, compartilhar } from "@/lib/placar/dados";
-import { compartilharPoster } from "@/lib/placar/poster";
+import { FolhaPoster } from "@/components/goating/folha-poster";
 import {
   campeoesDoDia,
   corDoTime,
@@ -30,7 +30,7 @@ function ResumoDaPelada() {
   const { id } = useParams({ from: "/pelada/$id_/resumo" });
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
-  const [gerandoPoster, setGerandoPoster] = useState(false);
+  const [folhaPoster, setFolhaPoster] = useState(false);
   const voltar = useVoltar(() => void navigate({ to: "/pelada/$id", params: { id } }));
 
   const consulta = useQuery({
@@ -107,41 +107,28 @@ function ResumoDaPelada() {
       ? `${nomeTime(campeoes[0])} ${jogoUnico ? "venceu" : "foi o campeão do dia"}`
       : "Terminou tudo igual";
 
-  async function compartilharImagem() {
-    setGerandoPoster(true);
-    try {
-      const resultado = await compartilharPoster(
-        {
-          titulo: pelada.titulo,
-          data: dataTexto,
-          manchete,
-          placar: jogoUnico
-            ? {
-                timeA: nomeTime(jogoUnico.time_a),
-                golsA: jogoUnico.gols_a,
-                timeB: nomeTime(jogoUnico.time_b),
-                golsB: jogoUnico.gols_b,
-              }
-            : undefined,
-          tabela: jogoUnico
-            ? undefined
-            : tabela.map((l) => ({
-                nome: nomeTime(l.time),
-                vitorias: l.vitorias,
-                empates: l.empates,
-                derrotas: l.derrotas,
-              })),
-          artilharia: artilharia.map((j) => ({ nome: j.nome, gols: j.gols })),
-        },
-        `goating-${pelada.data}.png`,
-      );
-      if (resultado === "baixado") toast.success("Pôster baixado. Manda no grupo!");
-    } catch {
-      toast.error("Não deu pra gerar o pôster.");
-    } finally {
-      setGerandoPoster(false);
-    }
-  }
+  const dadosDoPoster = {
+    titulo: pelada.titulo,
+    data: dataTexto,
+    manchete,
+    placar: jogoUnico
+      ? {
+          timeA: nomeTime(jogoUnico.time_a),
+          golsA: jogoUnico.gols_a,
+          timeB: nomeTime(jogoUnico.time_b),
+          golsB: jogoUnico.gols_b,
+        }
+      : undefined,
+    tabela: jogoUnico
+      ? undefined
+      : tabela.map((l) => ({
+          nome: nomeTime(l.time),
+          vitorias: l.vitorias,
+          empates: l.empates,
+          derrotas: l.derrotas,
+        })),
+    artilharia: artilharia.map((j) => ({ nome: j.nome, gols: j.gols })),
+  };
 
   async function compartilharResumo() {
     const linhas = [`⚽ ${pelada.titulo} · ${dataTexto}`, ""];
@@ -277,12 +264,19 @@ function ResumoDaPelada() {
           <Button variant="outline" className="flex-1" onClick={compartilharResumo}>
             <Share2 className="mr-2 size-4" /> Texto
           </Button>
-          <Button className="flex-[2]" disabled={gerandoPoster} onClick={compartilharImagem}>
-            <ImageIcon className="mr-2 size-4" />{" "}
-            {gerandoPoster ? "Gerando…" : "Compartilhar pôster"}
+          <Button className="flex-[2]" onClick={() => setFolhaPoster(true)}>
+            <ImageIcon className="mr-2 size-4" /> Compartilhar pôster
           </Button>
         </div>
       </div>
+
+      {folhaPoster && (
+        <FolhaPoster
+          dados={dadosDoPoster}
+          nomeDoArquivo={`goating-${pelada.data}.png`}
+          onFechar={() => setFolhaPoster(false)}
+        />
+      )}
     </div>
   );
 }

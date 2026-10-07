@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, ChevronDown, ChevronLeft, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAvatarUrl } from "@/hooks/use-avatar";
 import { useSession } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -330,17 +331,7 @@ function Avaliar() {
 
       <div className="flex-1 space-y-4 p-4">
         <div className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
-          {jogador.foto ? (
-            <img
-              src={jogador.foto}
-              alt={jogador.nome}
-              className="size-12 rounded-full object-cover"
-            />
-          ) : (
-            <span className="flex size-12 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
-              {iniciais(jogador.nome)}
-            </span>
-          )}
+          <FotoDoAvaliado nome={jogador.nome} foto={jogador.foto} />
           <div className="flex-1">
             <p className="text-base font-bold text-foreground">{jogador.nome}</p>
             <p className="text-xs text-muted-foreground">Notas de 0 a 10</p>
@@ -445,5 +436,18 @@ function Avaliar() {
         </Button>
       </div>
     </div>
+  );
+}
+
+/** O caminho da foto é de um bucket privado: sem URL assinada a imagem aparece quebrada. */
+function FotoDoAvaliado({ nome, foto }: { nome: string; foto: string | null }) {
+  const url = useAvatarUrl(foto);
+  if (url) {
+    return <img src={url} alt="" className="size-12 shrink-0 rounded-full object-cover" />;
+  }
+  return (
+    <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+      {iniciais(nome)}
+    </span>
   );
 }

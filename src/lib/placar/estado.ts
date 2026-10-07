@@ -256,22 +256,43 @@ export const CORES_TIME = [
     fundo: "bg-orange-50",
     borda: "border-orange-500",
     solido: "bg-orange-500",
+    ring: "ring-orange-400",
   },
-  { texto: "text-blue-600", fundo: "bg-blue-50", borda: "border-blue-500", solido: "bg-blue-500" },
-  { texto: "text-rose-600", fundo: "bg-rose-50", borda: "border-rose-500", solido: "bg-rose-500" },
+  {
+    texto: "text-blue-600",
+    fundo: "bg-blue-50",
+    borda: "border-blue-500",
+    solido: "bg-blue-500",
+    ring: "ring-blue-400",
+  },
+  {
+    texto: "text-rose-600",
+    fundo: "bg-rose-50",
+    borda: "border-rose-500",
+    solido: "bg-rose-500",
+    ring: "ring-rose-400",
+  },
   {
     texto: "text-violet-600",
     fundo: "bg-violet-50",
     borda: "border-violet-500",
     solido: "bg-violet-500",
+    ring: "ring-violet-400",
   },
   {
     texto: "text-amber-600",
     fundo: "bg-amber-50",
     borda: "border-amber-500",
     solido: "bg-amber-500",
+    ring: "ring-amber-400",
   },
-  { texto: "text-teal-600", fundo: "bg-teal-50", borda: "border-teal-500", solido: "bg-teal-500" },
+  {
+    texto: "text-teal-600",
+    fundo: "bg-teal-50",
+    borda: "border-teal-500",
+    solido: "bg-teal-500",
+    ring: "ring-teal-400",
+  },
 ] as const;
 
 export const corDoTime = (time: number) => CORES_TIME[time % CORES_TIME.length]!;

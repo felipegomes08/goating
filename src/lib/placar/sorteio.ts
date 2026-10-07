@@ -5,6 +5,20 @@ export const ESTRELAS_PADRAO = 3;
 
 export type Sorteavel = { id: string; estrelas: number; posicao: string | null };
 
+/** No que o equilíbrio dos times se baseia. */
+export type BaseDoSorteio = "estrelas" | "overall";
+
+/**
+ * Força do jogador na escala das estrelas (1 a 5). No modo overall, cada 20 pontos
+ * valem uma estrela; quem ainda não tem overall liberado entra pelas estrelas.
+ */
+export function forcaDoJogador(
+  jogador: { estrelas: number; overall: number | null },
+  base: BaseDoSorteio,
+) {
+  return base === "overall" && jogador.overall !== null ? jogador.overall / 20 : jogador.estrelas;
+}
+
 /** Overall do Goating (0–100) vira estrelas (1–5). Sem avaliação = padrão. */
 export function estrelasDoOverall(overall: number | string | null | undefined, avaliacoes = 1) {
   const n = Number(overall);

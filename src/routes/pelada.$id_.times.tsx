@@ -20,17 +20,28 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
+import { QuadroTimes } from "@/components/goating/quadro-times";
 import { cn } from "@/lib/utils";
 import {
   compartilhar,
+  overallDoPerfil,
   prepararTimes,
   textoDosTimes,
   type JogadorDoDia,
   type Membro,
 } from "@/lib/placar/dados";
-import { NOMES_PADRAO, corDoTime, nomeDoTime } from "@/lib/placar/estado";
+import { NOMES_PADRAO, nomeDoTime } from "@/lib/placar/estado";
 import { acharMembro, lerLista } from "@/lib/placar/lista";
-import { ESTRELAS_PADRAO, POSICOES, estrelasDoOverall, sortearTimes } from "@/lib/placar/sorteio";
+import {
+  ESTRELAS_PADRAO,
+  POSICOES,
+  estrelasDoOverall,
+  forcaDoJogador,
+  sortearTimes,
+  type BaseDoSorteio,
+} from "@/lib/placar/sorteio";
+
+const CHAVE_BASE = "goating-sorteio-base";
 
 export const Route = createFileRoute("/pelada/$id_/times")({
   ssr: false,
@@ -60,6 +71,13 @@ function TimesDaPelada() {
   const [numTimes, setNumTimes] = useState(2);
   const [nomes, setNomes] = useState<string[]>(NOMES_PADRAO(2));
   const [selecionado, setSelecionado] = useState<string | null>(null);
+  const [base, setBase] = useState<BaseDoSorteio>(() => {
+    try {
+      return localStorage.getItem(CHAVE_BASE) === "overall" ? "overall" : "estrelas";
+    } catch {
+      return "estrelas";
+    }
+  });
   const [texto, setTexto] = useState("");
   const [ocupado, setOcupado] = useState(false);
 
@@ -104,6 +122,7 @@ function TimesDaPelada() {
   const semTime = jogadores.filter((j) => j.time === null || j.time >= numTimes);
   const temTimes = times.some((t) => t.length > 0);
   const prontoPraJogar = times.filter((t) => t.length > 0).length >= 2;
+  const comOverall = jogadores.filter((j) => j.overall !== null).length;
 
   async function gravarTimes(lista: JogadorDoDia[]) {
     setJogadores(lista);
@@ -137,7 +156,11 @@ function TimesDaPelada() {
   async function sortear() {
     const anterior = temTimes ? times.map((t) => t.map((j) => j.memberId)) : undefined;
     const sorteio = sortearTimes(
-      jogadores.map((j) => ({ id: j.memberId, estrelas: j.estrelas, posicao: j.posicao })),
+      jogadores.map((j) => ({
+        id: j.memberId,
+        estrelas: forcaDoJogador(j, base),
+        posicao: j.posicao,
+      })),
       numTimes,
       anterior,
     );
@@ -166,11 +189,18 @@ function TimesDaPelada() {
     );
   }
 
-  async function moverPara(time: number | null) {
-    if (!selecionado) return;
-    const alvo = selecionado;
+  async function moverJogador(memberId: string, time: number | null) {
     setSelecionado(null);
-    await gravarTimes(jogadores.map((j) => (j.memberId === alvo ? { ...j, time } : j)));
+    await gravarTimes(jogadores.map((j) => (j.memberId === memberId ? { ...j, time } : j)));
+  }
+
+  function mudarBase(nova: BaseDoSorteio) {
+    setBase(nova);
+    try {
+      localStorage.setItem(CHAVE_BASE, nova);
+    } catch {
+      // sem armazenamento: a escolha vale só nessa visita
+    }
   }
 
   async function atualizarMembro(
@@ -234,6 +264,7 @@ function TimesDaPelada() {
         nome: membro.nome,
         posicao: conhecido?.posicao ?? membro.posicao,
         estrelas: conhecido?.estrelas ?? membro.estrelas ?? ESTRELAS_PADRAO,
+        overall: conhecido?.overall ?? null,
         time,
       });
     }
@@ -300,6 +331,7 @@ function TimesDaPelada() {
           membro.estrelas ??
           estrelasDoOverall(perfil.overall, perfil.avaliacoes_recebidas) ??
           ESTRELAS_PADRAO,
+        overall: overallDoPerfil(perfil),
         time: null,
       };
       setConfirmadosFora((fora) => fora.filter((f) => f.memberId !== novo.memberId));
@@ -382,8 +414,37 @@ function TimesDaPelada() {
         {jogadores.length > 0 && (
           <section>
             <h2 className="mb-1 text-sm font-bold text-foreground">Elenco ({jogadores.length})</h2>
+            <div className="mb-2 flex gap-1 rounded-xl bg-foreground/[0.06] p-1">
+              {(
+                [
+                  { id: "estrelas", rotulo: "Equilibrar por estrelas" },
+                  { id: "overall", rotulo: "Equilibrar por overall" },
+                ] as const
+              ).map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  aria-pressed={base === o.id}
+                  disabled={o.id === "overall" && comOverall === 0}
+                  onClick={() => mudarBase(o.id)}
+                  className={cn(
+                    "flex-1 rounded-lg py-1.5 text-xs font-bold transition-colors disabled:opacity-40",
+                    base === o.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+                  )}
+                >
+                  {o.rotulo}
+                </button>
+              ))}
+            </div>
             <p className="mb-2 text-xs text-muted-foreground">
-              Posição e estrelas equilibram o sorteio. Ficam salvas pra próxima pelada.
+              {base === "estrelas"
+                ? "Posição e estrelas equilibram o sorteio. Ficam salvas pra próxima pelada."
+                : comOverall === jogadores.length
+                  ? "Todo mundo tem overall liberado: o sorteio usa a nota do Goating."
+                  : `${comOverall} de ${jogadores.length} têm overall liberado. Pros outros valem as estrelas (cada estrela = 20).`}
+              {base === "estrelas" &&
+                comOverall === 0 &&
+                " Ninguém aqui tem overall liberado ainda."}
             </p>
             <div className="divide-y divide-border rounded-2xl bg-card shadow-[var(--shadow-card)]">
               {[...jogadores]
@@ -408,24 +469,33 @@ function TimesDaPelada() {
                         </option>
                       ))}
                     </select>
-                    <div className="flex" role="group" aria-label={`Estrelas de ${j.nome}`}>
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          aria-label={`${n} estrela${n === 1 ? "" : "s"}`}
-                          onClick={() => atualizarMembro(j.memberId, { estrelas: n })}
-                          className="p-0.5"
-                        >
-                          <Star
-                            className={cn(
-                              "size-5",
-                              n <= j.estrelas ? "fill-tier-ouro text-tier-ouro" : "text-border",
-                            )}
-                          />
-                        </button>
-                      ))}
-                    </div>
+                    {base === "overall" && j.overall !== null ? (
+                      <span
+                        className="w-[110px] text-right text-base font-extrabold text-primary tabular-nums"
+                        aria-label={`Overall de ${j.nome}`}
+                      >
+                        {j.overall}
+                      </span>
+                    ) : (
+                      <div className="flex" role="group" aria-label={`Estrelas de ${j.nome}`}>
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            aria-label={`${n} estrela${n === 1 ? "" : "s"}`}
+                            onClick={() => atualizarMembro(j.memberId, { estrelas: n })}
+                            className="p-0.5"
+                          >
+                            <Star
+                              className={cn(
+                                "size-5",
+                                n <= j.estrelas ? "fill-tier-ouro text-tier-ouro" : "text-border",
+                              )}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <button
                       type="button"
                       aria-label={`Tirar ${j.nome} do elenco`}
@@ -472,71 +542,15 @@ function TimesDaPelada() {
             </Button>
 
             {(temTimes || selecionado) && (
-              <>
-                <p className="text-xs text-muted-foreground">
-                  {selecionado
-                    ? "Toque em outro jogador pra trocar os dois, ou em “Mover pra cá”."
-                    : "Não gostou? Toque num jogador pra trocar de time."}
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  {times.map((time, i) => {
-                    const cor = corDoTime(i);
-                    return (
-                      <div key={i} className="min-w-0 space-y-1.5">
-                        <div className={cn("border-b-4 pb-1", cor.borda)}>
-                          <p className={cn("truncate text-sm font-extrabold uppercase", cor.texto)}>
-                            {nomeDoTime(nomes, i)}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {time.length} jogadores · {time.reduce((s, j) => s + j.estrelas, 0)}★
-                          </p>
-                        </div>
-                        {time.map((j) => (
-                          <BotaoJogador
-                            key={j.memberId}
-                            jogador={j}
-                            ativo={selecionado === j.memberId}
-                            classe={cn(cor.fundo, cor.borda)}
-                            onClick={() => tocarJogador(j.memberId)}
-                          />
-                        ))}
-                        {selecionado && !time.some((j) => j.memberId === selecionado) && (
-                          <button
-                            type="button"
-                            onClick={() => moverPara(i)}
-                            className={cn(
-                              "w-full rounded-xl border border-dashed py-2 text-xs font-bold",
-                              cor.borda,
-                              cor.texto,
-                            )}
-                          >
-                            Mover pra cá
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {temTimes && semTime.length > 0 && (
-              <div className="space-y-1.5">
-                <p className="text-xs font-bold text-muted-foreground uppercase">
-                  Sem time ({semTime.length})
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {semTime.map((j) => (
-                    <BotaoJogador
-                      key={j.memberId}
-                      jogador={j}
-                      ativo={selecionado === j.memberId}
-                      classe="border-border bg-card"
-                      onClick={() => tocarJogador(j.memberId)}
-                    />
-                  ))}
-                </div>
-              </div>
+              <QuadroTimes
+                jogadores={jogadores}
+                numTimes={numTimes}
+                nomes={nomes}
+                base={base}
+                selecionado={selecionado}
+                onTocar={tocarJogador}
+                onMover={moverJogador}
+              />
             )}
           </section>
         )}
@@ -556,36 +570,5 @@ function TimesDaPelada() {
         </Button>
       </div>
     </div>
-  );
-}
-
-function BotaoJogador({
-  jogador,
-  ativo,
-  classe,
-  onClick,
-}: {
-  jogador: JogadorDoDia;
-  ativo: boolean;
-  classe: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={ativo}
-      onClick={onClick}
-      className={cn(
-        "flex w-full items-center justify-between gap-1 rounded-xl border-2 px-2.5 py-2 text-left text-sm font-semibold text-foreground",
-        classe,
-        ativo && "ring-2 ring-primary ring-offset-2",
-      )}
-    >
-      <span className="min-w-0 truncate">{jogador.nome}</span>
-      <span className="shrink-0 text-[10px] font-bold text-muted-foreground">
-        {jogador.posicao ? `${jogador.posicao} · ` : ""}
-        {jogador.estrelas}★
-      </span>
-    </button>
   );
 }

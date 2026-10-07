@@ -11,15 +11,18 @@ import {
   Lock,
   LogOut,
   MapPin,
+  MessageSquareText,
   Play,
   Share2,
-  Shuffle,
   Star,
   Trophy,
+  UserPlus,
+  Users,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAvatarUrl } from "@/hooks/use-avatar";
 import { useSession } from "@/hooks/use-session";
 import { useVoltar } from "@/hooks/use-voltar";
 import { Button } from "@/components/ui/button";
@@ -152,7 +155,10 @@ function DetalhePelada() {
             .select("avaliado_id")
             .eq("match_id", id)
             .eq("avaliador_id", userId!),
-          supabase.from("match_players").select("time").eq("match_id", id),
+          supabase
+            .from("match_players")
+            .select("member_id, time, crew_members(nome, user_id)")
+            .eq("match_id", id),
         ]);
       const podeGerir = await podeGerirPelada(pelada, userId!);
 
@@ -184,6 +190,17 @@ function DetalhePelada() {
         avaliadosPorMim: (minhasAvaliacoes ?? []).map((a) => a.avaliado_id),
         timesMontados:
           new Set((elenco ?? []).flatMap((j) => (j.time === null ? [] : [j.time]))).size >= 2,
+        // quem o organizador colocou no elenco e não confirmou pelo app (lista colada, sem conta...)
+        adicionados: (elenco ?? [])
+          .filter(
+            (j) =>
+              !j.crew_members?.user_id ||
+              !(parts ?? []).some(
+                (x) => x.user_id === j.crew_members?.user_id && x.status === "aprovado",
+              ),
+          )
+          .map((j) => ({ id: j.member_id, nome: j.crew_members?.nome ?? "Jogador" }))
+          .sort((a, b) => a.nome.localeCompare(b.nome)),
       };
     },
   });
@@ -210,8 +227,16 @@ function DetalhePelada() {
 
   if (!consulta.data) return <Aviso texto="Essa pelada não existe mais." />;
 
-  const { pelada, podeGerir, participantes, organizador, token, avaliadosPorMim, timesMontados } =
-    consulta.data;
+  const {
+    pelada,
+    podeGerir,
+    participantes,
+    organizador,
+    token,
+    avaliadosPorMim,
+    timesMontados,
+    adicionados,
+  } = consulta.data;
   const souOrganizador = pelada.organizador_id === userId;
   const aprovados = participantes.filter((p) => p.status === "aprovado");
   const pendentes = participantes.filter((p) => p.status === "pendente");
@@ -343,6 +368,12 @@ function DetalhePelada() {
             )}
             {aprovados.length}/{pelada.quantidade_vagas} {finalizada ? "jogaram" : "confirmados"}
           </p>
+          {pelada.descricao && (
+            <div className="flex gap-2 px-4 py-3 text-sm text-foreground">
+              <MessageSquareText className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <p className="min-w-0 break-words whitespace-pre-line">{pelada.descricao}</p>
+            </div>
+          )}
         </div>
 
         {finalizada && mvpNome && (
@@ -374,12 +405,6 @@ function DetalhePelada() {
               <Trophy className="mr-2 size-4" /> Ranking da turma
             </Link>
           </Button>
-        )}
-
-        {pelada.descricao && (
-          <p className="rounded-2xl bg-secondary/60 p-4 text-sm text-foreground">
-            {pelada.descricao}
-          </p>
         )}
 
         {!finalizada && linkConvite && (souOrganizador || eu?.status === "aprovado") && (
@@ -484,6 +509,47 @@ function DetalhePelada() {
             })}
           </div>
         </section>
+
+        {adicionados.length > 0 && (
+          <section>
+            <h2 className="mb-1 text-sm font-bold text-foreground">
+              Adicionados pelo organizador ({adicionados.length})
+            </h2>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Estão no elenco do dia sem ter confirmado pelo app.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {adicionados.map((j) => (
+                <span
+                  key={j.id}
+                  className="rounded-full bg-card px-3 py-1.5 text-xs font-semibold text-foreground shadow-[var(--shadow-card)]"
+                >
+                  {j.nome}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {podeGerir && !finalizada && (
+          <Link
+            to="/pelada/$id/times"
+            params={{ id }}
+            className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-card/60 p-3 active:opacity-60"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-mint-soft">
+              <UserPlus className="size-4 text-primary" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-foreground">
+                Adicionar jogadores
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Cole a lista do WhatsApp, busque quem tem conta ou digite o nome.
+              </span>
+            </span>
+          </Link>
+        )}
       </div>
 
       <div className="sticky bottom-0 space-y-2 border-t border-border bg-card p-4">
@@ -528,12 +594,12 @@ function DetalhePelada() {
           <>
             {timesMontados ? (
               <div className="flex gap-2">
-                <Button asChild variant="outline" className="flex-1">
+                <Button asChild variant="outline" className="flex-[3]">
                   <Link to="/pelada/$id/times" params={{ id }}>
-                    <Shuffle className="mr-2 size-4" /> Times
+                    <Users className="mr-2 size-4" /> Jogadores e times
                   </Link>
                 </Button>
-                <Button asChild className="flex-[2]">
+                <Button asChild className="flex-[4]">
                   <Link to="/pelada/$id/placar" params={{ id }}>
                     <Play className="mr-2 size-4" />{" "}
                     {emAndamento ? "Voltar pro placar" : "Iniciar partida"}
@@ -541,11 +607,16 @@ function DetalhePelada() {
                 </Button>
               </div>
             ) : (
-              <Button asChild className="w-full">
-                <Link to="/pelada/$id/times" params={{ id }}>
-                  <Shuffle className="mr-2 size-4" /> Sortear times
-                </Link>
-              </Button>
+              <>
+                <Button asChild className="w-full">
+                  <Link to="/pelada/$id/times" params={{ id }}>
+                    <Users className="mr-2 size-4" /> Jogadores e times
+                  </Link>
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  Lá você adiciona mais gente e sorteia só quando quiser.
+                </p>
+              </>
             )}
             <Button variant="ghost" className="w-full" disabled={ocupado} onClick={finalizar}>
               <Flag className="mr-2 size-4" /> Finalizar sem placar
@@ -578,11 +649,12 @@ function DetalhePelada() {
 }
 
 function Avatar({ nome, foto }: { nome: string; foto: string | null }) {
-  if (foto) {
-    return <img src={foto} alt={nome} className="size-9 rounded-full object-cover" />;
+  const url = useAvatarUrl(foto);
+  if (url) {
+    return <img src={url} alt="" className="size-9 shrink-0 rounded-full object-cover" />;
   }
   return (
-    <span className="flex size-9 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground">
       {iniciais(nome)}
     </span>
   );

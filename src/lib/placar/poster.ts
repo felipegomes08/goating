@@ -1,4 +1,7 @@
-/** Pôster do resumo da pelada: uma imagem pronta pra mandar no grupo. */
+/** Pôster do resumo da pelada e tabela do ranking: imagens prontas pra mandar no grupo. */
+
+import iconeBranco from "@/assets/icone-logo-fundo-branco.png.asset.json";
+import letreiroBranco from "@/assets/logo_so_texto_branco.png.asset.json";
 
 export type DadosDoPoster = {
   titulo: string;
@@ -9,10 +12,15 @@ export type DadosDoPoster = {
   /** vários jogos: classificação dos times no dia */
   tabela?: { nome: string; vitorias: number; empates: number; derrotas: number }[] | undefined;
   artilharia: { nome: string; gols: number }[];
+  /** foto da galera (câmera ou galeria); entra grande, logo abaixo do título */
+  foto?: Blob | null | undefined;
 };
 
 const LARGURA = 1080;
 const ALTURA = 1350;
+/** com foto o pôster cresce pra ela caber sem espremer o placar */
+const ALTURA_COM_FOTO = 2000;
+const ALTURA_DA_FOTO = 620;
 const MARGEM = 80;
 const FONTE = "Poppins, system-ui, sans-serif";
 
@@ -81,24 +89,84 @@ function coroa(ctx: Ctx, x: number, y: number, tamanho: number) {
   ctx.fill();
 }
 
-function fundo(ctx: Ctx) {
+function fundo(ctx: Ctx, altura: number, centroDoCirculo: number) {
   ctx.fillStyle = VERDE;
-  ctx.fillRect(0, 0, LARGURA, ALTURA);
+  ctx.fillRect(0, 0, LARGURA, altura);
 
   const luz = ctx.createRadialGradient(LARGURA / 2, 380, 60, LARGURA / 2, 380, 900);
   luz.addColorStop(0, VERDE_CLARO);
   luz.addColorStop(1, "rgba(15,61,46,0)");
   ctx.fillStyle = luz;
-  ctx.fillRect(0, 0, LARGURA, ALTURA);
+  ctx.fillRect(0, 0, LARGURA, altura);
 
   // faixas do gramado e o círculo central, bem de leve
   ctx.fillStyle = "rgba(255,255,255,0.025)";
-  for (let y = 0; y < ALTURA; y += 270) ctx.fillRect(0, y, LARGURA, 135);
+  for (let y = 0; y < altura; y += 270) ctx.fillRect(0, y, LARGURA, 135);
   ctx.strokeStyle = "rgba(255,255,255,0.06)";
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.arc(LARGURA / 2, 470, 250, 0, Math.PI * 2);
+  ctx.arc(LARGURA / 2, centroDoCirculo, 250, 0, Math.PI * 2);
   ctx.stroke();
+}
+
+/** Baixa a imagem como arquivo antes de desenhar: assim o canvas nunca fica "travado" pra exportar. */
+async function carregarImagem(url: string) {
+  try {
+    const resposta = await fetch(url);
+    if (!resposta.ok) return null;
+    return await createImageBitmap(await resposta.blob());
+  } catch {
+    return null;
+  }
+}
+
+/** Logo do Goating no canto de cima. Se a imagem não carregar, vai o nome escrito. */
+async function desenharLogo(ctx: Ctx) {
+  const [icone, letreiro] = await Promise.all([
+    carregarImagem(iconeBranco.url),
+    carregarImagem(letreiroBranco.url),
+  ]);
+  if (!icone || !letreiro) {
+    escrever(ctx, "GOATING", MARGEM, 120, { peso: 900, tamanho: 38, cor: MENTA, largura: 300 });
+    return;
+  }
+  const lado = 68;
+  const topo = 72;
+  ctx.drawImage(icone, MARGEM, topo, lado, lado);
+  const alturaLetreiro = 46;
+  const larguraLetreiro = (letreiro.width / letreiro.height) * alturaLetreiro;
+  ctx.drawImage(
+    letreiro,
+    MARGEM + lado + 16,
+    topo + (lado - alturaLetreiro) / 2,
+    larguraLetreiro,
+    alturaLetreiro,
+  );
+}
+
+/** Foto cobrindo o retângulo inteiro (corta as sobras), com cantos arredondados. */
+async function desenharFoto(ctx: Ctx, foto: Blob, x: number, y: number, w: number, h: number) {
+  let imagem: ImageBitmap;
+  try {
+    // respeita a rotação que a câmera do celular grava no arquivo
+    imagem = await createImageBitmap(foto, { imageOrientation: "from-image" });
+  } catch {
+    return false;
+  }
+  const escala = Math.max(w / imagem.width, h / imagem.height);
+  const lw = imagem.width * escala;
+  const lh = imagem.height * escala;
+  ctx.save();
+  retanguloArredondado(ctx, x, y, w, h, 36);
+  ctx.clip();
+  // um pouco acima do centro: em foto de time as cabeças ficam na parte de cima
+  ctx.drawImage(imagem, x + (w - lw) / 2, y + (h - lh) * 0.4, lw, lh);
+  ctx.restore();
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.lineWidth = 4;
+  retanguloArredondado(ctx, x, y, w, h, 36);
+  ctx.stroke();
+  return true;
 }
 
 export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasElement> {
@@ -107,18 +175,19 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
     [600, 800, 900].map((peso) => document.fonts.load(fonte(peso, 40)).catch(() => undefined)),
   );
 
+  const altura = dados.foto ? ALTURA_COM_FOTO : ALTURA;
   const canvas = document.createElement("canvas");
   canvas.width = LARGURA;
-  canvas.height = ALTURA;
+  canvas.height = altura;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Esse navegador não desenha imagens.");
   const util = LARGURA - MARGEM * 2;
   const meio = LARGURA / 2;
   ctx.textBaseline = "alphabetic";
 
-  fundo(ctx);
+  fundo(ctx, altura, dados.foto ? 1110 : 470);
+  await desenharLogo(ctx);
 
-  escrever(ctx, "GOATING", MARGEM, 120, { peso: 900, tamanho: 38, cor: MENTA, largura: 300 });
   escrever(ctx, dados.data.toUpperCase(), LARGURA - MARGEM, 120, {
     peso: 600,
     tamanho: 26,
@@ -135,6 +204,10 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
   });
 
   let y = 300;
+
+  if (dados.foto && (await desenharFoto(ctx, dados.foto, MARGEM, y, util, ALTURA_DA_FOTO))) {
+    y += ALTURA_DA_FOTO + 20;
+  }
 
   if (dados.placar) {
     const { timeA, golsA, timeB, golsB } = dados.placar;
@@ -224,7 +297,7 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
   // artilharia: o que couber até o rodapé
   const artilheiros = dados.artilharia.slice(
     0,
-    Math.max(0, Math.floor((ALTURA - 120 - (y + 30)) / 82)),
+    Math.max(0, Math.floor((altura - 120 - (y + 30)) / 82)),
   );
   if (artilheiros.length > 0) {
     escrever(ctx, "ARTILHARIA", MARGEM, y, { peso: 800, tamanho: 28, cor: APAGADO, largura: util });
@@ -260,7 +333,7 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
     });
   }
 
-  escrever(ctx, window.location.host, meio, ALTURA - 70, {
+  escrever(ctx, window.location.host, meio, altura - 70, {
     peso: 600,
     tamanho: 26,
     cor: APAGADO,
@@ -319,7 +392,7 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
   ctx.fillStyle = luz;
   ctx.fillRect(0, 0, LARGURA, altura);
 
-  escrever(ctx, "GOATING", MARGEM, 120, { peso: 900, tamanho: 38, cor: MENTA, largura: 300 });
+  await desenharLogo(ctx);
   escrever(ctx, "RANKING DA TURMA", LARGURA - MARGEM, 120, {
     peso: 600,
     tamanho: 26,
@@ -411,16 +484,20 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
   return canvas;
 }
 
-export const compartilharPoster = async (dados: DadosDoPoster, nomeDoArquivo: string) =>
-  compartilharCanvas(await desenharPoster(dados), nomeDoArquivo);
-
-export const compartilharRanking = async (dados: DadosDoRanking, nomeDoArquivo: string) =>
-  compartilharCanvas(await desenharRanking(dados), nomeDoArquivo);
-
-/** Abre a folha de compartilhar do celular com a imagem; onde não dá, baixa o arquivo. */
-async function compartilharCanvas(canvas: HTMLCanvasElement, nomeDoArquivo: string) {
+async function paraArquivo(canvas: HTMLCanvasElement) {
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("Não deu pra gerar a imagem.");
+  return blob;
+}
+
+/** Pôster do resumo já como arquivo de imagem (pra pré-visualizar e depois compartilhar). */
+export const gerarPoster = async (dados: DadosDoPoster) => paraArquivo(await desenharPoster(dados));
+
+export const compartilharRanking = async (dados: DadosDoRanking, nomeDoArquivo: string) =>
+  compartilharImagem(await paraArquivo(await desenharRanking(dados)), nomeDoArquivo);
+
+/** Abre a folha de compartilhar do celular com a imagem; onde não dá, baixa o arquivo. */
+export async function compartilharImagem(blob: Blob, nomeDoArquivo: string) {
   const arquivo = new File([blob], nomeDoArquivo, { type: "image/png" });
 
   if (typeof navigator.share === "function" && navigator.canShare?.({ files: [arquivo] })) {
