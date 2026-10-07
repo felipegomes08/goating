@@ -329,7 +329,7 @@ function PaginaDaTurma() {
       <div className="space-y-3 p-4">
         {!souMembro && !souDono && (
           <Button
-            className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
+            className="w-full"
             disabled={ocupado}
             onClick={() => (semConta.length > 0 ? setFolha({ tipo: "entrar" }) : void entrar())}
           >
@@ -411,10 +411,7 @@ function PaginaDaTurma() {
         {aba === "peladas" && (
           <>
             {souGestor && (
-              <Button
-                asChild
-                className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-              >
+              <Button asChild className="w-full">
                 <Link to="/criar" search={{ turma: id }}>
                   <Plus className="mr-2 size-4" /> Criar pelada dessa turma
                 </Link>
@@ -550,7 +547,11 @@ function PaginaDaTurma() {
 
       {aba === "ranking" && linhas.length > 0 && (
         <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
-          <Button className="w-full" onClick={compartilharRanking}>
+          <Button
+            variant={souMembro || souDono ? "default" : "outline"}
+            className="w-full"
+            onClick={compartilharRanking}
+          >
             <Share2 className="mr-2 size-4" /> Compartilhar ranking
           </Button>
         </div>

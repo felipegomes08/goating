@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Crown, Share2, Trophy } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Crown, Image as ImageIcon, Share2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { carregarElenco, compartilhar } from "@/lib/placar/dados";
+import { compartilharPoster } from "@/lib/placar/poster";
 import {
   campeoesDoDia,
   corDoTime,
@@ -28,6 +30,7 @@ function ResumoDaPelada() {
   const { id } = useParams({ from: "/pelada/$id_/resumo" });
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
+  const [gerandoPoster, setGerandoPoster] = useState(false);
   const voltar = useVoltar(() => void navigate({ to: "/pelada/$id", params: { id } }));
 
   const consulta = useQuery({
@@ -103,6 +106,42 @@ function ResumoDaPelada() {
     campeoes.length === 1 && campeoes[0] !== undefined
       ? `${nomeTime(campeoes[0])} ${jogoUnico ? "venceu" : "foi o campeão do dia"}`
       : "Terminou tudo igual";
+
+  async function compartilharImagem() {
+    setGerandoPoster(true);
+    try {
+      const resultado = await compartilharPoster(
+        {
+          titulo: pelada.titulo,
+          data: dataTexto,
+          manchete,
+          placar: jogoUnico
+            ? {
+                timeA: nomeTime(jogoUnico.time_a),
+                golsA: jogoUnico.gols_a,
+                timeB: nomeTime(jogoUnico.time_b),
+                golsB: jogoUnico.gols_b,
+              }
+            : undefined,
+          tabela: jogoUnico
+            ? undefined
+            : tabela.map((l) => ({
+                nome: nomeTime(l.time),
+                vitorias: l.vitorias,
+                empates: l.empates,
+                derrotas: l.derrotas,
+              })),
+          artilharia: artilharia.map((j) => ({ nome: j.nome, gols: j.gols })),
+        },
+        `goating-${pelada.data}.png`,
+      );
+      if (resultado === "baixado") toast.success("Pôster baixado. Manda no grupo!");
+    } catch {
+      toast.error("Não deu pra gerar o pôster.");
+    } finally {
+      setGerandoPoster(false);
+    }
+  }
 
   async function compartilharResumo() {
     const linhas = [`⚽ ${pelada.titulo} · ${dataTexto}`, ""];
@@ -234,12 +273,15 @@ function ResumoDaPelada() {
       </div>
 
       <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
-        <Button
-          className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-          onClick={compartilharResumo}
-        >
-          <Share2 className="mr-2 size-4" /> Compartilhar resumo
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={compartilharResumo}>
+            <Share2 className="mr-2 size-4" /> Texto
+          </Button>
+          <Button className="flex-[2]" disabled={gerandoPoster} onClick={compartilharImagem}>
+            <ImageIcon className="mr-2 size-4" />{" "}
+            {gerandoPoster ? "Gerando…" : "Compartilhar pôster"}
+          </Button>
+        </div>
       </div>
     </div>
   );

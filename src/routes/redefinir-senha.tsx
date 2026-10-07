@@ -129,11 +129,7 @@ function RedefinirSenha() {
                 className="mt-1"
               />
             </div>
-            <Button
-              type="submit"
-              disabled={enviando}
-              className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-            >
+            <Button type="submit" disabled={enviando} className="w-full">
               Salvar nova senha
             </Button>
           </form>

@@ -246,7 +246,7 @@ function CriarPelada() {
           >
             <Share2 className="mr-2 size-4" /> Compartilhar link
           </Button>
-          <Button asChild className="w-full bg-mint text-mint-foreground hover:bg-mint/90">
+          <Button asChild variant="outline" className="w-full">
             <Link to="/pelada/$id" params={{ id: criada.id }}>
               Abrir a pelada
             </Link>
@@ -526,10 +526,7 @@ function CriarPelada() {
 
       <div className="sticky bottom-0 border-t border-border bg-card p-4">
         <Button
-          className={cn(
-            "w-full font-semibold",
-            valido ? "bg-mint text-mint-foreground hover:bg-mint/90" : "",
-          )}
+          className={cn("w-full font-semibold")}
           disabled={!valido || enviando}
           onClick={criar}
         >

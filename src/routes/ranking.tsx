@@ -6,6 +6,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { BottomNav } from "@/components/goating/bottom-nav";
+import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
+import {
+  CAMPO_NO_VERDE,
+  Segmentos,
+  TituloGrande,
+  classeSegmento,
+} from "@/components/goating/titulo-grande";
 import { JogadorItem, type JogadorResumo } from "@/components/goating/jogador-item";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,15 +24,15 @@ type Aba = "cidade" | "seguindo" | "geral";
 export const Route = createFileRoute("/ranking")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>): { aba: Aba } => ({
-    aba:
-      search["aba"] === "seguindo" ? "seguindo" : search["aba"] === "geral" ? "geral" : "cidade",
+    aba: search["aba"] === "seguindo" ? "seguindo" : search["aba"] === "geral" ? "geral" : "cidade",
   }),
   head: () => ({
     meta: [
       { title: "Ranking · Goating" },
       {
         name: "description",
-        content: "Veja o ranking dos jogadores por overall na sua cidade, entre quem você segue ou geral, ou busque por nome.",
+        content:
+          "Veja o ranking dos jogadores por overall na sua cidade, entre quem você segue ou geral, ou busque por nome.",
       },
       { property: "og:title", content: "Ranking Goating" },
       { property: "og:description", content: "Quem manda no futebol amador da sua cidade." },
@@ -113,10 +120,7 @@ function Ranking() {
         return (data ?? []) as JogadorResumo[];
       }
 
-      let q = supabase
-        .from("profiles")
-        .select(CAMPOS)
-        .gte("avaliacoes_recebidas", MIN_AVALIACOES);
+      let q = supabase.from("profiles").select(CAMPOS).gte("avaliacoes_recebidas", MIN_AVALIACOES);
       if (aba === "cidade" && cidade) q = q.eq("cidade", cidade);
       const { data, error } = await q
         .order("overall", { ascending: false })
@@ -158,22 +162,20 @@ function Ranking() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
-      <header className="bg-primary px-4 pt-6 pb-6">
-        <h1 className="text-lg font-bold text-primary-foreground">Ranking</h1>
-
-        <div className="relative mt-4">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+      <TituloGrande titulo="Ranking">
+        <div className="relative">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-primary-foreground/55" />
           <Input
             value={termo}
             onChange={(e) => setTermo(e.target.value)}
             placeholder="Buscar jogador pelo nome ou @nick"
-            className="bg-card pl-9"
+            className={CAMPO_NO_VERDE}
             aria-label="Buscar por nome de exibição"
           />
         </div>
 
         {!buscando && (
-          <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-primary-foreground/10 p-1">
+          <Segmentos colunas={3}>
             {(
               [
                 ["cidade", cidade ?? "Cidade"],
@@ -186,23 +188,20 @@ function Ranking() {
                 to="/ranking"
                 search={{ aba: a }}
                 replace
-                className={
-                  "truncate rounded-lg py-2 text-center text-xs font-semibold transition-colors " +
-                  (aba === a ? "bg-mint text-mint-foreground" : "text-mint")
-                }
+                className={classeSegmento(aba === a)}
               >
                 {rotulo}
               </Link>
             ))}
-          </div>
+          </Segmentos>
         )}
-      </header>
+      </TituloGrande>
 
       <main className="flex-1 space-y-2 px-4 py-4">
         {!buscando && !liberado && aba !== "seguindo" && (
           <p className="rounded-2xl bg-mint-soft p-3 text-xs font-medium text-primary">
-            Faltam {avaliacoesFaltando(perfil?.avaliacoes_recebidas ?? 0)} avaliações pós-pelada
-            pra você aparecer no ranking.
+            Faltam {avaliacoesFaltando(perfil?.avaliacoes_recebidas ?? 0)} avaliações pós-pelada pra
+            você aparecer no ranking.
           </p>
         )}
         {!buscando && liberado && !euApareco && aba === "cidade" && !cidade && (
@@ -237,7 +236,9 @@ function Ranking() {
             <div
               key={j.id}
               className={
-                j.id === userId ? "rounded-2xl ring-2 ring-mint ring-offset-2 ring-offset-background" : ""
+                j.id === userId
+                  ? "rounded-2xl ring-2 ring-mint ring-offset-2 ring-offset-background"
+                  : ""
               }
             >
               <JogadorItem
@@ -246,7 +247,9 @@ function Ranking() {
                 seguindo={buscando ? (meusSeguidos.data?.has(j.id) ?? false) : undefined}
                 ocupado={ocupados.has(j.id)}
                 onAlternarSeguir={
-                  buscando ? () => alternarSeguir(j.id, meusSeguidos.data?.has(j.id) ?? false) : undefined
+                  buscando
+                    ? () => alternarSeguir(j.id, meusSeguidos.data?.has(j.id) ?? false)
+                    : undefined
                 }
               />
             </div>
@@ -254,6 +257,7 @@ function Ranking() {
         )}
       </main>
 
+      <PuxarParaAtualizar />
       <BottomNav />
     </div>
   );

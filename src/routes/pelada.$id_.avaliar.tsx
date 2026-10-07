@@ -17,7 +17,8 @@ export const Route = createFileRoute("/pelada/$id_/avaliar")({
       { title: "Avaliar jogadores · Goating" },
       {
         name: "description",
-        content: "Dê nota de 0 a 10 para quem jogou com você e ajude a definir o overall de cada um.",
+        content:
+          "Dê nota de 0 a 10 para quem jogou com você e ajude a definir o overall de cada um.",
       },
       { property: "og:title", content: "Avaliar jogadores · Goating" },
       {
@@ -214,7 +215,7 @@ function Avaliar() {
               Revisar minhas notas
             </Button>
           )}
-          <Button asChild className="bg-mint text-mint-foreground hover:bg-mint/90">
+          <Button asChild>
             <Link to="/pelada/$id" params={{ id }}>
               Voltar para a pelada
             </Link>
@@ -330,7 +331,11 @@ function Avaliar() {
       <div className="flex-1 space-y-4 p-4">
         <div className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
           {jogador.foto ? (
-            <img src={jogador.foto} alt={jogador.nome} className="size-12 rounded-full object-cover" />
+            <img
+              src={jogador.foto}
+              alt={jogador.nome}
+              className="size-12 rounded-full object-cover"
+            />
           ) : (
             <span className="flex size-12 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
               {iniciais(jogador.nome)}
@@ -379,7 +384,10 @@ function Avaliar() {
           >
             Avaliação detalhada
             <ChevronDown
-              className={cn("size-4 text-muted-foreground transition-transform", detalhado && "rotate-180")}
+              className={cn(
+                "size-4 text-muted-foreground transition-transform",
+                detalhado && "rotate-180",
+              )}
             />
           </button>
           {detalhado && (
@@ -432,11 +440,7 @@ function Avaliar() {
             {enviadoEste ? "Próximo" : "Pular"}
           </Button>
         )}
-        <Button
-          className="flex-1 bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-          disabled={enviando}
-          onClick={enviar}
-        >
+        <Button className="flex-1" disabled={enviando} onClick={enviar}>
           {enviadoEste ? "Atualizar nota" : ultimo ? "Enviar e concluir" : "Enviar nota"}
         </Button>
       </div>

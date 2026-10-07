@@ -42,20 +42,9 @@ function iniciais(nome: string) {
 function dataFormatada(data: string, horario: string, horarioFim: string | null) {
   const d = new Date(`${data}T${horario}`);
   const semana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][d.getDay()];
-  const mes = [
-    "jan",
-    "fev",
-    "mar",
-    "abr",
-    "mai",
-    "jun",
-    "jul",
-    "ago",
-    "set",
-    "out",
-    "nov",
-    "dez",
-  ][d.getMonth()];
+  const mes = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][
+    d.getMonth()
+  ];
   const hh = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
   const faixa = horarioFim ? `${hh}:${mm} às ${horarioFim.slice(0, 5)}` : `${hh}:${mm}`;
@@ -101,7 +90,8 @@ export function MatchCard({
   const lotado = pelada.confirmados >= pelada.quantidade_vagas;
   const proporcao = Math.min(1, pelada.confirmados / pelada.quantidade_vagas);
   const tier = pelada.organizador ? tierPorNome(pelada.organizador.tier_reconhecido) : null;
-  const podeAvaliar = pendenteAvaliacao && pelada.minhaSituacao === "aprovado" && pelada.confirmados > 1;
+  const podeAvaliar =
+    pendenteAvaliacao && pelada.minhaSituacao === "aprovado" && pelada.confirmados > 1;
   // Amarelo só quando tem avaliação minha de fato pendente.
   const avaliacaoPendente = podeAvaliar && !pelada.jaAvaliei;
   const jaAvaliada = podeAvaliar && !!pelada.jaAvaliei;
@@ -199,7 +189,10 @@ export function MatchCard({
             {lotado && <span className="font-bold text-destructive">LOTADO</span>}
           </div>
           <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div className={cn("h-full rounded-full", barra)} style={{ width: `${proporcao * 100}%` }} />
+            <div
+              className={cn("h-full rounded-full", barra)}
+              style={{ width: `${proporcao * 100}%` }}
+            />
           </div>
         </div>
       )}
@@ -213,7 +206,10 @@ export function MatchCard({
               </Link>
             </Button>
             {avaliacaoPendente && (
-              <Button asChild className="flex-1 bg-tier-ouro font-semibold text-primary hover:bg-tier-ouro/90">
+              <Button
+                asChild
+                className="flex-1 bg-tier-ouro font-semibold text-primary hover:bg-tier-ouro/90"
+              >
                 <Link to="/pelada/$id/avaliar" params={{ id: pelada.id }}>
                   <Star className="mr-1.5 size-4" />
                   Avaliar
@@ -254,7 +250,7 @@ export function MatchCard({
                 Lotado
               </Button>
             ) : aberta ? (
-              <Button asChild className="flex-1 bg-mint font-semibold text-mint-foreground hover:bg-mint/90">
+              <Button asChild className="flex-1">
                 <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
                   Entrar
                 </Link>

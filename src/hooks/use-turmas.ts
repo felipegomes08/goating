@@ -15,14 +15,3 @@ export function useMinhasTurmas(userId: string | null) {
 }
 
 export type TurmaResumo = NonNullable<ReturnType<typeof useMinhasTurmas>["data"]>[number];
-
-/** "você é o 3º · 4 gols no mês" */
-export function minhaSituacao(turma: TurmaResumo) {
-  if (turma.minha_posicao === null) {
-    return turma.peladas === 0
-      ? "Nenhuma pelada com placar ainda"
-      : "Você ainda não jogou esse mês";
-  }
-  const gols = `${turma.meus_gols} ${turma.meus_gols === 1 ? "gol" : "gols"} no mês`;
-  return turma.meus_gols > 0 ? `Você é o ${turma.minha_posicao}º · ${gols}` : `Você · ${gols}`;
-}

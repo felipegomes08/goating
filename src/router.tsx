@@ -9,6 +9,8 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    // troca de tela com esmaecimento rápido (navegadores sem suporte trocam direto)
+    defaultViewTransition: true,
     defaultPreloadStaleTime: 0,
   });
 

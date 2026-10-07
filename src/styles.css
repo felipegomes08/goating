@@ -187,6 +187,20 @@
   }
 }
 
+/* Troca de tela: esmaecimento curto, como nos apps nativos. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 160ms;
+  animation-timing-function: ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
 @utility app-shell {
   margin-inline: auto;
   width: 100%;

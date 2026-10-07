@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { BottomNav } from "@/components/goating/bottom-nav";
+import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
+import { Segmentos, TituloGrande, classeSegmento } from "@/components/goating/titulo-grande";
 import {
   MatchCard,
   avaliouTodos,
@@ -105,7 +107,10 @@ function MinhasPartidas() {
 
       const [{ data: participantes }, { data: perfis }, { data: minhasAvaliacoes }] =
         await Promise.all([
-          supabase.from("match_participants").select("match_id, user_id, status").in("match_id", ids),
+          supabase
+            .from("match_participants")
+            .select("match_id, user_id, status")
+            .in("match_id", ids),
           supabase
             .from("profiles")
             .select("id, nome_exibicao, overall, tier_reconhecido")
@@ -172,10 +177,8 @@ function MinhasPartidas() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
-      <header className="bg-primary px-4 pt-6 pb-6">
-        <h1 className="text-lg font-bold text-primary-foreground">Minhas partidas</h1>
-
-        <div className="mt-4 grid grid-cols-2 gap-1 rounded-xl bg-primary-foreground/10 p-1">
+      <TituloGrande titulo="Partidas">
+        <Segmentos colunas={2}>
           {(
             [
               ["proximas", "Próximas"],
@@ -187,16 +190,13 @@ function MinhasPartidas() {
               to="/minhas-partidas"
               search={{ aba: a }}
               replace
-              className={
-                "truncate rounded-lg py-2 text-center text-xs font-semibold transition-colors " +
-                (aba === a ? "bg-mint text-mint-foreground" : "text-mint")
-              }
+              className={classeSegmento(aba === a)}
             >
               {rotulo}
             </Link>
           ))}
-        </div>
-      </header>
+        </Segmentos>
+      </TituloGrande>
 
       <main className="flex-1 space-y-3 px-4 py-4">
         {carregando || minhas.isLoading ? (
@@ -212,7 +212,7 @@ function MinhasPartidas() {
                 : "Crie a sua ou entre em alguma pelo feed."}
             </p>
             {aba === "proximas" && (
-              <Button asChild className="mt-2 bg-mint text-mint-foreground hover:bg-mint/90">
+              <Button asChild className="mt-2">
                 <Link to="/">Ver feed</Link>
               </Button>
             )}
@@ -228,6 +228,7 @@ function MinhasPartidas() {
         )}
       </main>
 
+      <PuxarParaAtualizar />
       <BottomNav />
     </div>
   );

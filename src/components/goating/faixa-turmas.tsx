@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, Users } from "lucide-react";
-import { minhaSituacao, useMinhasTurmas } from "@/hooks/use-turmas";
+import { useMinhasTurmas } from "@/hooks/use-turmas";
+import { CartaoTurma } from "@/components/goating/cartao-turma";
 
 /** Faixa do topo do feed: as turmas do usuário e como ele está em cada uma no mês. */
 export function FaixaTurmas({ userId }: { userId: string }) {
@@ -11,7 +12,7 @@ export function FaixaTurmas({ userId }: { userId: string }) {
     return (
       <Link
         to="/turmas"
-        className="flex items-center gap-3 rounded-2xl bg-primary p-4 text-primary-foreground shadow-[var(--shadow-card)]"
+        className="flex items-center gap-3 rounded-3xl bg-primary p-4 text-primary-foreground shadow-[var(--shadow-card)] transition-transform active:scale-[0.98]"
       >
         <Users className="size-6 shrink-0 text-mint" />
         <span className="min-w-0 flex-1">
@@ -25,6 +26,8 @@ export function FaixaTurmas({ userId }: { userId: string }) {
     );
   }
 
+  const varias = turmas.data.length > 1;
+
   return (
     <section>
       <div className="mb-2 flex items-center justify-between">
@@ -35,22 +38,14 @@ export function FaixaTurmas({ userId }: { userId: string }) {
           Ver todas
         </Link>
       </div>
-      <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1">
+      {/* rolagem lateral sem barra visível: o cartão seguinte aparecendo pela metade já avisa que tem mais */}
+      <div className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {turmas.data.map((t) => (
-          <Link
+          <CartaoTurma
             key={t.crew_id}
-            to="/turma/$id"
-            params={{ id: t.crew_id }}
-            className="w-64 shrink-0 snap-start rounded-2xl bg-primary p-4 text-primary-foreground shadow-[var(--shadow-card)] last:mr-0"
-          >
-            <p className="truncate text-base font-extrabold">{t.nome}</p>
-            <p className="mt-1 truncate text-xs font-semibold text-mint">{minhaSituacao(t)}</p>
-            <p className="mt-3 truncate text-[11px] text-primary-foreground/70">
-              {t.artilheiro
-                ? `Artilheiro do mês: ${t.artilheiro} (${t.artilheiro_gols})`
-                : `${t.membros} ${t.membros === 1 ? "jogador" : "jogadores"}`}
-            </p>
-          </Link>
+            turma={t}
+            className={varias ? "w-[84%] shrink-0 snap-start" : "w-full"}
+          />
         ))}
       </div>
     </section>

@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Search, Trophy } from "lucide-react";
+import { CalendarPlus, MapPin, Search, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { GoatingLogo } from "@/components/goating/logo";
 import { BottomNav } from "@/components/goating/bottom-nav";
+import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
 import { FaixaTurmas } from "@/components/goating/faixa-turmas";
+import { CAMPO_NO_VERDE } from "@/components/goating/titulo-grande";
 import {
   MatchCard,
   avaliouTodos,
@@ -157,7 +159,10 @@ function Feed() {
 
       const [{ data: participantes }, { data: perfis }, { data: minhasAvaliacoes }] =
         await Promise.all([
-          supabase.from("match_participants").select("match_id, user_id, status").in("match_id", ids),
+          supabase
+            .from("match_participants")
+            .select("match_id, user_id, status")
+            .in("match_id", ids),
           supabase
             .from("profiles")
             .select("id, nome_exibicao, overall, tier_reconhecido")
@@ -212,34 +217,38 @@ function Feed() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-primary px-4 pt-5 pb-4">
+      <header className="bg-primary px-4 pt-5 pb-1">
         <div className="flex items-center justify-between">
           <GoatingLogo withWordmark iconTone="light" wordmarkTone="dark" />
           <Link
             to="/ranking"
             search={{ aba: "cidade" }}
             aria-label="Ranking de jogadores"
-            className="flex items-center gap-1.5 rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint"
+            className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-primary-foreground active:opacity-60"
           >
-            <Trophy className="size-4" /> Ranking
+            <Trophy className="size-4 text-tier-ouro" /> Ranking
           </Link>
         </div>
         {cidade && (
-          <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-mint">
+          <p className="mt-2 flex items-center gap-1 text-xs font-medium text-mint">
             <MapPin className="size-3.5" />
             {cidade}
           </p>
         )}
-        <div className="relative mt-3">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+      </header>
+
+      {/* só a busca acompanha a rolagem; a base arredondada fecha o bloco verde */}
+      <div className="sticky top-0 z-20 -mt-px rounded-b-3xl bg-primary px-4 pt-2 pb-4">
+        <div className="relative">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-primary-foreground/55" />
           <Input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por quadra ou pelada"
-            className="h-11 rounded-xl border-0 bg-card pl-9 text-sm"
+            className={CAMPO_NO_VERDE}
           />
         </div>
-      </header>
+      </div>
 
       <main className="flex-1 space-y-3 px-4 py-4">
         {userId && <FaixaTurmas userId={userId} />}
@@ -272,27 +281,30 @@ function Feed() {
             <p className="text-sm text-muted-foreground">
               Complete seu cadastro para ver as peladas perto de você.
             </p>
-            <Button asChild className="mt-2 bg-mint text-mint-foreground hover:bg-mint/90">
+            <Button asChild className="mt-2">
               <Link to="/perfil">Completar cadastro</Link>
             </Button>
           </div>
         ) : lista.length === 0 ? (
-          <div className="mt-16 text-center">
-            <p className="text-base font-semibold text-foreground">
-              Nenhuma pelada em {cidade} ainda
+          <div className="mt-12 flex flex-col items-center px-6 text-center">
+            <span className="flex size-16 items-center justify-center rounded-full bg-mint-soft">
+              <CalendarPlus className="size-7 text-primary" strokeWidth={1.8} />
+            </span>
+            <p className="mt-4 text-base font-semibold text-foreground">
+              {busca.trim() ? "Nada com esse nome" : `Nenhuma pelada aberta em ${cidade}`}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Seja o primeiro a organizar e chame a galera pelo link.
+              {busca.trim()
+                ? "Tenta outro nome de quadra ou de pelada."
+                : "Toque no + aqui embaixo pra organizar a primeira."}
             </p>
-            <Button asChild className="mt-4 bg-mint text-mint-foreground hover:bg-mint/90">
-              <Link to="/criar">Criar pelada em {cidade}</Link>
-            </Button>
           </div>
         ) : (
           lista.map((p) => <MatchCard key={p.id} pelada={p} />)
         )}
       </main>
 
+      <PuxarParaAtualizar />
       <BottomNav />
     </div>
   );

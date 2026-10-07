@@ -358,7 +358,12 @@ function TimesDaPelada() {
               "1- João\n2- Pedrinho\n3- Carlão\n\nOu um nome só, pra quem chegou depois."
             }
           />
-          <Button className="w-full" disabled={ocupado || !texto.trim()} onClick={adicionarDaLista}>
+          <Button
+            variant="secondary"
+            className="w-full"
+            disabled={ocupado || !texto.trim()}
+            onClick={adicionarDaLista}
+          >
             Adicionar ao elenco
           </Button>
           <BuscaJogador
@@ -462,10 +467,7 @@ function TimesDaPelada() {
               </div>
             </div>
 
-            <Button
-              className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-              onClick={sortear}
-            >
+            <Button variant={temTimes ? "outline" : "default"} className="w-full" onClick={sortear}>
               <Shuffle className="mr-2 size-4" /> {temTimes ? "Sortear de novo" : "Sortear times"}
             </Button>
 

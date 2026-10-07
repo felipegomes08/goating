@@ -355,7 +355,12 @@ function DetalhePelada() {
         {temPlacar && (
           <Button
             asChild
-            className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
+            variant={
+              dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 && !jaAvaliei
+                ? "outline"
+                : "default"
+            }
+            className="w-full"
           >
             <Link to="/pelada/$id/resumo" params={{ id }}>
               <Trophy className="mr-2 size-4" /> Ver placar e artilharia
@@ -507,7 +512,7 @@ function DetalhePelada() {
             </>
           ) : dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 ? (
             <Button
-              className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
+              className="w-full"
               onClick={() => navigate({ to: "/pelada/$id/avaliar", params: { id } })}
             >
               <Star className="mr-2 size-4" /> Avaliar jogadores
@@ -528,10 +533,7 @@ function DetalhePelada() {
                     <Shuffle className="mr-2 size-4" /> Times
                   </Link>
                 </Button>
-                <Button
-                  asChild
-                  className="flex-[2] bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-                >
+                <Button asChild className="flex-[2]">
                   <Link to="/pelada/$id/placar" params={{ id }}>
                     <Play className="mr-2 size-4" />{" "}
                     {emAndamento ? "Voltar pro placar" : "Iniciar partida"}
@@ -539,10 +541,7 @@ function DetalhePelada() {
                 </Button>
               </div>
             ) : (
-              <Button
-                asChild
-                className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-              >
+              <Button asChild className="w-full">
                 <Link to="/pelada/$id/times" params={{ id }}>
                   <Shuffle className="mr-2 size-4" /> Sortear times
                 </Link>
@@ -569,11 +568,7 @@ function DetalhePelada() {
             Lotado
           </Button>
         ) : (
-          <Button
-            className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-            disabled={ocupado}
-            onClick={entrar}
-          >
+          <Button className="w-full" disabled={ocupado} onClick={entrar}>
             {pelada.tipo === "aberta" ? "Entrar na pelada" : "Solicitar entrada"}
           </Button>
         )}

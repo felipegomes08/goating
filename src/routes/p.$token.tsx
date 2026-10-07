@@ -51,9 +51,12 @@ type ConviteInfo = {
 
 function dataFormatada(data: string, horario: string, horarioFim: string | null) {
   const d = new Date(`${data}T${horario}`);
-  const faixa = horarioFim ? `${horario.slice(0, 5)} às ${horarioFim.slice(0, 5)}` : horario.slice(0, 5);
+  const faixa = horarioFim
+    ? `${horario.slice(0, 5)} às ${horarioFim.slice(0, 5)}`
+    : horario.slice(0, 5);
   return (
-    d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }) + ` · ${faixa}`
+    d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }) +
+    ` · ${faixa}`
   );
 }
 
@@ -68,9 +71,9 @@ function Convite() {
   const consulta = useQuery({
     queryKey: ["convite", token],
     queryFn: async (): Promise<ConviteInfo | null> => {
-      const { data, error } = await supabase.rpc("convite_info", { p_token: token }).returns<
-        ConviteInfo[]
-      >();
+      const { data, error } = await supabase
+        .rpc("convite_info", { p_token: token })
+        .returns<ConviteInfo[]>();
       if (error) throw error;
       return data?.[0] ?? null;
     },
@@ -133,8 +136,10 @@ function Convite() {
     return (
       <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 bg-primary p-6 text-center">
         <GoatingLogo withWordmark />
-        <p className="text-sm text-primary-foreground/70">Esse link de convite não é mais válido.</p>
-        <Button asChild className="bg-mint font-semibold text-mint-foreground hover:bg-mint/90">
+        <p className="text-sm text-primary-foreground/70">
+          Esse link de convite não é mais válido.
+        </p>
+        <Button asChild>
           <Link to="/">Ver peladas no feed</Link>
         </Button>
       </div>
@@ -197,14 +202,16 @@ function Convite() {
         </div>
 
         {info.descricao && (
-          <p className="mt-3 rounded-xl bg-secondary/60 p-3 text-xs text-foreground">{info.descricao}</p>
+          <p className="mt-3 rounded-xl bg-secondary/60 p-3 text-xs text-foreground">
+            {info.descricao}
+          </p>
         )}
       </div>
 
       <div className="w-full max-w-xs space-y-2">
         {!mostrarConvidado ? (
           <>
-            <Button asChild className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90">
+            <Button asChild className="w-full">
               <Link to="/auth" search={{ convite: token }}>
                 Entrar
               </Link>
@@ -242,7 +249,7 @@ function Convite() {
             <Button
               type="submit"
               disabled={enviandoConvidado || !nomeConvidado.trim()}
-              className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
+              className="w-full"
             >
               {aberta ? "Confirmar presença" : "Solicitar entrada"}
             </Button>

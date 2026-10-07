@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, ChevronRight, Crown, Plus, Users } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
-import { minhaSituacao, useMinhasTurmas } from "@/hooks/use-turmas";
+import { useMinhasTurmas } from "@/hooks/use-turmas";
 import { BottomNav } from "@/components/goating/bottom-nav";
+import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
+import { CartaoTurma } from "@/components/goating/cartao-turma";
+import { TituloGrande } from "@/components/goating/titulo-grande";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -66,10 +69,17 @@ function MinhasTurmas() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
-      <header className="sticky top-0 z-20 border-b border-border bg-primary px-4 pt-5 pb-4">
-        <h1 className="text-xl font-extrabold text-primary-foreground">Minhas turmas</h1>
-        <p className="mt-1 text-xs text-mint">O futebol fixo da galera, com placar e ranking.</p>
-      </header>
+      <TituloGrande
+        titulo="Turmas"
+        subtitulo="O futebol fixo da galera, com placar e ranking."
+        acao={
+          !criando && (
+            <Button size="sm" className="shrink-0" onClick={() => setCriando(true)}>
+              <Plus /> Criar
+            </Button>
+          )
+        }
+      />
 
       <main className="flex-1 space-y-3 px-4 py-4">
         {criando ? (
@@ -96,17 +106,10 @@ function MinhasTurmas() {
               </Button>
             </div>
           </div>
-        ) : (
-          <Button
-            className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-            onClick={() => setCriando(true)}
-          >
-            <Plus className="mr-2 size-4" /> Criar turma
-          </Button>
-        )}
+        ) : null}
 
         {carregando || turmas.isLoading ? (
-          [0, 1].map((i) => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)
+          [0, 1].map((i) => <Skeleton key={i} className="h-32 w-full rounded-3xl" />)
         ) : turmas.isError ? (
           <p className="mt-10 text-center text-sm text-muted-foreground">
             Não conseguimos carregar suas turmas.
@@ -122,55 +125,11 @@ function MinhasTurmas() {
             </p>
           </div>
         ) : (
-          (turmas.data ?? []).map((t) => (
-            <Link
-              key={t.crew_id}
-              to="/turma/$id"
-              params={{ id: t.crew_id }}
-              className="block rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]"
-            >
-              <div className="flex items-start gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-1.5 text-base font-extrabold text-foreground">
-                    <span className="truncate">{t.nome}</span>
-                    {(t.sou_dono || t.sou_admin) && (
-                      <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                        {t.sou_dono ? "DONO" : "ADMIN"}
-                      </span>
-                    )}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {t.membros} {t.membros === 1 ? "jogador" : "jogadores"} · {t.peladas}{" "}
-                    {t.peladas === 1 ? "pelada" : "peladas"} com placar
-                  </p>
-                </div>
-                <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
-              </div>
-
-              <p className="mt-3 text-sm font-bold text-primary">{minhaSituacao(t)}</p>
-              {t.artilheiro && (
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-foreground">
-                  <Crown className="size-3.5 text-tier-ouro" />
-                  Artilheiro do mês: {t.artilheiro} ({t.artilheiro_gols})
-                </p>
-              )}
-              {t.proxima_data && t.proxima_horario && (
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <CalendarDays className="size-3.5" />
-                  Próxima:{" "}
-                  {new Date(`${t.proxima_data}T12:00:00`).toLocaleDateString("pt-BR", {
-                    weekday: "short",
-                    day: "2-digit",
-                    month: "2-digit",
-                  })}{" "}
-                  às {t.proxima_horario.slice(0, 5)}
-                </p>
-              )}
-            </Link>
-          ))
+          (turmas.data ?? []).map((t) => <CartaoTurma key={t.crew_id} turma={t} detalhado />)
         )}
       </main>
 
+      <PuxarParaAtualizar />
       <BottomNav />
     </div>
   );

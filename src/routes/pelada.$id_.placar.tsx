@@ -466,10 +466,7 @@ function PlacarDaPelada() {
                 Na espera: {fila.map(nomeTime).join(", ")}
               </p>
             )}
-            <Button
-              className="w-full bg-mint font-semibold text-mint-foreground hover:bg-mint/90"
-              onClick={() => iniciarJogo(confronto)}
-            >
+            <Button className="w-full" onClick={() => iniciarJogo(confronto)}>
               <Play className="mr-2 size-4" /> Começar jogo
             </Button>
           </section>
@@ -538,7 +535,11 @@ function PlacarDaPelada() {
 
         {encerrados.length > 0 && (
           <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
-            <Button className="w-full" onClick={() => setFolha({ tipo: "finalizar" })}>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setFolha({ tipo: "finalizar" })}
+            >
               <Flag className="mr-2 size-4" /> Finalizar pelada
             </Button>
           </div>
