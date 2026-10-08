@@ -151,7 +151,7 @@ function ResumoDaPelada() {
   }
 
   return (
-    <div className="app-shell flex min-h-dvh flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col">
       <header className="bg-primary px-4 pt-4 pb-6">
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Voltar" onClick={voltar}>

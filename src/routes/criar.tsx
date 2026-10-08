@@ -27,6 +27,11 @@ function somarHora(hhmm: string, horas: number) {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
+const emMinutos = (hhmm: string) => {
+  const [h = 0, m = 0] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+};
+
 export const Route = createFileRoute("/criar")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>): { turma?: string | undefined } => ({
@@ -98,10 +103,24 @@ function CriarPelada() {
   }
 
   const cidadeFinal = cidade || perfil?.cidade || "";
+  // Pelada agendada: não pode ser no passado, o término vem depois do início
+  // e ela dura pelo menos 1 hora.
+  const duracaoMin = emMinutos(horarioFim) - emMinutos(horario);
+  const problemaHorario =
+    modo !== "agendar"
+      ? null
+      : data && new Date(`${data}T${horario}`).getTime() < Date.now()
+        ? "Esse dia e horário já passaram."
+        : duracaoMin <= 0
+          ? "O término precisa ser depois do início."
+          : duracaoMin < 60
+            ? "A pelada precisa ter pelo menos 1 hora."
+            : null;
+
   const valido =
     modo === "agora"
       ? !!titulo.trim()
-      : titulo.trim() && data && horario && local.trim() && cidadeFinal.trim();
+      : titulo.trim() && data && horario && local.trim() && cidadeFinal.trim() && !problemaHorario;
 
   // As estatísticas somam por turma: mesmo título de antes cai na mesma turma.
   const turmaDoTitulo = (turmas.data ?? []).find((t) => chaveNome(t.nome) === chaveNome(titulo));
@@ -261,7 +280,7 @@ function CriarPelada() {
   }
 
   return (
-    <div className="app-shell flex flex-col pb-24">
+    <div className="app-shell flex flex-col">
       <header className="flex items-center gap-3 bg-primary px-4 py-4">
         <Link to="/" aria-label="Voltar">
           <ArrowLeft className="size-5 text-primary-foreground" />
@@ -340,6 +359,7 @@ function CriarPelada() {
               <Input
                 id="data"
                 type="date"
+                min={new Date().toLocaleDateString("sv-SE")}
                 value={data}
                 onChange={(e) => setData(e.target.value)}
                 className="mt-1 block w-full min-w-0 appearance-none text-left [&::-webkit-date-and-time-value]:text-left"
@@ -375,10 +395,15 @@ function CriarPelada() {
                   />
                 </div>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                O término já vem 1h depois do início. Muda se sua pelada for mais curta ou mais
-                longa.
-              </p>
+              {problemaHorario ? (
+                <p className="mt-1 text-xs font-medium text-destructive" role="alert">
+                  {problemaHorario}
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  O término já vem 1h depois do início. Muda se sua pelada for mais longa.
+                </p>
+              )}
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-3">
@@ -529,7 +554,7 @@ function CriarPelada() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
         <Button
           className={cn("w-full font-semibold")}
           disabled={!valido || enviando}

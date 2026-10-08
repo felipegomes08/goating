@@ -302,7 +302,7 @@ function Avaliar() {
   }
 
   return (
-    <div className="app-shell flex min-h-dvh flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col">
       <header className="bg-primary px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
           <button
@@ -408,7 +408,7 @@ function Avaliar() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 flex gap-2 border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto flex gap-2 border-t border-border bg-card p-4">
         {indice > 0 && (
           <Button
             variant="outline"

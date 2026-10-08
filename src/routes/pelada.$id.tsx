@@ -16,7 +16,7 @@ import {
   Share2,
   Star,
   Trophy,
-  UserPlus,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -107,6 +107,7 @@ function DetalhePelada() {
 
   const voltar = useVoltar(() => void navigate({ to: "/" }));
   const [ocupado, setOcupado] = useState(false);
+  const [confirmandoApagar, setConfirmandoApagar] = useState(false);
 
   const consulta = useQuery({
     queryKey: ["pelada", id, userId],
@@ -224,6 +225,8 @@ function DetalhePelada() {
   const finalizada = pelada.status === "finalizada";
   const emAndamento = pelada.status === "em_andamento";
   const temPlacar = !!pelada.placar_finalizado_em;
+  // finalizar só faz sentido depois que a pelada começou
+  const jaComecou = new Date(`${pelada.data}T${pelada.horario}`).getTime() <= Date.now();
   const mvpNome = pelada.mvp_id
     ? (participantes.find((p) => p.user_id === pelada.mvp_id)?.nome ?? null)
     : null;
@@ -287,6 +290,21 @@ function DetalhePelada() {
     await atualizar();
   }
 
+  async function apagar() {
+    setOcupado(true);
+    const { error } = await supabase.from("matches").delete().eq("id", id);
+    setOcupado(false);
+    if (error) {
+      toast.error("Não deu pra apagar a pelada.");
+      return;
+    }
+    toast.success("Pelada apagada.");
+    await queryClient.invalidateQueries({ queryKey: ["feed"] });
+    await queryClient.invalidateQueries({ queryKey: ["turma"] });
+    await queryClient.invalidateQueries({ queryKey: ["minhas-turmas-resumo"] });
+    await navigate({ to: "/", replace: true });
+  }
+
   async function finalizar() {
     setOcupado(true);
     const { error } = await supabase
@@ -303,7 +321,7 @@ function DetalhePelada() {
   }
 
   return (
-    <div className="app-shell flex min-h-dvh flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col">
       <header className={cn("px-4 pt-4 pb-5", finalizada ? "bg-neutral-900" : "bg-primary")}>
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Voltar" onClick={voltar}>
@@ -510,28 +528,18 @@ function DetalhePelada() {
           </section>
         )}
 
-        {podeGerir && !finalizada && (
-          <Link
-            to="/pelada/$id/times"
-            params={{ id }}
-            className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-card/60 p-3 active:opacity-60"
+        {souOrganizador && (
+          <button
+            type="button"
+            onClick={() => setConfirmandoApagar(true)}
+            className="mx-auto flex items-center gap-1.5 py-2 text-xs font-semibold text-destructive"
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-mint-soft">
-              <UserPlus className="size-4 text-primary" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-foreground">
-                Adicionar jogadores
-              </span>
-              <span className="block text-xs text-muted-foreground">
-                Cole a lista do WhatsApp, busque quem tem conta ou digite o nome.
-              </span>
-            </span>
-          </Link>
+            <Trash2 className="size-3.5" /> Apagar pelada
+          </button>
         )}
       </div>
 
-      <div className="sticky bottom-0 space-y-2 border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto space-y-2 border-t border-border bg-card p-4">
         {finalizada && podeGerir && temPlacar && (
           <Button asChild variant="ghost" className="w-full">
             <Link to="/pelada/$id/placar" params={{ id }}>
@@ -589,17 +597,23 @@ function DetalhePelada() {
               <>
                 <Button asChild className="w-full">
                   <Link to="/pelada/$id/times" params={{ id }}>
-                    <Users className="mr-2 size-4" /> Jogadores e times
+                    <Users className="mr-2 size-4" /> Revisar e iniciar
                   </Link>
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
-                  Lá você adiciona mais gente e sorteia só quando quiser.
+                  Lá você adiciona jogadores, monta os times e inicia quando quiser.
                 </p>
               </>
             )}
-            <Button variant="ghost" className="w-full" disabled={ocupado} onClick={finalizar}>
-              <Flag className="mr-2 size-4" /> Finalizar sem placar
-            </Button>
+            {jaComecou ? (
+              <Button variant="ghost" className="w-full" disabled={ocupado} onClick={finalizar}>
+                <Flag className="mr-2 size-4" /> Finalizar sem placar
+              </Button>
+            ) : (
+              <p className="text-center text-xs text-muted-foreground">
+                Dá pra finalizar a partir do horário da pelada ({pelada.horario.slice(0, 5)}).
+              </p>
+            )}
           </>
         ) : eu?.status === "aprovado" ? (
           <Button variant="outline" className="w-full" disabled={ocupado} onClick={sair}>
@@ -623,6 +637,42 @@ function DetalhePelada() {
           </Button>
         )}
       </div>
+
+      {confirmandoApagar && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !ocupado) setConfirmandoApagar(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-label="Apagar pelada"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+          >
+            <h2 className="text-lg font-extrabold text-foreground">Apagar essa pelada?</h2>
+            <p className="text-sm text-muted-foreground">
+              Isso não tem volta. Some a pelada, a lista de confirmados e o link de convite.
+              {temPlacar &&
+                " O placar e as avaliações dela também: gols e vitórias desse dia saem do ranking da turma."}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Se for uma pelada recorrente, só esta data é apagada.
+            </p>
+            <Button variant="destructive" className="w-full" disabled={ocupado} onClick={apagar}>
+              {ocupado ? "Apagando…" : "Apagar pelada"}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={ocupado}
+              onClick={() => setConfirmandoApagar(false)}
+            >
+              Manter
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

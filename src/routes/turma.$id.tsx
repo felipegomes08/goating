@@ -338,7 +338,7 @@ function PaginaDaTurma() {
   const passadas = dados.peladas.filter((p) => p.status === "finalizada");
 
   return (
-    <div className="app-shell flex min-h-dvh flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col">
       <header className="bg-primary px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Voltar" onClick={voltar}>
