@@ -101,7 +101,7 @@ function TimesDaPelada() {
   }
   if (!dados?.souOrganizador) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {consulta.isError
             ? "Não conseguimos carregar os times."
@@ -361,7 +361,7 @@ function TimesDaPelada() {
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col pb-28">
       <header className="bg-primary px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Voltar" onClick={voltar}>

@@ -22,11 +22,6 @@ export function PuxarParaAtualizar() {
   const ocupado = useRef(false);
 
   useEffect(() => {
-    // sem isso o Chrome do Android faz o "puxar pra recarregar" dele por cima do nosso
-    const raiz = document.documentElement;
-    const anterior = raiz.style.overscrollBehaviorY;
-    raiz.style.overscrollBehaviorY = "contain";
-
     const aoTocar = (e: TouchEvent) => {
       inicio.current =
         window.scrollY <= 0 && !ocupado.current ? (e.touches[0]?.clientY ?? null) : null;
@@ -71,7 +66,6 @@ export function PuxarParaAtualizar() {
     window.addEventListener("touchend", aoSoltar);
     window.addEventListener("touchcancel", aoSoltar);
     return () => {
-      raiz.style.overscrollBehaviorY = anterior;
       window.removeEventListener("touchstart", aoTocar);
       window.removeEventListener("touchmove", aoMover);
       window.removeEventListener("touchend", aoSoltar);

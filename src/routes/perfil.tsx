@@ -220,7 +220,7 @@ function Perfil() {
 
   if (carregando || isLoading || !perfil) {
     return (
-      <div className="mx-auto min-h-screen w-full max-w-[480px] space-y-4 bg-background p-4">
+      <div className="mx-auto min-h-dvh w-full max-w-[480px] space-y-4 bg-background p-4">
         <Skeleton className="h-72 w-full rounded-2xl" />
         <Skeleton className="h-40 w-full rounded-2xl" />
       </div>
@@ -254,7 +254,7 @@ function Perfil() {
   const attrs = medias.data ?? MEDIAS_ZERADAS;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <header className="relative isolate overflow-hidden bg-primary px-4 pt-6 pb-8">
         <AuraTier tier={tier} />
         <div className="relative flex items-center justify-between">

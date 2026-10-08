@@ -150,7 +150,7 @@ function PaginaDaTurma() {
   }
   if (!userId || !turma.data) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {userId
             ? "Essa turma não existe mais."
@@ -338,7 +338,7 @@ function PaginaDaTurma() {
   const passadas = dados.peladas.filter((p) => p.status === "finalizada");
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col pb-28">
       <header className="bg-primary px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Voltar" onClick={voltar}>

@@ -70,7 +70,7 @@ export const Route = createFileRoute("/pelada/$id")({
 
 function Aviso({ texto }: { texto: string }) {
   return (
-    <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+    <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
       <p className="text-sm text-muted-foreground">{texto}</p>
       <Button asChild>
         <Link to="/">Voltar ao feed</Link>
@@ -216,7 +216,7 @@ function DetalhePelada() {
 
   if (!userId) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">Entre na sua conta para ver essa pelada.</p>
         <Button asChild>
           <Link to="/auth">Entrar no Goating</Link>
@@ -324,7 +324,7 @@ function DetalhePelada() {
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col pb-28">
       <header className={cn("px-4 pt-4 pb-5", finalizada ? "bg-neutral-900" : "bg-primary")}>
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Voltar" onClick={voltar}>

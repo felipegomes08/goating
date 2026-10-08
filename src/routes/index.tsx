@@ -257,7 +257,7 @@ function Feed() {
   }, [feed.data, busca]);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <header className="bg-primary px-4 pt-5 pb-1">
         <div className="flex items-center justify-between">
           <GoatingLogo withWordmark iconTone="light" wordmarkTone="dark" />

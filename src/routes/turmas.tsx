@@ -68,7 +68,7 @@ function MinhasTurmas() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <TituloGrande
         titulo="Turmas"
         subtitulo="O futebol fixo da galera, com placar e ranking."

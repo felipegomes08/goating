@@ -125,7 +125,7 @@ function Convite() {
 
   if (consulta.isLoading || carregando) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 bg-primary p-6">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 bg-primary p-6">
         <GoatingLogo withWordmark />
         <Skeleton className="h-64 w-full max-w-xs rounded-2xl" />
       </div>
@@ -134,7 +134,7 @@ function Convite() {
 
   if (consulta.isError || !info) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 bg-primary p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 bg-primary p-6 text-center">
         <GoatingLogo withWordmark />
         <p className="text-sm text-primary-foreground/70">
           Esse link de convite não é mais válido.
@@ -149,7 +149,7 @@ function Convite() {
   if (userId) {
     // Redirecionando (efeito acima já disparou). Evita piscar a tela de convite.
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 bg-primary p-6">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 bg-primary p-6">
         <GoatingLogo withWordmark />
         <Skeleton className="h-24 w-full max-w-xs rounded-2xl" />
       </div>
@@ -160,7 +160,7 @@ function Convite() {
   const lotado = info.confirmados >= info.quantidade_vagas;
 
   return (
-    <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-5 bg-primary p-6">
+    <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-5 bg-primary p-6">
       <GoatingLogo withWordmark />
 
       <div className="w-full max-w-xs rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">

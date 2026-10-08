@@ -161,7 +161,7 @@ function Ranking() {
   const liberado = perfil ? perfil.avaliacoes_recebidas >= MIN_AVALIACOES : false;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <TituloGrande titulo="Ranking">
         <div className="relative">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-primary-foreground/55" />

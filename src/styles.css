@@ -184,6 +184,8 @@
   body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    /* a página para no fim em vez de esticar pro vazio; a barra de baixo fica no lugar */
+    overscroll-behavior-y: none;
   }
 }
 

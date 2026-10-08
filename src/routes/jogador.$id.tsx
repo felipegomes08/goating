@@ -142,7 +142,7 @@ function JogadorPublico() {
 
   if (carregando || perfilQuery.isLoading) {
     return (
-      <div className="mx-auto min-h-screen w-full max-w-[480px] space-y-4 bg-background p-4">
+      <div className="mx-auto min-h-dvh w-full max-w-[480px] space-y-4 bg-background p-4">
         <Skeleton className="h-72 w-full rounded-2xl" />
         <Skeleton className="h-40 w-full rounded-2xl" />
       </div>
@@ -151,7 +151,7 @@ function JogadorPublico() {
 
   if (!perfil) {
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col items-center justify-center gap-4 bg-background p-6 text-center">
+      <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <p className="text-sm text-muted-foreground">Não encontramos esse jogador.</p>
         <Button asChild>
           <Link to="/ranking" search={{ aba: "cidade" }}>Ver ranking</Link>
@@ -167,7 +167,7 @@ function JogadorPublico() {
   const segue = !!seguindoEste.data;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <header className="bg-primary px-4 pt-6 pb-8">
         <div className="flex items-center justify-between">
           <Button

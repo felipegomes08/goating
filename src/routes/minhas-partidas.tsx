@@ -176,7 +176,7 @@ function MinhasPartidas() {
   const lista = aba === "passadas" ? passadas : proximas;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <TituloGrande titulo="Partidas">
         <Segmentos colunas={2}>
           {(

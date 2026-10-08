@@ -75,7 +75,7 @@ function Rede() {
   });
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <header className="bg-primary px-4 pt-6 pb-6">
         <div className="flex items-center justify-between">
           <Button

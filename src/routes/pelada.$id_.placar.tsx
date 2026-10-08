@@ -174,7 +174,7 @@ function PlacarDaPelada() {
   }
   if (!dados || !estado || !souOrganizador) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {consulta.isError
             ? "Não conseguimos carregar o placar."
@@ -415,7 +415,7 @@ function PlacarDaPelada() {
     const ultimo = encerrados.at(-1);
 
     return (
-      <div className="app-shell flex min-h-screen flex-col pb-28">
+      <div className="app-shell flex min-h-dvh flex-col pb-28">
         {cabecalho}
         <div className="space-y-4 p-4">
           <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
@@ -575,7 +575,7 @@ function PlacarDaPelada() {
     folha?.tipo === "autor" ? atual.gols.find((g) => g.id === folha.golId) : undefined;
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-32">
+    <div className="app-shell flex min-h-dvh flex-col pb-32">
       {cabecalho}
       <div className="space-y-4 p-4">
         <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">

@@ -37,7 +37,7 @@ export const Route = createFileRoute("/pelada/$id_/avaliar")({
 
 function Aviso({ texto }: { texto: string }) {
   return (
-    <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+    <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
       <p className="text-sm text-muted-foreground">{texto}</p>
       <Button asChild>
         <Link to="/">Voltar ao feed</Link>
@@ -198,7 +198,7 @@ function Avaliar() {
 
   if (concluido || !jogador) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="flex size-16 items-center justify-center rounded-full bg-mint-soft">
           <Check className="size-8 text-primary" />
         </div>
@@ -303,7 +303,7 @@ function Avaliar() {
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col pb-28">
       <header className="bg-primary px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
           <button

@@ -5,6 +5,7 @@ import { ArrowLeft, Check, Lock, Minus, Plus, Repeat, Share2 } from "lucide-reac
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
+import { CampoHorario } from "@/components/goating/campo-horario";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import {
   CONFIG_PADRAO,
@@ -308,49 +309,75 @@ function CriarPelada() {
           />
         </div>
 
+        {(turmas.data?.length ?? 0) > 0 && (
+          <div>
+            <Label htmlFor="turma">Turma</Label>
+            <select
+              id="turma"
+              value={turmaEscolhida}
+              onChange={(e) => setTurmaManual(e.target.value)}
+              className="mt-1 h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground"
+            >
+              {(turmas.data ?? []).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nome}
+                </option>
+              ))}
+              <option value="nova">Nova turma{titulo.trim() ? `: ${titulo.trim()}` : ""}</option>
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Gols e vitórias somam no ranking da turma. Use a mesma turma toda semana.
+            </p>
+          </div>
+        )}
+
         {modo === "agendar" && (
           <>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="data">Data</Label>
-                <Input
-                  id="data"
-                  type="date"
-                  value={data}
-                  onChange={(e) => setData(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="horario">Início</Label>
-                <Input
-                  id="horario"
-                  type="time"
-                  value={horario}
-                  onChange={(e) => {
-                    const novo = e.target.value;
-                    setHorario(novo);
-                    if (!horarioFimTocado) setHorarioFim(somarHora(novo, 1));
-                  }}
-                  className="mt-1"
-                />
-              </div>
+            <div>
+              <Label htmlFor="data">Data</Label>
+              {/* no iPhone o campo de data tem largura própria e vazava pra cima do vizinho:
+                  linha só dele, sem a aparência nativa que força essa largura */}
+              <Input
+                id="data"
+                type="date"
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+                className="mt-1 block w-full min-w-0 appearance-none text-left [&::-webkit-date-and-time-value]:text-left"
+              />
             </div>
 
             <div>
-              <Label htmlFor="horarioFim">Término</Label>
-              <Input
-                id="horarioFim"
-                type="time"
-                value={horarioFim}
-                onChange={(e) => {
-                  setHorarioFim(e.target.value);
-                  setHorarioFimTocado(true);
-                }}
-                className="mt-1"
-              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="horario">Início</Label>
+                  <CampoHorario
+                    id="horario"
+                    rotulo="Início"
+                    valor={horario}
+                    onMudar={(novo) => {
+                      setHorario(novo);
+                      if (!horarioFimTocado) setHorarioFim(somarHora(novo, 1));
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="horarioFim">Término</Label>
+                  <CampoHorario
+                    id="horarioFim"
+                    rotulo="Término"
+                    valor={horarioFim}
+                    onMudar={(novo) => {
+                      setHorarioFim(novo);
+                      setHorarioFimTocado(true);
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Já vem 1h depois do início. Muda se sua pelada for mais curta ou mais longa.
+                O término já vem 1h depois do início. Muda se sua pelada for mais curta ou mais
+                longa.
               </p>
             </div>
 
@@ -494,28 +521,6 @@ function CriarPelada() {
               />
             </div>
           </>
-        )}
-
-        {(turmas.data?.length ?? 0) > 0 && (
-          <div>
-            <Label htmlFor="turma">Turma</Label>
-            <select
-              id="turma"
-              value={turmaEscolhida}
-              onChange={(e) => setTurmaManual(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-input bg-card px-3 text-sm text-foreground"
-            >
-              {(turmas.data ?? []).map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nome}
-                </option>
-              ))}
-              <option value="nova">Nova turma{titulo.trim() ? `: ${titulo.trim()}` : ""}</option>
-            </select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Gols e vitórias somam no ranking da turma. Use a mesma turma toda semana.
-            </p>
-          </div>
         )}
 
         <div>

@@ -64,7 +64,7 @@ function ResumoDaPelada() {
   const dados = consulta.data;
   if (!dados || !dados.pelada.placar_finalizado_em || dados.jogos.length === 0) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {userId
             ? "Essa pelada ainda não tem placar finalizado."
@@ -151,7 +151,7 @@ function ResumoDaPelada() {
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col pb-28">
       <header className="bg-primary px-4 pt-4 pb-6">
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Voltar" onClick={voltar}>
