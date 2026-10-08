@@ -36,12 +36,12 @@ export const CAMPO_NO_VERDE =
   "border-0 bg-white/10 pl-9 text-[15px] text-primary-foreground placeholder:text-primary-foreground/55 focus-visible:ring-mint";
 
 /** Trilho do controle segmentado (abas lado a lado), sobre o verde. */
-export function Segmentos({ children, colunas }: { children: ReactNode; colunas: 2 | 3 }) {
+export function Segmentos({ children, colunas }: { children: ReactNode; colunas: 2 | 3 | 4 }) {
   return (
     <div
       className={cn(
         "grid gap-1 rounded-xl bg-white/10 p-1",
-        colunas === 2 ? "grid-cols-2" : "grid-cols-3",
+        colunas === 2 ? "grid-cols-2" : colunas === 3 ? "grid-cols-3" : "grid-cols-4",
       )}
     >
       {children}

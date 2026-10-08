@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { PERIODOS, rotuloDoPeriodo, useRankingDaTurma, type Periodo } from "@/hooks/use-turmas";
 import { useVoltar } from "@/hooks/use-voltar";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
 import {
@@ -32,7 +33,6 @@ import { compartilhar } from "@/lib/placar/dados";
 import { compartilharRanking } from "@/lib/placar/poster";
 
 type Aba = "ranking" | "peladas" | "membros";
-type Periodo = "mes" | "ano" | "tudo";
 
 export const Route = createFileRoute("/turma/$id")({
   ssr: false,
@@ -49,18 +49,6 @@ const ABAS: { id: Aba; rotulo: string }[] = [
   { id: "peladas", rotulo: "Peladas" },
   { id: "membros", rotulo: "Jogadores" },
 ];
-const PERIODOS: { id: Periodo; rotulo: string }[] = [
-  { id: "mes", rotulo: "Mês" },
-  { id: "ano", rotulo: "Ano" },
-  { id: "tudo", rotulo: "Tudo" },
-];
-
-function inicioDoPeriodo(periodo: Periodo) {
-  const hoje = new Date();
-  if (periodo === "tudo") return null;
-  const mes = periodo === "mes" ? hoje.getMonth() + 1 : 1;
-  return `${hoje.getFullYear()}-${String(mes).padStart(2, "0")}-01`;
-}
 
 function PaginaDaTurma() {
   const { id } = useParams({ from: "/turma/$id" });
@@ -120,25 +108,7 @@ function PaginaDaTurma() {
     },
   });
 
-  const ranking = useQuery({
-    queryKey: ["turma-ranking", id, periodo],
-    enabled: !!userId && aba === "ranking",
-    queryFn: async () => {
-      const desde = inicioDoPeriodo(periodo);
-      const { data, error } = await supabase.rpc("crew_stats", {
-        p_crew_id: id,
-        ...(desde ? { p_desde: desde } : {}),
-      });
-      if (error) throw error;
-      return data.map((l) => ({
-        ...l,
-        // 3 pontos por vitória, 1 por empate, sobre o máximo possível
-        aproveitamento:
-          l.jogos > 0 ? Math.round(((l.vitorias * 3 + l.empates) / (l.jogos * 3)) * 100) : 0,
-        media: l.jogos > 0 ? l.gols / l.jogos : 0,
-      }));
-    },
-  });
+  const ranking = useRankingDaTurma(id, periodo, !!userId && aba === "ranking");
 
   if (carregando || (!!userId && turma.isLoading)) {
     return (
@@ -278,12 +248,7 @@ function PaginaDaTurma() {
       b.vitorias - a.vitorias ||
       a.nome.localeCompare(b.nome),
   );
-  const rotuloPeriodo =
-    periodo === "mes"
-      ? new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
-      : periodo === "ano"
-        ? String(new Date().getFullYear())
-        : "desde o começo";
+  const rotuloPeriodo = rotuloDoPeriodo(periodo);
   const colunaOrdenada = COLUNAS_RANKING.find((c) => c.id === ordem);
 
   /** Texto pro WhatsApp: um jogador por bloco, com todos os números. */
