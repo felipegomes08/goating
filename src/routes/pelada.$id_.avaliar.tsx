@@ -293,8 +293,7 @@ function Avaliar() {
     setEnviadosAgora((s) => new Set(s).add(jogador.id));
     // Cards e detalhe da pelada passam a refletir "já avaliei".
     void queryClient.invalidateQueries({ queryKey: ["pelada", id] });
-    void queryClient.invalidateQueries({ queryKey: ["feed-pendentes-avaliacao"] });
-    void queryClient.invalidateQueries({ queryKey: ["minhas-partidas"] });
+    void queryClient.invalidateQueries({ queryKey: ["feed"] });
     if (ultimo) {
       setConcluido(true);
     } else {

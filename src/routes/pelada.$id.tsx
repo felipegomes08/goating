@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -33,20 +33,8 @@ import { podeGerirPelada } from "@/lib/placar/dados";
 import { tierPorNome } from "@/lib/tiers";
 import { TierBadge } from "@/components/goating/tier-badge";
 
-type VoltarPara = "feed" | "partidas-proximas" | "partidas-passadas";
-
 export const Route = createFileRoute("/pelada/$id")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { voltar?: VoltarPara | undefined } => ({
-    voltar:
-      search["voltar"] === "partidas-proximas"
-        ? "partidas-proximas"
-        : search["voltar"] === "partidas-passadas"
-          ? "partidas-passadas"
-          : search["voltar"] === "feed"
-            ? "feed"
-            : undefined,
-  }),
   head: () => ({
     meta: [
       { title: "Detalhes da pelada · Goating" },
@@ -113,20 +101,11 @@ function dataLonga(data: string, horario: string, horarioFim?: string | null) {
 
 function DetalhePelada() {
   const { id } = useParams({ from: "/pelada/$id" });
-  const { voltar: voltarPara } = useSearch({ from: "/pelada/$id" });
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const voltar = useVoltar(() => {
-    if (voltarPara === "partidas-proximas") {
-      navigate({ to: "/minhas-partidas", search: { aba: "proximas" } });
-    } else if (voltarPara === "partidas-passadas") {
-      navigate({ to: "/minhas-partidas", search: { aba: "passadas" } });
-    } else {
-      navigate({ to: "/" });
-    }
-  });
+  const voltar = useVoltar(() => void navigate({ to: "/" }));
   const [ocupado, setOcupado] = useState(false);
 
   const consulta = useQuery({

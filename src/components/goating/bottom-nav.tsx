@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarDays, House, Plus, User, Users } from "lucide-react";
+import { House, Plus, Trophy, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { vibrar } from "@/lib/placar/alarme";
 
@@ -17,7 +17,7 @@ export function BottomNav() {
 
   const noFeed = pathname === "/";
   const nasTurmas = pathname.startsWith("/turma");
-  const nasPartidas = pathname.startsWith("/minhas-partidas");
+  const noRanking = pathname.startsWith("/ranking");
   const noPerfil = pathname.startsWith("/perfil");
 
   return (
@@ -46,9 +46,9 @@ export function BottomNav() {
           </Link>
         </div>
 
-        <Link to="/minhas-partidas" search={{ aba: "proximas" }} className={aba(nasPartidas)}>
-          <CalendarDays className="size-[22px]" strokeWidth={traco(nasPartidas)} />
-          Partidas
+        <Link to="/ranking" search={{ aba: "cidade" }} className={aba(noRanking)}>
+          <Trophy className="size-[22px]" strokeWidth={traco(noRanking)} />
+          Ranking
         </Link>
 
         <Link to="/perfil" className={aba(noPerfil)}>

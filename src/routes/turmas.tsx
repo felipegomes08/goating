@@ -125,7 +125,7 @@ function MinhasTurmas() {
             </p>
           </div>
         ) : (
-          (turmas.data ?? []).map((t) => <CartaoTurma key={t.crew_id} turma={t} detalhado />)
+          (turmas.data ?? []).map((t) => <CartaoTurma key={t.crew_id} turma={t} />)
         )}
       </main>
 
