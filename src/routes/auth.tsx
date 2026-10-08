@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { traduzirErroAuth } from "@/lib/auth-erros";
@@ -34,7 +35,8 @@ function AuthPage() {
     convite?: string;
     turma?: string;
   };
-  const [modo, setModo] = useState<"entrar" | "criar" | "recuperar">("entrar");
+  // "confirmar": conta criada, esperando a pessoa clicar no link do e-mail
+  const [modo, setModo] = useState<"entrar" | "criar" | "recuperar" | "confirmar">("entrar");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -63,6 +65,42 @@ function AuthPage() {
     }
   }
 
+  /** "Já confirmei": tenta entrar com o e-mail e a senha que a pessoa acabou de digitar. */
+  async function entrarDepoisDeConfirmar() {
+    setCarregando(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+      if (error) throw error;
+      toast.success("Conta confirmada. Bem-vindo ao Goating!");
+      navigate({ to: destino, replace: true });
+    } catch (err) {
+      toast.error(
+        err instanceof Error && /email not confirmed/i.test(err.message)
+          ? "Ainda não confirmou. Abra o e-mail e toque no link."
+          : traduzirErroAuth(err),
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  async function reenviarConfirmacao() {
+    setCarregando(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      toast.success("Mandamos o e-mail de novo.");
+    } catch (err) {
+      toast.error(traduzirErroAuth(err));
+    } finally {
+      setCarregando(false);
+    }
+  }
+
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     setCarregando(true);
@@ -79,7 +117,7 @@ function AuthPage() {
         if (error) throw error;
         const { data } = await supabase.auth.getSession();
         if (!data.session) {
-          toast.success("Confira seu e-mail para confirmar a conta.");
+          setModo("confirmar");
           return;
         }
         toast.success("Conta criada. Bem-vindo ao Goating!");
@@ -108,7 +146,39 @@ function AuthPage() {
         <p className="mt-1 text-sm text-mint">Jogue. Conecte. Evolua.</p>
       </div>
 
-      {modo === "recuperar" ? (
+      {modo === "confirmar" ? (
+        <div className="rounded-2xl bg-card p-5 text-center shadow-[var(--shadow-card)]">
+          <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-mint-soft">
+            <MailCheck className="size-7 text-primary" strokeWidth={1.8} />
+          </span>
+          <h2 className="mt-4 text-lg font-extrabold text-foreground">Confirme seu e-mail</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Mandamos um link pra <span className="font-semibold text-foreground">{email}</span>.
+            Abra o e-mail, toque no link e depois volte aqui.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Não achou? Olha na caixa de spam ou promoções.
+          </p>
+          <Button className="mt-5 w-full" disabled={carregando} onClick={entrarDepoisDeConfirmar}>
+            Já confirmei, entrar
+          </Button>
+          <Button
+            variant="outline"
+            className="mt-2 w-full"
+            disabled={carregando}
+            onClick={reenviarConfirmacao}
+          >
+            Reenviar e-mail
+          </Button>
+          <button
+            type="button"
+            onClick={() => setModo("criar")}
+            className="mt-4 text-xs font-semibold text-muted-foreground underline"
+          >
+            Usar outro e-mail
+          </button>
+        </div>
+      ) : modo === "recuperar" ? (
         <form
           onSubmit={enviarRecuperacao}
           className="rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]"
