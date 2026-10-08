@@ -680,6 +680,7 @@ export type Database = {
         Args: { p_crew_id: string; p_member_id?: string }
         Returns: string
       }
+      excluir_minha_conta: { Args: never; Returns: undefined }
       finalizar_peladas_vencidas: { Args: never; Returns: undefined }
       gere_pelada: { Args: { p_match_id: string }; Returns: boolean }
       gere_turma: { Args: { p_crew_id: string }; Returns: boolean }

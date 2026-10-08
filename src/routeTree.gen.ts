@@ -15,6 +15,7 @@ import { Route as BuscarRouteImport } from './routes/buscar'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as MinhasPartidasRouteImport } from './routes/minhas-partidas'
 import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as RedeRouteImport } from './routes/rede'
 import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
@@ -56,6 +57,11 @@ const MinhasPartidasRoute = MinhasPartidasRouteImport.update({
 const PerfilRoute = PerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RankingRoute = RankingRouteImport.update({
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/criar': typeof CriarRoute
   '/minhas-partidas': typeof MinhasPartidasRoute
   '/perfil': typeof PerfilRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -146,6 +153,7 @@ export interface FileRoutesByTo {
   '/criar': typeof CriarRoute
   '/minhas-partidas': typeof MinhasPartidasRoute
   '/perfil': typeof PerfilRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/criar': typeof CriarRoute
   '/minhas-partidas': typeof MinhasPartidasRoute
   '/perfil': typeof PerfilRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
   '/redefinir-senha': typeof RedefinirSenhaRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/criar'
     | '/minhas-partidas'
     | '/perfil'
+    | '/privacidade'
     | '/ranking'
     | '/rede'
     | '/redefinir-senha'
@@ -209,6 +219,7 @@ export interface FileRouteTypes {
     | '/criar'
     | '/minhas-partidas'
     | '/perfil'
+    | '/privacidade'
     | '/ranking'
     | '/rede'
     | '/redefinir-senha'
@@ -229,6 +240,7 @@ export interface FileRouteTypes {
     | '/criar'
     | '/minhas-partidas'
     | '/perfil'
+    | '/privacidade'
     | '/ranking'
     | '/rede'
     | '/redefinir-senha'
@@ -250,6 +262,7 @@ export interface RootRouteChildren {
   CriarRoute: typeof CriarRoute
   MinhasPartidasRoute: typeof MinhasPartidasRoute
   PerfilRoute: typeof PerfilRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   RankingRoute: typeof RankingRoute
   RedeRoute: typeof RedeRoute
   RedefinirSenhaRoute: typeof RedefinirSenhaRoute
@@ -306,6 +319,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/perfil'
       preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ranking': {
@@ -402,6 +422,7 @@ const rootRouteChildren: RootRouteChildren = {
   CriarRoute: CriarRoute,
   MinhasPartidasRoute: MinhasPartidasRoute,
   PerfilRoute: PerfilRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   RankingRoute: RankingRoute,
   RedeRoute: RedeRoute,
   RedefinirSenhaRoute: RedefinirSenhaRoute,

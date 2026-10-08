@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { traduzirErroAuth } from "@/lib/auth-erros";
@@ -210,6 +210,13 @@ function AuthPage() {
           </Button>
         </form>
       )}
+
+      <Link
+        to="/privacidade"
+        className="mt-6 block text-center text-xs font-medium text-primary-foreground/60 underline"
+      >
+        Política de privacidade
+      </Link>
     </div>
   );
 }

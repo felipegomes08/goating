@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
+import { ExcluirConta } from "@/components/goating/excluir-conta";
 import { AuraTier } from "@/components/goating/aura-tier";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ProgressoTier } from "@/components/goating/progresso-tier";
@@ -484,6 +485,8 @@ function Perfil() {
         <Button asChild variant="secondary" className="w-full">
           <Link to="/">Voltar ao feed</Link>
         </Button>
+
+        {userId && <ExcluirConta userId={userId} />}
       </main>
 
       <BottomNav />

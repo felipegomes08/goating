@@ -6,12 +6,18 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// `npm run build:nativo` — build estático pro app de celular (Capacitor): sem servidor,
+// só um index.html que carrega o app inteiro no aparelho. O build normal (web) não muda.
+const nativo = process.env["GOATING_NATIVO"] === "1";
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+    ...(nativo ? { spa: { enabled: true, prerender: { outputPath: "/index.html" } } } : {}),
   },
+  ...(nativo ? { nitro: false as const } : {}),
   vite: {
     server: {
       proxy: {

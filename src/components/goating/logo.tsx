@@ -1,8 +1,5 @@
 import { cn } from "@/lib/utils";
-import whiteWordmark from "@/assets/logo_so_texto_branco.png.asset.json";
-import greenWordmark from "@/assets/logo_so_texto_verde.png.asset.json";
-import whiteIcon from "@/assets/icone-logo-fundo-branco.png.asset.json";
-import greenIcon from "@/assets/icone-logo-fundo-verde.png.asset.json";
+import { LOGO } from "@/lib/logo";
 
 export function GoatingLogo({
   size = 32,
@@ -28,7 +25,7 @@ export function GoatingLogo({
     <div className={cn("flex max-w-full items-center gap-2", className)}>
       {variant !== "wordmark" && (
         <img
-          src={itone === "dark" ? greenIcon.url : whiteIcon.url}
+          src={itone === "dark" ? LOGO.iconeVerde : LOGO.iconeBranco}
           width={size}
           height={size}
           className="shrink-0 self-center object-contain"
@@ -37,7 +34,7 @@ export function GoatingLogo({
       )}
       {(withWordmark || variant === "wordmark") && (
         <img
-          src={wtone === "dark" ? whiteWordmark.url : greenWordmark.url}
+          src={wtone === "dark" ? LOGO.letreiroBranco : LOGO.letreiroVerde}
           width={size * 3.8}
           height={size}
           className="min-w-0 self-center object-contain"

@@ -1,7 +1,6 @@
 /** Pôster do resumo da pelada e tabela do ranking: imagens prontas pra mandar no grupo. */
 
-import iconeBranco from "@/assets/icone-logo-fundo-branco.png.asset.json";
-import letreiroBranco from "@/assets/logo_so_texto_branco.png.asset.json";
+import { LOGO } from "@/lib/logo";
 
 export type DadosDoPoster = {
   titulo: string;
@@ -123,8 +122,8 @@ async function carregarImagem(url: string) {
 /** Logo do Goating no canto de cima. Se a imagem não carregar, vai o nome escrito. */
 async function desenharLogo(ctx: Ctx) {
   const [icone, letreiro] = await Promise.all([
-    carregarImagem(iconeBranco.url),
-    carregarImagem(letreiroBranco.url),
+    carregarImagem(LOGO.iconeBranco),
+    carregarImagem(LOGO.letreiroBranco),
   ]);
   if (!icone || !letreiro) {
     escrever(ctx, "GOATING", MARGEM, 120, { peso: 900, tamanho: 38, cor: MENTA, largura: 300 });
