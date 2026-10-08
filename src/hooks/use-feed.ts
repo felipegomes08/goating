@@ -9,6 +9,9 @@ import {
 /** Quantos dias pra frente as peladas abertas da cidade aparecem no feed. */
 export const DIAS_NO_FEED = 7;
 
+/** Quantas peladas finalizadas (as mais recentes) a aba "Finalizadas" carrega. */
+const FINALIZADAS_NO_FEED = 20;
+
 /** Data no fuso do aparelho (AAAA-MM-DD). toISOString usaria UTC e viraria o dia às 21h no Brasil. */
 export function dataLocal(daquiADias = 0) {
   const d = new Date();
@@ -72,18 +75,41 @@ export function useFeed(userId: string | null, cidade: string | null) {
 
       const { data: vinculos, error: erroVinculos } = await supabase
         .from("match_participants")
-        .select("match_id")
+        .select("match_id, matches!inner(status, data)")
         .eq("user_id", userId!)
         .in("status", ["aprovado", "pendente"]);
       if (erroVinculos) throw erroVinculos;
-      const idsParticipante = (vinculos ?? []).map((v) => v.match_id);
-      const filtroMinhas =
-        idsParticipante.length > 0
-          ? `organizador_id.eq.${userId},id.in.(${idsParticipante.join(",")})`
+      // quem joga há muito tempo tem centenas de peladas: das finalizadas só as últimas interessam
+      const meus = (vinculos ?? []) as unknown as {
+        match_id: string;
+        matches: { status: string; data: string };
+      }[];
+      const idsAbertas = meus
+        .filter((v) => v.matches.status !== "finalizada")
+        .map((v) => v.match_id);
+      const idsFinalizadas = meus
+        .filter((v) => v.matches.status === "finalizada")
+        .sort((a, b) => b.matches.data.localeCompare(a.matches.data))
+        .slice(0, FINALIZADAS_NO_FEED)
+        .map((v) => v.match_id);
+      const filtroMinhas = (ids: string[]) =>
+        ids.length > 0
+          ? `organizador_id.eq.${userId},id.in.(${ids.join(",")})`
           : `organizador_id.eq.${userId}`;
 
-      const [minhasRes, cidadeRes] = await Promise.all([
-        supabase.from("matches").select(CAMPOS).or(filtroMinhas),
+      const [abertasRes, finalizadasRes, cidadeRes] = await Promise.all([
+        supabase
+          .from("matches")
+          .select(CAMPOS)
+          .neq("status", "finalizada")
+          .or(filtroMinhas(idsAbertas)),
+        supabase
+          .from("matches")
+          .select(CAMPOS)
+          .eq("status", "finalizada")
+          .or(filtroMinhas(idsFinalizadas))
+          .order("data", { ascending: false })
+          .limit(FINALIZADAS_NO_FEED),
         cidade
           ? supabase
               .from("matches")
@@ -96,8 +122,10 @@ export function useFeed(userId: string | null, cidade: string | null) {
               .limit(100)
           : Promise.resolve({ data: [] as Linha[], error: null }),
       ]);
-      if (minhasRes.error) throw minhasRes.error;
+      if (abertasRes.error) throw abertasRes.error;
+      if (finalizadasRes.error) throw finalizadasRes.error;
       if (cidadeRes.error) throw cidadeRes.error;
+      const minhasRes = { data: [...(abertasRes.data ?? []), ...(finalizadasRes.data ?? [])] };
 
       const minhasIds = new Set((minhasRes.data ?? []).map((p) => p.id));
       const linhas = [
@@ -183,7 +211,7 @@ export function useFeed(userId: string | null, cidade: string | null) {
       const finalizadas = todas
         .filter((p) => p.status === "finalizada" && minhasIds.has(p.id))
         .sort((a, b) => Number(esperaMinhaNota(b)) - Number(esperaMinhaNota(a)) || porData(b, a))
-        .slice(0, 40);
+        .slice(0, FINALIZADAS_NO_FEED);
 
       return { proximas, finalizadas, aAvaliar: finalizadas.filter(esperaMinhaNota).length };
     },
