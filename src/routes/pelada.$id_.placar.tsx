@@ -62,7 +62,9 @@ function PlacarDaPelada() {
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const voltar = useVoltar(() => void navigate({ to: "/pelada/$id", params: { id } }));
+  const voltar = useVoltar(
+    () => void navigate({ to: "/pelada/$id", params: { id }, replace: true }),
+  );
 
   const consulta = useQuery({
     queryKey: ["placar", id, userId],
@@ -397,6 +399,7 @@ function PlacarDaPelada() {
       <Link
         to="/pelada/$id/times"
         params={{ id }}
+        replace
         className="flex items-center gap-1 text-xs font-semibold text-mint"
       >
         <Users className="size-4" /> Editar times

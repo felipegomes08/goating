@@ -36,6 +36,26 @@ export function configParaPelada(config: ConfigJogo) {
   };
 }
 
+/** O caminho de volta: monta o formulário a partir de uma pelada já criada. */
+export function peladaParaConfig(pelada: {
+  num_times: number;
+  tempos: number;
+  minutos_tempo: number;
+  gols_limite: number | null;
+  contagem_vitoria: string;
+}): ConfigJogo {
+  const golsLimite = pelada.gols_limite ?? 0;
+  return {
+    numTimes: pelada.num_times,
+    // o formato não é gravado: 3+ times ou limite de gols só existem no rachão
+    formato: pelada.num_times > 2 || golsLimite > 0 ? "rachao" : "unico",
+    tempos: pelada.tempos,
+    minutosTempo: pelada.minutos_tempo,
+    golsLimite,
+    contagem: pelada.contagem_vitoria === "por_dia" ? "por_dia" : "por_jogo",
+  };
+}
+
 export function ConfigJogoCampos({
   valor,
   onMudar,

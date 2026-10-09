@@ -217,7 +217,7 @@ function CriarPelada() {
       if (modo === "agora") {
         // já sai do feed: ninguém vai confirmar presença, a lista vem colada
         await supabase.from("matches").update({ status: "em_andamento" }).eq("id", primeira.id);
-        await navigate({ to: "/pelada/$id/times", params: { id: primeira.id } });
+        await navigate({ to: "/pelada/$id/times", params: { id: primeira.id }, replace: true });
         return;
       }
       setCriada({
@@ -267,12 +267,14 @@ function CriarPelada() {
             <Share2 className="mr-2 size-4" /> Compartilhar link
           </Button>
           <Button asChild variant="outline" className="w-full">
-            <Link to="/pelada/$id" params={{ id: criada.id }}>
+            <Link to="/pelada/$id" params={{ id: criada.id }} replace>
               Abrir a pelada
             </Link>
           </Button>
           <Button asChild variant="outline" className="w-full">
-            <Link to="/">Ver no feed</Link>
+            <Link to="/" replace>
+              Ver no feed
+            </Link>
           </Button>
         </div>
       </div>

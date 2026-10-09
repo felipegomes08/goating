@@ -16,6 +16,7 @@ import {
   Share2,
   Star,
   Trophy,
+  Pencil,
   Trash2,
   Users,
   X,
@@ -105,7 +106,7 @@ function DetalhePelada() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const voltar = useVoltar(() => void navigate({ to: "/" }));
+  const voltar = useVoltar(() => void navigate({ to: "/", replace: true }));
   const [ocupado, setOcupado] = useState(false);
   const [confirmandoApagar, setConfirmandoApagar] = useState(false);
 
@@ -528,14 +529,27 @@ function DetalhePelada() {
           </section>
         )}
 
-        {souOrganizador && (
-          <button
-            type="button"
-            onClick={() => setConfirmandoApagar(true)}
-            className="mx-auto flex items-center gap-1.5 py-2 text-xs font-semibold text-destructive"
-          >
-            <Trash2 className="size-3.5" /> Apagar pelada
-          </button>
+        {(souOrganizador || (podeGerir && pelada.status === "agendada")) && (
+          <div className="flex items-center justify-center gap-6">
+            {podeGerir && pelada.status === "agendada" && (
+              <Link
+                to="/pelada/$id/editar"
+                params={{ id }}
+                className="flex items-center gap-1.5 py-2 text-xs font-semibold text-primary"
+              >
+                <Pencil className="size-3.5" /> Editar pelada
+              </Link>
+            )}
+            {souOrganizador && (
+              <button
+                type="button"
+                onClick={() => setConfirmandoApagar(true)}
+                className="flex items-center gap-1.5 py-2 text-xs font-semibold text-destructive"
+              >
+                <Trash2 className="size-3.5" /> Apagar pelada
+              </button>
+            )}
+          </div>
         )}
       </div>
 

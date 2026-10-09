@@ -24,6 +24,7 @@ import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PeladaIdRouteImport } from './routes/pelada.$id'
 import { Route as TurmaIdRouteImport } from './routes/turma.$id'
 import { Route as PeladaIdAvaliarRouteImport } from './routes/pelada.$id_.avaliar'
+import { Route as PeladaIdEditarRouteImport } from './routes/pelada.$id_.editar'
 import { Route as PeladaIdPlacarRouteImport } from './routes/pelada.$id_.placar'
 import { Route as PeladaIdResumoRouteImport } from './routes/pelada.$id_.resumo'
 import { Route as PeladaIdTimesRouteImport } from './routes/pelada.$id_.times'
@@ -103,6 +104,11 @@ const PeladaIdAvaliarRoute = PeladaIdAvaliarRouteImport.update({
   path: '/pelada/$id/avaliar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PeladaIdEditarRoute = PeladaIdEditarRouteImport.update({
+  id: '/pelada/$id_/editar',
+  path: '/pelada/$id/editar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PeladaIdPlacarRoute = PeladaIdPlacarRouteImport.update({
   id: '/pelada/$id_/placar',
   path: '/pelada/$id/placar',
@@ -135,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/pelada/$id': typeof PeladaIdRoute
   '/turma/$id': typeof TurmaIdRoute
   '/pelada/$id/avaliar': typeof PeladaIdAvaliarRoute
+  '/pelada/$id/editar': typeof PeladaIdEditarRoute
   '/pelada/$id/placar': typeof PeladaIdPlacarRoute
   '/pelada/$id/resumo': typeof PeladaIdResumoRoute
   '/pelada/$id/times': typeof PeladaIdTimesRoute
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/pelada/$id': typeof PeladaIdRoute
   '/turma/$id': typeof TurmaIdRoute
   '/pelada/$id/avaliar': typeof PeladaIdAvaliarRoute
+  '/pelada/$id/editar': typeof PeladaIdEditarRoute
   '/pelada/$id/placar': typeof PeladaIdPlacarRoute
   '/pelada/$id/resumo': typeof PeladaIdResumoRoute
   '/pelada/$id/times': typeof PeladaIdTimesRoute
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/pelada/$id': typeof PeladaIdRoute
   '/turma/$id': typeof TurmaIdRoute
   '/pelada/$id_/avaliar': typeof PeladaIdAvaliarRoute
+  '/pelada/$id_/editar': typeof PeladaIdEditarRoute
   '/pelada/$id_/placar': typeof PeladaIdPlacarRoute
   '/pelada/$id_/resumo': typeof PeladaIdResumoRoute
   '/pelada/$id_/times': typeof PeladaIdTimesRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/pelada/$id'
     | '/turma/$id'
     | '/pelada/$id/avaliar'
+    | '/pelada/$id/editar'
     | '/pelada/$id/placar'
     | '/pelada/$id/resumo'
     | '/pelada/$id/times'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/pelada/$id'
     | '/turma/$id'
     | '/pelada/$id/avaliar'
+    | '/pelada/$id/editar'
     | '/pelada/$id/placar'
     | '/pelada/$id/resumo'
     | '/pelada/$id/times'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/pelada/$id'
     | '/turma/$id'
     | '/pelada/$id_/avaliar'
+    | '/pelada/$id_/editar'
     | '/pelada/$id_/placar'
     | '/pelada/$id_/resumo'
     | '/pelada/$id_/times'
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   PeladaIdRoute: typeof PeladaIdRoute
   TurmaIdRoute: typeof TurmaIdRoute
   PeladaIdAvaliarRoute: typeof PeladaIdAvaliarRoute
+  PeladaIdEditarRoute: typeof PeladaIdEditarRoute
   PeladaIdPlacarRoute: typeof PeladaIdPlacarRoute
   PeladaIdResumoRoute: typeof PeladaIdResumoRoute
   PeladaIdTimesRoute: typeof PeladaIdTimesRoute
@@ -371,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PeladaIdAvaliarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pelada/$id_/editar': {
+      id: '/pelada/$id_/editar'
+      path: '/pelada/$id/editar'
+      fullPath: '/pelada/$id/editar'
+      preLoaderRoute: typeof PeladaIdEditarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pelada/$id_/placar': {
       id: '/pelada/$id_/placar'
       path: '/pelada/$id/placar'
@@ -411,6 +431,7 @@ const rootRouteChildren: RootRouteChildren = {
   PeladaIdRoute: PeladaIdRoute,
   TurmaIdRoute: TurmaIdRoute,
   PeladaIdAvaliarRoute: PeladaIdAvaliarRoute,
+  PeladaIdEditarRoute: PeladaIdEditarRoute,
   PeladaIdPlacarRoute: PeladaIdPlacarRoute,
   PeladaIdResumoRoute: PeladaIdResumoRoute,
   PeladaIdTimesRoute: PeladaIdTimesRoute,

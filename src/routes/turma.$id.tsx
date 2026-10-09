@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   Link2,
   LogOut,
+  Pencil,
   Plus,
   Share2,
   Trophy,
@@ -19,6 +20,7 @@ import { useSession } from "@/hooks/use-session";
 import { PERIODOS, rotuloDoPeriodo, useRankingDaTurma, type Periodo } from "@/hooks/use-turmas";
 import { useVoltar } from "@/hooks/use-voltar";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
+import { FolhaNome } from "@/components/goating/folha-nome";
 import {
   COLUNAS_RANKING,
   TabelaRanking,
@@ -62,6 +64,7 @@ function PaginaDaTurma() {
   const [ordem, setOrdem] = useState<ColunaRanking>("gols");
   const [gerandoImagem, setGerandoImagem] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  const [renomeando, setRenomeando] = useState<{ memberId: string; nome: string } | null>(null);
   const [nomeNovo, setNomeNovo] = useState("");
   const [folha, setFolha] = useState<
     | { tipo: "entrar" }
@@ -220,6 +223,13 @@ function PaginaDaTurma() {
       () => supabase.rpc("vincular_membro", { p_member_id: memberId, p_user_id: perfil.id }),
       `Histórico ligado à conta de ${perfil.nome_exibicao}.`,
       "Não deu pra vincular.",
+    );
+
+  const renomear = (memberId: string, nome: string) =>
+    executar(
+      () => supabase.from("crew_members").update({ nome }).eq("id", memberId),
+      "Nome corrigido.",
+      "Não deu pra mudar o nome.",
     );
 
   const remover = (memberId: string, nome: string) =>
@@ -441,6 +451,16 @@ function PaginaDaTurma() {
                               : "Sem conta"}
                       </span>
                     </span>
+                    {souGestor && (
+                      <button
+                        type="button"
+                        aria-label={`Corrigir o nome de ${m.nome}`}
+                        onClick={() => setRenomeando({ memberId: m.id, nome: m.nome })}
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                    )}
                     {m.user_id && m.user_id !== userId && (
                       <Link
                         to="/jogador/$id"
@@ -518,6 +538,14 @@ function PaginaDaTurma() {
             </Button>
           </div>
         </div>
+      )}
+
+      {renomeando && (
+        <FolhaNome
+          nomeAtual={renomeando.nome}
+          onSalvar={(nome) => renomear(renomeando.memberId, nome)}
+          onFechar={() => setRenomeando(null)}
+        />
       )}
 
       {folha?.tipo === "entrar" && (
