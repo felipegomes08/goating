@@ -1,6 +1,7 @@
 /** Pôster do resumo da pelada e tabela do ranking: imagens prontas pra mandar no grupo. */
 
 import { LOGO } from "@/lib/logo";
+import { compartilharImagemNoApp, noApp } from "@/lib/nativo";
 import { hostDoSite } from "@/lib/site";
 
 export type DadosDoPoster = {
@@ -505,6 +506,8 @@ export const compartilharRanking = async (dados: DadosDoRanking, nomeDoArquivo: 
 
 /** Abre a folha de compartilhar do celular com a imagem; onde não dá, baixa o arquivo. */
 export async function compartilharImagem(blob: Blob, nomeDoArquivo: string) {
+  if (noApp()) return compartilharImagemNoApp(blob, nomeDoArquivo);
+
   const arquivo = new File([blob], nomeDoArquivo, { type: "image/png" });
 
   if (typeof navigator.share === "function" && navigator.canShare?.({ files: [arquivo] })) {

@@ -9,6 +9,14 @@ const config: CapacitorConfig = {
   webDir: "dist/client",
   // verde do Goating enquanto o app carrega, em vez de um clarão branco
   backgroundColor: "#0F3D2E",
+  plugins: {
+    // tela de abertura: verde do Goating, some sozinha assim que o app carrega
+    SplashScreen: {
+      launchShowDuration: 600,
+      backgroundColor: "#0F3D2E",
+      showSpinner: false,
+    },
+  },
 };
 
 export default config;

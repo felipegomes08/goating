@@ -1,8 +1,20 @@
 /** Apito do fim do tempo, vibração e tela sempre ligada durante o jogo. */
 
+import { manterTelaLigadaNoApp, noApp, vibrarNoApp } from "@/lib/nativo";
+
 let audio: AudioContext | null = null;
 let repeticao: ReturnType<typeof setInterval> | null = null;
 let trava: WakeLockSentinel | null = null;
+
+/** Deixa a tela voltar a apagar sozinha (o jogo parou ou a pessoa saiu do placar). */
+export function soltarTela() {
+  if (noApp()) {
+    void manterTelaLigadaNoApp(false).catch(() => undefined);
+    return;
+  }
+  void trava?.release().catch(() => undefined);
+  trava = null;
+}
 
 /** Navegador só libera som depois de um toque: chamar em todo clique do cronômetro. */
 export function liberarAudio() {
@@ -36,6 +48,11 @@ function apitar() {
 }
 
 export function vibrar(padrao: number | number[]) {
+  if (noApp()) {
+    // 0 no navegador quer dizer "pare de vibrar"; no app cada vibração já é curta e acaba sozinha
+    if (padrao !== 0) void vibrarNoApp(padrao).catch(() => undefined);
+    return;
+  }
   try {
     navigator.vibrate?.(padrao);
   } catch {
@@ -58,6 +75,10 @@ export function pararAlarme() {
 }
 
 export async function manterTelaLigada() {
+  if (noApp()) {
+    await manterTelaLigadaNoApp(true).catch(() => undefined);
+    return;
+  }
   try {
     if (!("wakeLock" in navigator) || trava) return;
     trava = await navigator.wakeLock.request("screen");

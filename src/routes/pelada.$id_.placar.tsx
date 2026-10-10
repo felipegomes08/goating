@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import {
   liberarAudio,
   manterTelaLigada,
+  soltarTela,
   pararAlarme,
   tocarAlarme,
   vibrar,
@@ -153,6 +154,7 @@ function PlacarDaPelada() {
     return () => {
       clearInterval(tique);
       document.removeEventListener("visibilitychange", aoVoltar);
+      soltarTela();
     };
   }, [rodando]);
 

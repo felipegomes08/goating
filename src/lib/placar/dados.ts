@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { compartilharTextoNoApp, noApp } from "@/lib/nativo";
 import { overallLiberado } from "@/lib/tiers";
 import { ESTRELAS_PADRAO, estrelasDoOverall } from "./sorteio";
 
@@ -202,6 +203,7 @@ export function textoDosTimes(titulo: string, nomes: string[], times: { nome: st
 }
 
 export async function compartilhar(texto: string) {
+  if (noApp()) return compartilharTextoNoApp(texto);
   if (typeof navigator.share === "function") {
     try {
       await navigator.share({ text: texto });

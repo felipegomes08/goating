@@ -14,6 +14,7 @@ import { RecuperacaoRedirect } from "@/components/goating/recuperacao-redirect";
 import { SessaoValida } from "@/components/goating/sessao-valida";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { iniciarApp } from "@/lib/nativo";
 
 function NotFoundComponent() {
   return (
@@ -79,7 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Goating · Rede social do futebol amador" },
       {
         name: "description",
@@ -125,6 +126,11 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // dentro do app de celular: barra de status e botão "voltar" do Android (no navegador não faz nada)
+  useEffect(() => {
+    void iniciarApp();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
