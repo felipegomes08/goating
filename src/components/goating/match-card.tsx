@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { CheckCheck, Clock, Crown, Lock, MapPin, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { urlDaFotoDaTurma, urlDaMiniaturaDoEscudo } from "@/lib/foto-turma";
 import { cn } from "@/lib/utils";
 
 export type PeladaFeed = {
@@ -18,6 +19,8 @@ export type PeladaFeed = {
   crew_id: string | null;
   /** nome da turma, quando a pelada é de uma */
   turma: string | null;
+  /** caminho do escudo da turma no armazenamento, quando ela tem um */
+  escudoDaTurma?: string | null;
   /** Quando a pelada foi finalizada — define a janela de 24h de avaliação. */
   finalizada_em: string | null;
   mvp: { nome_exibicao: string } | null;
@@ -174,7 +177,21 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
             </span>
           </p>
           <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Users className="size-3.5 shrink-0" />
+            {pelada.turma && pelada.escudoDaTurma ? (
+              <img
+                src={urlDaMiniaturaDoEscudo(pelada.escudoDaTurma) ?? undefined}
+                alt=""
+                loading="lazy"
+                // escudo antigo, enviado sem miniatura: usa a foto inteira
+                onError={(e) => {
+                  const inteira = urlDaFotoDaTurma(pelada.escudoDaTurma);
+                  if (inteira && e.currentTarget.src !== inteira) e.currentTarget.src = inteira;
+                }}
+                className="size-5 shrink-0 rounded-full bg-secondary object-cover"
+              />
+            ) : (
+              <Users className="size-3.5 shrink-0" />
+            )}
             <span className="truncate">
               {pelada.turma ? (
                 <span className="font-semibold text-primary">{pelada.turma}</span>

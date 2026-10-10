@@ -10,6 +10,17 @@ const FORMATOS = {
 
 export type TipoDeFoto = keyof typeof FORMATOS;
 
+/** Lado da miniatura do escudo, usada nos cartões de pelada (aparece com uns 20px). */
+const LADO_DA_MINIATURA = 96;
+
+/** A miniatura mora ao lado do escudo, com "-p" no nome: "escudo-123.jpg" -> "escudo-123-p.jpg". */
+const caminhoDaMiniatura = (caminho: string) => caminho.replace(/\.jpg$/, "-p.jpg");
+
+/** Endereço da miniatura do escudo. Escudo enviado antes de existir miniatura não tem uma. */
+export function urlDaMiniaturaDoEscudo(caminho: string | null | undefined) {
+  return caminho ? urlDaFotoDaTurma(caminhoDaMiniatura(caminho)) : null;
+}
+
 /** Endereço público da foto guardada (o banco guarda só o caminho dentro do bucket). */
 export function urlDaFotoDaTurma(caminho: string | null | undefined) {
   if (!caminho) return null;
@@ -20,8 +31,11 @@ export function urlDaFotoDaTurma(caminho: string | null | undefined) {
  * Corta a foto pelo meio no formato certo e reduz o tamanho antes de enviar:
  * foto de celular tem vários MB, e aqui ela vira algumas centenas de KB.
  */
-async function prepararFoto(arquivo: File, tipo: TipoDeFoto) {
-  const { largura, altura } = FORMATOS[tipo];
+async function prepararFoto(
+  arquivo: File,
+  tipo: TipoDeFoto,
+  { largura, altura }: { largura: number; altura: number } = FORMATOS[tipo],
+) {
   // respeita a rotação que a câmera do celular grava no arquivo
   const imagem = await createImageBitmap(arquivo, { imageOrientation: "from-image" });
   const escala = Math.max(largura / imagem.width, altura / imagem.height);
@@ -55,10 +69,21 @@ export async function trocarFotoDaTurma(
     .from(BUCKET)
     .upload(caminho, blob, { contentType: "image/jpeg", cacheControl: "31536000" });
   if (erroEnvio) throw erroEnvio;
+  if (tipo === "escudo") {
+    // se a miniatura falhar o cartão cai no escudo inteiro: não vale travar a troca por ela
+    const mini = await prepararFoto(arquivo, tipo, {
+      largura: LADO_DA_MINIATURA,
+      altura: LADO_DA_MINIATURA,
+    });
+    await supabase.storage.from(BUCKET).upload(caminhoDaMiniatura(caminho), mini, {
+      contentType: "image/jpeg",
+      cacheControl: "31536000",
+    });
+  }
   const coluna = tipo === "escudo" ? { escudo_url: caminho } : { capa_url: caminho };
   const { error } = await supabase.from("crews").update(coluna).eq("id", crewId);
   if (error) throw error;
-  if (anterior) await supabase.storage.from(BUCKET).remove([anterior]);
+  if (anterior) await apagarArquivos(tipo, anterior);
   return caminho;
 }
 
@@ -66,5 +91,10 @@ export async function tirarFotoDaTurma(crewId: string, tipo: TipoDeFoto, atual: 
   const coluna = tipo === "escudo" ? { escudo_url: null } : { capa_url: null };
   const { error } = await supabase.from("crews").update(coluna).eq("id", crewId);
   if (error) throw error;
-  await supabase.storage.from(BUCKET).remove([atual]);
+  await apagarArquivos(tipo, atual);
 }
+
+const apagarArquivos = (tipo: TipoDeFoto, caminho: string) =>
+  supabase.storage
+    .from(BUCKET)
+    .remove(tipo === "escudo" ? [caminho, caminhoDaMiniatura(caminho)] : [caminho]);

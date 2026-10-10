@@ -154,8 +154,10 @@ export function useFeed(userId: string | null, cidade: string | null) {
             .select("id, nome_exibicao, overall, tier_reconhecido")
             .in("id", pessoas),
           turmasIds.length
-            ? supabase.from("crews").select("id, nome").in("id", turmasIds)
-            : Promise.resolve({ data: [] as { id: string; nome: string }[] }),
+            ? supabase.from("crews").select("id, nome, escudo_url").in("id", turmasIds)
+            : Promise.resolve({
+                data: [] as { id: string; nome: string; escudo_url: string | null }[],
+              }),
           emAvaliacao.length
             ? supabase
                 .from("evaluations")
@@ -173,6 +175,7 @@ export function useFeed(userId: string | null, cidade: string | null) {
         return {
           ...p,
           turma: (turmas ?? []).find((t) => t.id === p.crew_id)?.nome ?? null,
+          escudoDaTurma: (turmas ?? []).find((t) => t.id === p.crew_id)?.escudo_url ?? null,
           souOrganizador: p.organizador_id === userId,
           confirmados: doJogo.filter((x) => x.status === "aprovado").length,
           organizador: org
