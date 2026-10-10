@@ -5,6 +5,8 @@ import { ArrowLeft, Check, Lock, Minus, Plus, Repeat, Share2 } from "lucide-reac
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
+import { CampoHorario } from "@/components/goating/campo-horario";
+import { CampoLocalizacao, problemaDoLink } from "@/components/goating/campo-localizacao";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import {
   CONFIG_PADRAO,
@@ -19,12 +21,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { origemDoSite } from "@/lib/site";
 
 function somarHora(hhmm: string, horas: number) {
   const [h = 0, m = 0] = hhmm.split(":").map(Number);
   const total = (((h * 60 + m + horas * 60) % (24 * 60)) + 24 * 60) % (24 * 60);
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
+
+const emMinutos = (hhmm: string) => {
+  const [h = 0, m = 0] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+};
 
 export const Route = createFileRoute("/criar")({
   ssr: false,
@@ -60,6 +68,7 @@ function CriarPelada() {
   const [horarioFimTocado, setHorarioFimTocado] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [local, setLocal] = useState("");
+  const [localLink, setLocalLink] = useState("");
   const [cidade, setCidade] = useState("");
   const [vagas, setVagas] = useState(10);
   const [tipo, setTipo] = useState<"aberta" | "fechada">("aberta");
@@ -97,10 +106,30 @@ function CriarPelada() {
   }
 
   const cidadeFinal = cidade || perfil?.cidade || "";
+  // Pelada agendada: não pode ser no passado, o término vem depois do início
+  // e ela dura pelo menos 1 hora.
+  const duracaoMin = emMinutos(horarioFim) - emMinutos(horario);
+  const problemaHorario =
+    modo !== "agendar"
+      ? null
+      : data && new Date(`${data}T${horario}`).getTime() < Date.now()
+        ? "Esse dia e horário já passaram."
+        : duracaoMin <= 0
+          ? "O término precisa ser depois do início."
+          : duracaoMin < 60
+            ? "A pelada precisa ter pelo menos 1 hora."
+            : null;
+
   const valido =
     modo === "agora"
       ? !!titulo.trim()
-      : titulo.trim() && data && horario && local.trim() && cidadeFinal.trim();
+      : titulo.trim() &&
+        data &&
+        horario &&
+        local.trim() &&
+        cidadeFinal.trim() &&
+        !problemaHorario &&
+        !problemaDoLink(localLink);
 
   // As estatísticas somam por turma: mesmo título de antes cai na mesma turma.
   const turmaDoTitulo = (turmas.data ?? []).find((t) => chaveNome(t.nome) === chaveNome(titulo));
@@ -169,6 +198,7 @@ function CriarPelada() {
                   horario_fim: horarioFim,
                   descricao: descricao.trim() || null,
                   local: local.trim(),
+                  local_link: localLink.trim() || null,
                   cidade: cidadeFinal.trim(),
                   quantidade_vagas: vagas,
                   tipo,
@@ -197,7 +227,7 @@ function CriarPelada() {
       if (modo === "agora") {
         // já sai do feed: ninguém vai confirmar presença, a lista vem colada
         await supabase.from("matches").update({ status: "em_andamento" }).eq("id", primeira.id);
-        await navigate({ to: "/pelada/$id/times", params: { id: primeira.id } });
+        await navigate({ to: "/pelada/$id/times", params: { id: primeira.id }, replace: true });
         return;
       }
       setCriada({
@@ -215,7 +245,7 @@ function CriarPelada() {
   }
 
   if (criada) {
-    const link = `${window.location.origin}/p/${criada.token}`;
+    const link = `${origemDoSite()}/p/${criada.token}`;
     return (
       <div className="app-shell flex flex-col">
         <header className="bg-primary px-4 pt-6 pb-8 text-center">
@@ -247,12 +277,14 @@ function CriarPelada() {
             <Share2 className="mr-2 size-4" /> Compartilhar link
           </Button>
           <Button asChild variant="outline" className="w-full">
-            <Link to="/pelada/$id" params={{ id: criada.id }}>
+            <Link to="/pelada/$id" params={{ id: criada.id }} replace>
               Abrir a pelada
             </Link>
           </Button>
           <Button asChild variant="outline" className="w-full">
-            <Link to="/">Ver no feed</Link>
+            <Link to="/" replace>
+              Ver no feed
+            </Link>
           </Button>
         </div>
       </div>
@@ -260,7 +292,7 @@ function CriarPelada() {
   }
 
   return (
-    <div className="app-shell flex flex-col pb-24">
+    <div className="app-shell flex flex-col">
       <header className="flex items-center gap-3 bg-primary px-4 py-4">
         <Link to="/" aria-label="Voltar">
           <ArrowLeft className="size-5 text-primary-foreground" />
@@ -308,50 +340,82 @@ function CriarPelada() {
           />
         </div>
 
+        {(turmas.data?.length ?? 0) > 0 && (
+          <div>
+            <Label htmlFor="turma">Turma</Label>
+            <select
+              id="turma"
+              value={turmaEscolhida}
+              onChange={(e) => setTurmaManual(e.target.value)}
+              className="mt-1 h-11 w-full rounded-xl border border-input bg-card px-3 text-base text-foreground"
+            >
+              {(turmas.data ?? []).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nome}
+                </option>
+              ))}
+              <option value="nova">Nova turma{titulo.trim() ? `: ${titulo.trim()}` : ""}</option>
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Gols e vitórias somam no ranking da turma. Use a mesma turma toda semana.
+            </p>
+          </div>
+        )}
+
         {modo === "agendar" && (
           <>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="data">Data</Label>
-                <Input
-                  id="data"
-                  type="date"
-                  value={data}
-                  onChange={(e) => setData(e.target.value)}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="horario">Início</Label>
-                <Input
-                  id="horario"
-                  type="time"
-                  value={horario}
-                  onChange={(e) => {
-                    const novo = e.target.value;
-                    setHorario(novo);
-                    if (!horarioFimTocado) setHorarioFim(somarHora(novo, 1));
-                  }}
-                  className="mt-1"
-                />
-              </div>
+            <div>
+              <Label htmlFor="data">Data</Label>
+              {/* no iPhone o campo de data tem largura própria e vazava pra cima do vizinho:
+                  linha só dele, sem a aparência nativa que força essa largura */}
+              <Input
+                id="data"
+                type="date"
+                min={new Date().toLocaleDateString("sv-SE")}
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+                className="mt-1 block w-full min-w-0 appearance-none text-left [&::-webkit-date-and-time-value]:text-left"
+              />
             </div>
 
             <div>
-              <Label htmlFor="horarioFim">Término</Label>
-              <Input
-                id="horarioFim"
-                type="time"
-                value={horarioFim}
-                onChange={(e) => {
-                  setHorarioFim(e.target.value);
-                  setHorarioFimTocado(true);
-                }}
-                className="mt-1"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Já vem 1h depois do início. Muda se sua pelada for mais curta ou mais longa.
-              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="horario">Início</Label>
+                  <CampoHorario
+                    id="horario"
+                    rotulo="Início"
+                    valor={horario}
+                    onMudar={(novo) => {
+                      setHorario(novo);
+                      if (!horarioFimTocado) setHorarioFim(somarHora(novo, 1));
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="horarioFim">Término</Label>
+                  <CampoHorario
+                    id="horarioFim"
+                    rotulo="Término"
+                    valor={horarioFim}
+                    onMudar={(novo) => {
+                      setHorarioFim(novo);
+                      setHorarioFimTocado(true);
+                    }}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              {problemaHorario ? (
+                <p className="mt-1 text-xs font-medium text-destructive" role="alert">
+                  {problemaHorario}
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  O término já vem 1h depois do início. Muda se sua pelada for mais longa.
+                </p>
+              )}
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-3">
@@ -405,6 +469,8 @@ function CriarPelada() {
                 className="mt-1"
               />
             </div>
+
+            <CampoLocalizacao valor={localLink} onMudar={setLocalLink} cidade={cidadeFinal} />
 
             <div>
               <Label>Cidade</Label>
@@ -496,35 +562,13 @@ function CriarPelada() {
           </>
         )}
 
-        {(turmas.data?.length ?? 0) > 0 && (
-          <div>
-            <Label htmlFor="turma">Turma</Label>
-            <select
-              id="turma"
-              value={turmaEscolhida}
-              onChange={(e) => setTurmaManual(e.target.value)}
-              className="mt-1 h-10 w-full rounded-xl border border-input bg-card px-3 text-sm text-foreground"
-            >
-              {(turmas.data ?? []).map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nome}
-                </option>
-              ))}
-              <option value="nova">Nova turma{titulo.trim() ? `: ${titulo.trim()}` : ""}</option>
-            </select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Gols e vitórias somam no ranking da turma. Use a mesma turma toda semana.
-            </p>
-          </div>
-        )}
-
         <div>
           <h2 className="mb-3 text-sm font-bold text-foreground">Como vai ser o jogo</h2>
           <ConfigJogoCampos valor={config} onMudar={setConfig} />
         </div>
       </div>
 
-      <div className="sticky bottom-0 border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
         <Button
           className={cn("w-full font-semibold")}
           disabled={!valido || enviando}

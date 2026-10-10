@@ -1,11 +1,10 @@
-import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, Crown, Image as ImageIcon, Share2, Trophy } from "lucide-react";
+import { Crown, House, Image as ImageIcon, Share2, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
-import { useVoltar } from "@/hooks/use-voltar";
 import { TabelaTimes } from "@/components/goating/tabela-times";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,9 +28,7 @@ export const Route = createFileRoute("/pelada/$id_/resumo")({
 function ResumoDaPelada() {
   const { id } = useParams({ from: "/pelada/$id_/resumo" });
   const { userId, carregando } = useSession();
-  const navigate = useNavigate();
   const [folhaPoster, setFolhaPoster] = useState(false);
-  const voltar = useVoltar(() => void navigate({ to: "/pelada/$id", params: { id } }));
 
   const consulta = useQuery({
     queryKey: ["pelada-resumo", id],
@@ -64,7 +61,7 @@ function ResumoDaPelada() {
   const dados = consulta.data;
   if (!dados || !dados.pelada.placar_finalizado_em || dados.jogos.length === 0) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {userId
             ? "Essa pelada ainda não tem placar finalizado."
@@ -151,16 +148,12 @@ function ResumoDaPelada() {
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col">
       <header className="bg-primary px-4 pt-4 pb-6">
-        <div className="flex items-center gap-3">
-          <button type="button" aria-label="Voltar" onClick={voltar}>
-            <ArrowLeft className="size-5 text-primary-foreground" />
-          </button>
-          <span className="text-xs font-semibold tracking-wide text-mint uppercase">
-            Resumo da pelada
-          </span>
-        </div>
+        {/* sem setinha de voltar: a pelada acabou, e voltar cairia no placar ou no sorteio */}
+        <span className="text-xs font-semibold tracking-wide text-mint uppercase">
+          Resumo da pelada
+        </span>
         <h1 className="mt-3 text-2xl font-extrabold text-primary-foreground">{pelada.titulo}</h1>
         <p className="mt-1 text-sm text-mint capitalize">{dataTexto}</p>
 
@@ -268,6 +261,11 @@ function ResumoDaPelada() {
             <ImageIcon className="mr-2 size-4" /> Compartilhar pôster
           </Button>
         </div>
+        <Button asChild variant="ghost" className="mt-2 w-full">
+          <Link to="/" replace>
+            <House className="mr-2 size-4" /> Voltar ao início
+          </Link>
+        </Button>
       </div>
 
       {folhaPoster && (

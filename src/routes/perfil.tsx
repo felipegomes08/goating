@@ -1,25 +1,26 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, LogOut, Pencil, Users } from "lucide-react";
+import { Camera, LogOut, Pencil, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import { ExcluirConta } from "@/components/goating/excluir-conta";
+import { FolhaCartao } from "@/components/goating/folha-cartao";
 import { AuraTier } from "@/components/goating/aura-tier";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ProgressoTier } from "@/components/goating/progresso-tier";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
-import { MEDIAS_ZERADAS, SELECT_ATRIBUTOS, mediasAtributos } from "@/lib/atributos";
+import { MEDIAS_ZERADAS, carregarMedias } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NICK_MAX, normalizarNick, problemaDoNick } from "@/lib/nick";
-import { avaliacoesFaltando, overallLiberado, tierPorNome } from "@/lib/tiers";
+import { type TierNome, avaliacoesFaltando, overallLiberado, tierPorNome } from "@/lib/tiers";
 
 export const Route = createFileRoute("/perfil")({
   ssr: false,
@@ -60,7 +61,10 @@ function Perfil() {
   const [salvando, setSalvando] = useState(false);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [abrindo, setAbrindo] = useState(false);
-  const [revelando, setRevelando] = useState(false);
+  // tier recém-revelado: a carta sobe na frente da tela; guarda de qual tier a pessoa veio
+  const [conquista, setConquista] = useState<{ de: TierNome | null } | null>(null);
+  const [compartilhandoConquista, setCompartilhandoConquista] = useState(false);
+  const [compartilhando, setCompartilhando] = useState(false);
 
   useEffect(() => {
     if (!carregando && !userId) navigate({ to: "/auth", replace: true });
@@ -139,14 +143,7 @@ function Perfil() {
   const medias = useQuery({
     queryKey: ["medias", userId],
     enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("evaluations")
-        .select(SELECT_ATRIBUTOS)
-        .eq("avaliado_id", userId!);
-      if (error) throw error;
-      return mediasAtributos(data ?? []);
-    },
+    queryFn: () => carregarMedias(userId!),
   });
 
   const seguidores = useQuery({
@@ -221,7 +218,7 @@ function Perfil() {
 
   if (carregando || isLoading || !perfil) {
     return (
-      <div className="mx-auto min-h-screen w-full max-w-[480px] space-y-4 bg-background p-4">
+      <div className="mx-auto min-h-dvh w-full max-w-[480px] space-y-4 bg-background p-4">
         <Skeleton className="h-72 w-full rounded-2xl" />
         <Skeleton className="h-40 w-full rounded-2xl" />
       </div>
@@ -235,6 +232,8 @@ function Perfil() {
     ? tierPorNome(perfil.tier_reconhecido)
     : null;
 
+  const attrs = medias.data ?? MEDIAS_ZERADAS;
+
   async function revelarTier() {
     setAbrindo(true);
     // A confirmação já vai pro banco assim que clica — se o app fechar durante a
@@ -247,15 +246,29 @@ function Perfil() {
       setAbrindo(false);
       return;
     }
+    const anterior = tier?.nome ?? null;
     await queryClient.invalidateQueries({ queryKey: ["perfil", userId] });
     setAbrindo(false);
-    setRevelando(true);
-    setTimeout(() => setRevelando(false), 1600);
+    setConquista({ de: anterior });
   }
-  const attrs = medias.data ?? MEDIAS_ZERADAS;
+
+  const dadosDoCartao = {
+    nome: perfil.nome_exibicao,
+    nick: perfil.handle,
+    cidade: perfil.cidade,
+    posicao: perfil.posicao_preferida,
+    overall,
+    tier: tier?.nome ?? null,
+    atributos: attrs,
+    peladas: perfil.peladas_jogadas,
+    mvps: perfil.vezes_mvp,
+    xp: perfil.xp,
+    avaliacoes: perfil.avaliacoes_recebidas,
+    fotoUrl,
+  };
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-background">
+    <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <header className="relative isolate overflow-hidden bg-primary px-4 pt-6 pb-8">
         <AuraTier tier={tier} />
         <div className="relative flex items-center justify-between">
@@ -282,24 +295,36 @@ function Perfil() {
             avaliacoesRecebidas={perfil.avaliacoes_recebidas}
             recompensaPendente={!!perfil.tier_pendente}
             abrindo={abrindo}
-            revelando={revelando}
             onRevelar={revelarTier}
           />
         </div>
 
-        <label className="relative mx-auto mt-4 flex w-fit cursor-pointer items-center gap-2 rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint">
-          <Camera className="size-4" />
-          Trocar foto
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void trocarFoto(f);
-            }}
-          />
-        </label>
+        <div className="relative mt-4 flex justify-center gap-2">
+          <label className="flex cursor-pointer items-center gap-2 rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint">
+            <Camera className="size-4" />
+            Trocar foto
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void trocarFoto(f);
+              }}
+            />
+          </label>
+          {/* com recompensa esperando, o cartão entregaria o tier novo antes da revelação */}
+          {overallLiberado(perfil.avaliacoes_recebidas) && !perfil.tier_pendente && (
+            <button
+              type="button"
+              onClick={() => setCompartilhando(true)}
+              className="flex items-center gap-2 rounded-full bg-mint px-3 py-1.5 text-xs font-bold text-mint-foreground"
+            >
+              <Share2 className="size-4" />
+              Compartilhar
+            </button>
+          )}
+        </div>
       </header>
 
       <main className="flex-1 space-y-4 px-4 py-4">
@@ -490,6 +515,76 @@ function Perfil() {
       </main>
 
       <BottomNav />
+
+      {compartilhando && (
+        <FolhaCartao
+          dados={dadosDoCartao}
+          nomeDoArquivo={`goating-${perfil.handle ?? "cartao"}.png`}
+          onFechar={() => setCompartilhando(false)}
+        />
+      )}
+
+      {conquista && tier && !perfil.tier_pendente && (
+        <div
+          role="dialog"
+          aria-label={`Você subiu pra ${tier.nome}`}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 overflow-hidden bg-black/90 px-6 pt-6 pb-8"
+        >
+          {/* clarão na cor do tier, atrás da carta */}
+          <div
+            aria-hidden
+            className="animate-surgir pointer-events-none absolute inset-0"
+            style={{
+              animationDelay: "500ms",
+              background: `radial-gradient(ellipse 85% 48% at 50% 50%, color-mix(in oklch, ${tier.cor} 42%, transparent), transparent 72%)`,
+            }}
+          />
+          <div className="animate-surgir relative text-center" style={{ animationDelay: "900ms" }}>
+            <p className="text-xs font-bold tracking-[0.2em] text-white/60 uppercase">
+              Novo tier desbloqueado
+            </p>
+            <p className="mt-1 text-3xl font-black text-white">
+              Você agora é <span className={tier.textClass}>{tier.nome}</span>
+            </p>
+          </div>
+          <div className="animate-carta-sobe relative w-full max-w-[min(280px,38dvh)]">
+            <PlayerCard
+              nome={perfil.nome_exibicao}
+              posicao={perfil.posicao_preferida}
+              overall={overall}
+              atributos={attrs}
+              fotoUrl={fotoUrl}
+              tier={tier}
+              cardGeradoUrl={perfil.card_gerado_url}
+              avaliacoesRecebidas={perfil.avaliacoes_recebidas}
+            />
+          </div>
+          <div
+            className="animate-surgir relative flex w-full max-w-[320px] flex-col gap-2"
+            style={{ animationDelay: "1300ms" }}
+          >
+            <Button className="w-full" onClick={() => setCompartilhandoConquista(true)}>
+              <Share2 className="mr-2 size-4" /> Compartilhar conquista
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full text-white hover:bg-white/10 hover:text-white"
+              onClick={() => setConquista(null)}
+            >
+              OK
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {conquista && compartilhandoConquista && (
+        <FolhaCartao
+          titulo="Sua conquista"
+          dados={{ ...dadosDoCartao, conquista }}
+          nomeDoArquivo={`goating-${perfil.handle ?? "conquista"}-subi-de-nivel.png`}
+          onFechar={() => setCompartilhandoConquista(false)}
+        />
+      )}
     </div>
   );
 }

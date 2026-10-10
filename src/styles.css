@@ -68,13 +68,11 @@
   --color-tier-platina: var(--tier-platina);
   --color-tier-lendario: var(--tier-lendario);
   --color-tier-goat: var(--tier-goat);
-  --font-sans:
-    "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
   --shadow-card: var(--shadow-card);
   --shadow-float: var(--shadow-float);
 }
-
 
 :root {
   --radius: 1rem;
@@ -132,7 +130,6 @@
   --shadow-float: 0 6px 20px oklch(0.32 0.062 163 / 0.18);
 }
 
-
 .dark {
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
@@ -184,6 +181,8 @@
   body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    /* a página para no fim em vez de esticar pro vazio; a barra de baixo fica no lugar */
+    overscroll-behavior-y: none;
   }
 }
 
@@ -266,6 +265,48 @@
   animation: goat-reveal 1600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Tier novo revelado: a tela escurece e a carta sobe de baixo pro meio. */
+@keyframes carta-sobe {
+  0% {
+    transform: translateY(70vh) scale(0.5) rotate(-8deg);
+    opacity: 0;
+    filter: brightness(2.6);
+  }
+  55% {
+    transform: translateY(-3vh) scale(1.08) rotate(2deg);
+    opacity: 1;
+    filter: brightness(1.7);
+  }
+  75% {
+    transform: translateY(1vh) scale(0.98) rotate(-1deg);
+    filter: brightness(1.2);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+.animate-carta-sobe {
+  animation: carta-sobe 1300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes surgir {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-surgir {
+  animation: surgir 500ms ease-out both;
+}
+
 /* ---------- Perfil gamificado ---------- */
 
 /* Carta flutuando de leve, pra não ficar "parada". */
@@ -335,11 +376,7 @@
 
 /* Reflexo que acompanha o dedo/mouse — só aparece enquanto está inclinando. */
 .carta-reflexo {
-  background: radial-gradient(
-    circle at var(--gx) var(--gy),
-    oklch(1 0 0 / 0.45),
-    transparent 45%
-  );
+  background: radial-gradient(circle at var(--gx) var(--gy), oklch(1 0 0 / 0.45), transparent 45%);
   mix-blend-mode: soft-light;
   opacity: 0;
   transition: opacity 300ms;

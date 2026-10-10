@@ -37,7 +37,7 @@ export const Route = createFileRoute("/pelada/$id_/avaliar")({
 
 function Aviso({ texto }: { texto: string }) {
   return (
-    <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+    <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
       <p className="text-sm text-muted-foreground">{texto}</p>
       <Button asChild>
         <Link to="/">Voltar ao feed</Link>
@@ -198,7 +198,7 @@ function Avaliar() {
 
   if (concluido || !jogador) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <div className="flex size-16 items-center justify-center rounded-full bg-mint-soft">
           <Check className="size-8 text-primary" />
         </div>
@@ -293,8 +293,7 @@ function Avaliar() {
     setEnviadosAgora((s) => new Set(s).add(jogador.id));
     // Cards e detalhe da pelada passam a refletir "já avaliei".
     void queryClient.invalidateQueries({ queryKey: ["pelada", id] });
-    void queryClient.invalidateQueries({ queryKey: ["feed-pendentes-avaliacao"] });
-    void queryClient.invalidateQueries({ queryKey: ["minhas-partidas"] });
+    void queryClient.invalidateQueries({ queryKey: ["feed"] });
     if (ultimo) {
       setConcluido(true);
     } else {
@@ -303,7 +302,7 @@ function Avaliar() {
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col">
       <header className="bg-primary px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
           <button
@@ -409,7 +408,7 @@ function Avaliar() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 flex gap-2 border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto flex gap-2 border-t border-border bg-card p-4">
         {indice > 0 && (
           <Button
             variant="outline"

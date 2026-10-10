@@ -1,9 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { CalendarDays, Check, CheckCheck, Crown, Flag, Lock, MapPin, Star } from "lucide-react";
+import { CheckCheck, Clock, Crown, Lock, MapPin, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { urlDaFotoDaTurma, urlDaMiniaturaDoEscudo } from "@/lib/foto-turma";
 import { cn } from "@/lib/utils";
-import { tierPorNome } from "@/lib/tiers";
-import { TierBadge } from "@/components/goating/tier-badge";
 
 export type PeladaFeed = {
   id: string;
@@ -15,49 +14,35 @@ export type PeladaFeed = {
   cidade: string;
   quantidade_vagas: number;
   tipo: string;
-  /** Opcional: quando ausente, o card assume que a pelada ainda não terminou (uso no feed). */
-  status?: string;
+  status: string;
+  organizador_id: string;
+  crew_id: string | null;
+  /** nome da turma, quando a pelada é de uma */
+  turma: string | null;
+  /** caminho do escudo da turma no armazenamento, quando ela tem um */
+  escudoDaTurma?: string | null;
   /** Quando a pelada foi finalizada — define a janela de 24h de avaliação. */
-  finalizada_em?: string | null;
-  mvp?: { nome_exibicao: string } | null;
+  finalizada_em: string | null;
+  mvp: { nome_exibicao: string } | null;
   confirmados: number;
   organizador: {
     nome_exibicao: string;
     overall: number | string | null;
     tier_reconhecido: string | null;
   } | null;
+  souOrganizador: boolean;
   minhaSituacao: "nenhuma" | "pendente" | "aprovado";
   /** true quando eu já avaliei todos os outros jogadores (a avaliação some do "pendente"). */
-  jaAvaliei?: boolean;
+  jaAvaliei: boolean;
 };
-
-function iniciais(nome: string) {
-  return nome
-    .split(" ")
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
-}
-
-function dataFormatada(data: string, horario: string, horarioFim: string | null) {
-  const d = new Date(`${data}T${horario}`);
-  const semana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][d.getDay()];
-  const mes = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][
-    d.getMonth()
-  ];
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  const faixa = horarioFim ? `${hh}:${mm} às ${horarioFim.slice(0, 5)}` : `${hh}:${mm}`;
-  return `${semana}, ${d.getDate()} ${mes} · ${faixa}`;
-}
-
-/** Identifica pra onde a seta "voltar" dos detalhes da pelada deve mandar o usuário de volta. */
-export type VoltarPara = "feed" | "partidas-proximas" | "partidas-passadas";
 
 export const JANELA_AVALIACAO_MS = 24 * 60 * 60 * 1000;
 
 /** true enquanto a pelada finalizada ainda está dentro das 24h de avaliação. */
-export function estaPendenteAvaliacao(pelada: Pick<PeladaFeed, "status" | "finalizada_em">) {
+export function estaPendenteAvaliacao(pelada: {
+  status?: string | undefined;
+  finalizada_em?: string | null | undefined;
+}) {
   return (
     pelada.status === "finalizada" &&
     !!pelada.finalizada_em &&
@@ -76,195 +61,194 @@ export function avaliouTodos(
   return outros.length > 0 && outros.every((p) => feitos.has(p.user_id));
 }
 
-export function MatchCard({
-  pelada,
-  voltarPara = "feed",
-}: {
-  pelada: PeladaFeed;
-  voltarPara?: VoltarPara;
-}) {
+const SEMANA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+
+/** "HOJE", "AMANHÃ" ou o dia da semana; e o dia/mês pro bloco da data. */
+function partesDaData(data: string) {
+  const dia = new Date(`${data}T12:00:00`);
+  const hoje = new Date();
+  hoje.setHours(12, 0, 0, 0);
+  const distancia = Math.round((dia.getTime() - hoje.getTime()) / 86_400_000);
+  return {
+    hoje: distancia === 0,
+    rotulo: distancia === 0 ? "HOJE" : distancia === 1 ? "AMANHÃ" : SEMANA[dia.getDay()],
+    dia: String(dia.getDate()).padStart(2, "0"),
+    mes: MESES[dia.getMonth()],
+  };
+}
+
+export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
   const finalizada = pelada.status === "finalizada";
+  const emAndamento = pelada.status === "em_andamento";
   const pendenteAvaliacao = estaPendenteAvaliacao(pelada);
-  const avaliacaoEncerrada = finalizada && !pendenteAvaliacao;
   const aberta = pelada.tipo === "aberta";
   const lotado = pelada.confirmados >= pelada.quantidade_vagas;
   const proporcao = Math.min(1, pelada.confirmados / pelada.quantidade_vagas);
-  const tier = pelada.organizador ? tierPorNome(pelada.organizador.tier_reconhecido) : null;
   const podeAvaliar =
     pendenteAvaliacao && pelada.minhaSituacao === "aprovado" && pelada.confirmados > 1;
-  // Amarelo só quando tem avaliação minha de fato pendente.
+  // Dourado só quando tem avaliação minha de fato pendente.
   const avaliacaoPendente = podeAvaliar && !pelada.jaAvaliei;
-  const jaAvaliada = podeAvaliar && !!pelada.jaAvaliei;
+  const jaAvaliada = podeAvaliar && pelada.jaAvaliei;
+  const data = partesDaData(pelada.data);
+  const horario = pelada.horario_fim
+    ? `${pelada.horario.slice(0, 5)} às ${pelada.horario_fim.slice(0, 5)}`
+    : pelada.horario.slice(0, 5);
 
-  const barra = finalizada
-    ? "bg-muted-foreground/40"
-    : lotado
-      ? "bg-destructive"
-      : proporcao > 0.7
-        ? "bg-mint"
-        : "bg-primary";
+  // um selo só por card: o que mais importa pra mim naquela pelada
+  const selo = avaliacaoPendente
+    ? { texto: "AVALIAR", icone: Star, classe: "bg-tier-ouro/15 text-tier-ouro" }
+    : jaAvaliada
+      ? { texto: "AVALIADA", icone: CheckCheck, classe: "bg-mint-soft text-primary" }
+      : emAndamento
+        ? { texto: "ROLANDO", icone: null, classe: "bg-destructive/10 text-destructive" }
+        : finalizada
+          ? null
+          : pelada.souOrganizador
+            ? { texto: "ORGANIZADOR", icone: null, classe: "bg-primary text-primary-foreground" }
+            : pelada.minhaSituacao === "aprovado"
+              ? { texto: "VOCÊ VAI", icone: CheckCheck, classe: "bg-mint text-mint-foreground" }
+              : pelada.minhaSituacao === "pendente"
+                ? { texto: "AGUARDANDO", icone: null, classe: "bg-secondary text-muted-foreground" }
+                : lotado
+                  ? { texto: "LOTADA", icone: null, classe: "bg-destructive/10 text-destructive" }
+                  : aberta
+                    ? null
+                    : {
+                        texto: "FECHADA",
+                        icone: Lock,
+                        classe: "bg-secondary text-muted-foreground",
+                      };
 
   return (
     <article
       className={cn(
-        "rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]",
-        avaliacaoEncerrada && "border-l-4 border-destructive/70 opacity-80",
-        avaliacaoPendente && "border-l-4 border-tier-ouro",
-        jaAvaliada && "border-l-4 border-mint",
+        "overflow-hidden rounded-3xl bg-card shadow-[var(--shadow-card)]",
+        avaliacaoPendente && "ring-2 ring-tier-ouro",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-base font-bold text-foreground">{pelada.titulo}</h3>
-        {avaliacaoPendente ? (
-          <span className="flex shrink-0 items-center gap-1 rounded-full border border-tier-ouro bg-tier-ouro/10 px-2 py-1 text-[10px] font-bold tracking-wide text-tier-ouro">
-            <Star className="size-3" />
-            AVALIAR
-          </span>
-        ) : jaAvaliada ? (
-          <span className="flex shrink-0 items-center gap-1 rounded-full border border-mint bg-mint-soft px-2 py-1 text-[10px] font-bold tracking-wide text-primary">
-            <CheckCheck className="size-3" />
-            AVALIADA
-          </span>
-        ) : pendenteAvaliacao ? (
-          <span className="flex shrink-0 items-center gap-1 rounded-full border border-border bg-muted px-2 py-1 text-[10px] font-bold tracking-wide text-muted-foreground">
-            <Star className="size-3" />
-            EM AVALIAÇÃO
-          </span>
-        ) : avaliacaoEncerrada ? (
-          <span className="flex shrink-0 items-center gap-1 rounded-full border border-destructive bg-destructive/10 px-2 py-1 text-[10px] font-bold tracking-wide text-destructive">
-            <Flag className="size-3" />
-            FINALIZADA
-          </span>
-        ) : (
-          <span
-            className={cn(
-              "flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-bold tracking-wide",
-              aberta
-                ? "border-mint bg-mint-soft text-primary"
-                : "border-border bg-muted text-muted-foreground",
-            )}
-          >
-            {aberta ? <Check className="size-3" /> : <Lock className="size-3" />}
-            {aberta ? "ABERTA" : "FECHADA"}
-          </span>
-        )}
-      </div>
-
-      <div className="mt-2 flex items-center gap-2">
-        <span className="flex size-7 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-          {iniciais(pelada.organizador?.nome_exibicao ?? "?")}
-        </span>
-        <span className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-          por
-          <TierBadge tier={tier} overall={pelada.organizador?.overall} size={16} />
-          <span className="truncate font-semibold text-foreground">
-            {pelada.organizador?.nome_exibicao}
-          </span>
-        </span>
-      </div>
-
-      <div className="mt-3 divide-y divide-border rounded-xl bg-secondary/60">
-        <p className="flex items-center gap-2 px-3 py-2 text-xs text-foreground">
-          <CalendarDays className="size-4 text-muted-foreground" />
-          {dataFormatada(pelada.data, pelada.horario, pelada.horario_fim)}
-        </p>
-        <p className="flex items-center gap-2 px-3 py-2 text-xs text-foreground">
-          <MapPin className="size-4 text-muted-foreground" />
-          {pelada.local} · {pelada.cidade}
-        </p>
-        {finalizada && pelada.mvp && (
-          <p className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-foreground">
-            <Crown className="size-4 text-tier-ouro" />
-            MVP: {pelada.mvp.nome_exibicao}
-          </p>
-        )}
-      </div>
-
-      {!finalizada && (
-        <div className="mt-3">
-          <div className="flex items-center justify-between text-xs font-medium">
-            <span className="text-muted-foreground">
-              {pelada.confirmados}/{pelada.quantidade_vagas} confirmados
-            </span>
-            {lotado && <span className="font-bold text-destructive">LOTADO</span>}
-          </div>
-          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className={cn("h-full rounded-full", barra)}
-              style={{ width: `${proporcao * 100}%` }}
-            />
-          </div>
+      <Link
+        to="/pelada/$id"
+        params={{ id: pelada.id }}
+        className="flex gap-3 p-4 active:bg-secondary/50"
+      >
+        {/* bloco da data: é a primeira coisa que o olho precisa achar */}
+        <div
+          className={cn(
+            "flex w-[60px] shrink-0 flex-col items-center justify-center rounded-2xl py-2",
+            finalizada
+              ? "bg-secondary text-muted-foreground"
+              : data.hoje
+                ? "bg-mint text-mint-foreground"
+                : "bg-primary text-primary-foreground",
+          )}
+        >
+          <span className="text-[10px] font-extrabold tracking-wide">{data.rotulo}</span>
+          <span className="text-2xl leading-none font-black tabular-nums">{data.dia}</span>
+          <span className="text-[10px] font-bold tracking-wide opacity-80">{data.mes}</span>
         </div>
-      )}
 
-      <div className="mt-4 flex gap-2">
-        {pendenteAvaliacao ? (
-          <>
-            <Button asChild variant="outline" className="flex-1">
-              <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
-                Ver detalhes
-              </Link>
-            </Button>
-            {avaliacaoPendente && (
-              <Button
-                asChild
-                className="flex-1 bg-tier-ouro font-semibold text-primary hover:bg-tier-ouro/90"
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="line-clamp-2 min-w-0 text-base leading-tight font-extrabold text-foreground">
+              {pelada.titulo}
+            </h3>
+            {selo && (
+              <span
+                className={cn(
+                  "flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide",
+                  selo.classe,
+                )}
               >
-                <Link to="/pelada/$id/avaliar" params={{ id: pelada.id }}>
-                  <Star className="mr-1.5 size-4" />
-                  Avaliar
-                </Link>
-              </Button>
+                {selo.icone && <selo.icone className="size-3" />}
+                {selo.texto}
+              </span>
             )}
-            {jaAvaliada && (
-              <Button asChild variant="ghost" className="flex-1 text-primary">
-                <Link to="/pelada/$id/avaliar" params={{ id: pelada.id }}>
-                  Revisar notas
-                </Link>
-              </Button>
+          </div>
+
+          <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-foreground tabular-nums">
+            <Clock className="size-3.5 text-muted-foreground" />
+            {horario}
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="size-3.5 shrink-0" />
+            <span className="truncate">
+              {pelada.local} · {pelada.cidade}
+            </span>
+          </p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+            {pelada.turma && pelada.escudoDaTurma ? (
+              <img
+                src={urlDaMiniaturaDoEscudo(pelada.escudoDaTurma) ?? undefined}
+                alt=""
+                loading="lazy"
+                // escudo antigo, enviado sem miniatura: usa a foto inteira
+                onError={(e) => {
+                  const inteira = urlDaFotoDaTurma(pelada.escudoDaTurma);
+                  if (inteira && e.currentTarget.src !== inteira) e.currentTarget.src = inteira;
+                }}
+                className="size-5 shrink-0 rounded-full bg-secondary object-cover"
+              />
+            ) : (
+              <Users className="size-3.5 shrink-0" />
             )}
-          </>
-        ) : finalizada ? (
-          <Button asChild variant="outline" className="flex-1">
-            <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
-              Ver detalhes
+            <span className="truncate">
+              {pelada.turma ? (
+                <span className="font-semibold text-primary">{pelada.turma}</span>
+              ) : (
+                `por ${pelada.organizador?.nome_exibicao ?? "organizador"}`
+              )}
+            </span>
+          </p>
+          {finalizada && pelada.mvp && (
+            <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-foreground">
+              <Crown className="size-3.5 shrink-0 text-tier-ouro" />
+              <span className="truncate">MVP: {pelada.mvp.nome_exibicao}</span>
+            </p>
+          )}
+
+          {!finalizada && (
+            <div className="mt-2.5 flex items-center gap-2">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
+                <div
+                  className={cn("h-full rounded-full", lotado ? "bg-destructive" : "bg-mint")}
+                  style={{ width: `${proporcao * 100}%` }}
+                />
+              </div>
+              <span className="shrink-0 text-[11px] font-semibold text-muted-foreground tabular-nums">
+                {pelada.confirmados}/{pelada.quantidade_vagas}
+              </span>
+            </div>
+          )}
+        </div>
+      </Link>
+
+      {/* botão só quando existe algo a fazer além de abrir a pelada */}
+      {avaliacaoPendente ? (
+        <div className="px-4 pb-4">
+          <Button
+            asChild
+            className="w-full bg-tier-ouro font-semibold text-primary hover:bg-tier-ouro/90"
+          >
+            <Link to="/pelada/$id/avaliar" params={{ id: pelada.id }}>
+              <Star className="mr-1.5 size-4" />
+              Avaliar jogadores
             </Link>
           </Button>
-        ) : (
-          <>
-            <Button asChild variant="outline" className="flex-1">
-              <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
-                Ver detalhes
-              </Link>
-            </Button>
-            {pelada.minhaSituacao === "aprovado" ? (
-              <Button disabled className="flex-1 bg-mint-soft text-primary" variant="secondary">
-                Você está dentro
-              </Button>
-            ) : pelada.minhaSituacao === "pendente" ? (
-              <Button disabled variant="secondary" className="flex-1">
-                Solicitação enviada
-              </Button>
-            ) : lotado ? (
-              <Button disabled className="flex-1">
-                Lotado
-              </Button>
-            ) : aberta ? (
-              <Button asChild className="flex-1">
-                <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
-                  Entrar
-                </Link>
-              </Button>
-            ) : (
-              <Button asChild className="flex-1">
-                <Link to="/pelada/$id" params={{ id: pelada.id }} search={{ voltar: voltarPara }}>
-                  Solicitar entrada
-                </Link>
-              </Button>
-            )}
-          </>
-        )}
-      </div>
+        </div>
+      ) : !finalizada &&
+        !emAndamento &&
+        pelada.minhaSituacao === "nenhuma" &&
+        !pelada.souOrganizador &&
+        !lotado ? (
+        <div className="px-4 pb-4">
+          <Button asChild className="w-full">
+            <Link to="/pelada/$id" params={{ id: pelada.id }}>
+              {aberta ? "Entrar na pelada" : "Solicitar entrada"}
+            </Link>
+          </Button>
+        </div>
+      ) : null}
     </article>
   );
 }

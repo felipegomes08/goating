@@ -5,7 +5,7 @@ import { useVoltar } from "@/hooks/use-voltar";
 
 /** E-mail de contato sobre dados pessoais (provisório: trocar quando existir um do Goating). Vazio esconde o trecho. */
 const CONTATO: string = "felipecgomes02@gmail.com";
-const ATUALIZADA_EM = "8 de outubro de 2026";
+const ATUALIZADA_EM = "10 de outubro de 2026";
 
 export const Route = createFileRoute("/privacidade")({
   ssr: false,
@@ -26,7 +26,7 @@ function Privacidade() {
   const voltar = useVoltar(() => void navigate({ to: "/" }));
 
   return (
-    <div className="app-shell flex min-h-screen flex-col">
+    <div className="app-shell flex min-h-dvh flex-col">
       <header className="rounded-b-3xl bg-primary px-4 pt-4 pb-5">
         <button type="button" aria-label="Voltar" onClick={voltar}>
           <ArrowLeft className="size-5 text-primary-foreground" />
@@ -60,7 +60,15 @@ function Privacidade() {
             </li>
             <li>
               <strong>Avaliações:</strong> as notas que você dá e as que recebe de quem jogou com
-              você.
+              você. Ninguém vê a nota que cada pessoa deu: aparece só a média.
+            </li>
+            <li>
+              <strong>Turmas:</strong> nome, escudo e capa que o organizador colocar, e o nome dos
+              jogadores da lista.
+            </li>
+            <li>
+              <strong>Local da pelada:</strong> o endereço ou o ponto no mapa que o organizador
+              marcar pro campo.
             </li>
             <li>
               <strong>Rede:</strong> quem você segue e quem segue você.
@@ -74,7 +82,11 @@ function Privacidade() {
               A foto que você tira pra montar o pôster da pelada não é enviada pra nós: a imagem é
               montada no seu aparelho e só sai dele quando você compartilha.
             </li>
-            <li>Não coletamos sua localização nem seus contatos.</li>
+            <li>
+              Não guardamos a sua localização. O botão “Onde estou”, ao marcar o campo no mapa, usa
+              a posição do aparelho só naquele momento, pra centralizar o mapa.
+            </li>
+            <li>Não acessamos seus contatos.</li>
             <li>Não temos anúncios e não vendemos dados pra ninguém.</li>
           </ul>
         </Secao>
@@ -86,6 +98,10 @@ function Privacidade() {
               estatísticas e as peladas e turmas de que você participa.
             </li>
             <li>Seu e-mail não aparece pra outros usuários.</li>
+            <li>
+              O escudo e a capa de uma turma são imagens públicas: quem tiver o endereço da imagem
+              consegue abri-la sem estar logado. Sua foto de perfil não é pública.
+            </li>
             <li>
               Quem organiza uma pelada pode colocar seu nome na lista do jogo, mesmo que você não
               tenha conta. Nesse caso guardamos só o nome digitado.
@@ -105,6 +121,23 @@ function Privacidade() {
             Num banco de dados da Supabase, empresa de infraestrutura que hospeda o Goating, em
             servidores em São Paulo.
           </p>
+        </Secao>
+
+        <Secao titulo="Serviços de terceiros">
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>
+              <strong>Cloudflare Turnstile:</strong> a verificação “não sou um robô” do login e do
+              cadastro. Ela analisa sinais do seu navegador pra barrar acessos automáticos.
+            </li>
+            <li>
+              <strong>OpenStreetMap:</strong> as imagens do mapa, quando alguém abre “Marcar no
+              mapa”.
+            </li>
+            <li>
+              <strong>Google Maps e Waze:</strong> só se você tocar em “Como chegar”; aí o app abre
+              o endereço da pelada neles.
+            </li>
+          </ul>
         </Secao>
 
         <Secao titulo="Como excluir sua conta">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -16,14 +16,15 @@ import {
   Share2,
   Star,
   Trophy,
-  UserPlus,
+  Pencil,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAvatarUrl } from "@/hooks/use-avatar";
-import { useSession } from "@/hooks/use-session";
+import { usePerfil, useSession } from "@/hooks/use-session";
 import { useVoltar } from "@/hooks/use-voltar";
 import { Button } from "@/components/ui/button";
 import { avaliouTodos } from "@/components/goating/match-card";
@@ -31,22 +32,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { podeGerirPelada } from "@/lib/placar/dados";
 import { tierPorNome } from "@/lib/tiers";
+import { destinosDoLocal } from "@/lib/local";
 import { TierBadge } from "@/components/goating/tier-badge";
-
-type VoltarPara = "feed" | "partidas-proximas" | "partidas-passadas";
+import { origemDoSite } from "@/lib/site";
 
 export const Route = createFileRoute("/pelada/$id")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { voltar?: VoltarPara | undefined } => ({
-    voltar:
-      search["voltar"] === "partidas-proximas"
-        ? "partidas-proximas"
-        : search["voltar"] === "partidas-passadas"
-          ? "partidas-passadas"
-          : search["voltar"] === "feed"
-            ? "feed"
-            : undefined,
-  }),
   head: () => ({
     meta: [
       { title: "Detalhes da pelada · Goating" },
@@ -70,7 +61,7 @@ export const Route = createFileRoute("/pelada/$id")({
 
 function Aviso({ texto }: { texto: string }) {
   return (
-    <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+    <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
       <p className="text-sm text-muted-foreground">{texto}</p>
       <Button asChild>
         <Link to="/">Voltar ao feed</Link>
@@ -113,21 +104,17 @@ function dataLonga(data: string, horario: string, horarioFim?: string | null) {
 
 function DetalhePelada() {
   const { id } = useParams({ from: "/pelada/$id" });
-  const { voltar: voltarPara } = useSearch({ from: "/pelada/$id" });
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const voltar = useVoltar(() => {
-    if (voltarPara === "partidas-proximas") {
-      navigate({ to: "/minhas-partidas", search: { aba: "proximas" } });
-    } else if (voltarPara === "partidas-passadas") {
-      navigate({ to: "/minhas-partidas", search: { aba: "passadas" } });
-    } else {
-      navigate({ to: "/" });
-    }
-  });
+  // convidado (entrou pelo link, sem conta) joga mas não avalia
+  const souConvidado = usePerfil(userId).data?.eh_convidado === true;
+
+  const voltar = useVoltar(() => void navigate({ to: "/", replace: true }));
   const [ocupado, setOcupado] = useState(false);
+  const [confirmandoApagar, setConfirmandoApagar] = useState(false);
+  const [escolhendoRota, setEscolhendoRota] = useState(false);
 
   const consulta = useQuery({
     queryKey: ["pelada", id, userId],
@@ -216,7 +203,7 @@ function DetalhePelada() {
 
   if (!userId) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">Entre na sua conta para ver essa pelada.</p>
         <Button asChild>
           <Link to="/auth">Entrar no Goating</Link>
@@ -245,6 +232,9 @@ function DetalhePelada() {
   const finalizada = pelada.status === "finalizada";
   const emAndamento = pelada.status === "em_andamento";
   const temPlacar = !!pelada.placar_finalizado_em;
+  const destinos = destinosDoLocal(pelada);
+  // finalizar só faz sentido depois que a pelada começou
+  const jaComecou = new Date(`${pelada.data}T${pelada.horario}`).getTime() <= Date.now();
   const mvpNome = pelada.mvp_id
     ? (participantes.find((p) => p.user_id === pelada.mvp_id)?.nome ?? null)
     : null;
@@ -259,7 +249,7 @@ function DetalhePelada() {
   const fimDaJanelaTexto = fimDaJanela
     ? `${fimDaJanela.toDateString() === new Date().toDateString() ? "hoje" : "amanhã"} às ${fimDaJanela.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
     : null;
-  const linkConvite = token ? `${window.location.origin}/p/${token}` : null;
+  const linkConvite = token ? `${origemDoSite()}/p/${token}` : null;
 
   async function atualizar() {
     await queryClient.invalidateQueries({ queryKey: ["pelada", id] });
@@ -308,15 +298,42 @@ function DetalhePelada() {
     await atualizar();
   }
 
-  async function finalizar() {
+  async function apagar() {
     setOcupado(true);
-    const { error } = await supabase
+    const { data: apagadas, error } = await supabase
       .from("matches")
-      .update({ status: "finalizada", finalizada_em: new Date().toISOString() })
-      .eq("id", id);
+      .delete()
+      .eq("id", id)
+      .select("id");
     setOcupado(false);
     if (error) {
-      toast.error("Não deu pra finalizar a pelada.");
+      toast.error("Não deu pra apagar a pelada.");
+      return;
+    }
+    if (apagadas.length === 0) {
+      // o banco recusa em silêncio: a pelada foi finalizada com mais gente com conta nela
+      toast.error(
+        "Essa pelada já foi finalizada com outros jogadores. Apagar tiraria o XP e as notas deles.",
+      );
+      setConfirmandoApagar(false);
+      return;
+    }
+    toast.success("Pelada apagada.");
+    await queryClient.invalidateQueries({ queryKey: ["feed"] });
+    await queryClient.invalidateQueries({ queryKey: ["turma"] });
+    await queryClient.invalidateQueries({ queryKey: ["minhas-turmas-resumo"] });
+    await navigate({ to: "/", replace: true });
+  }
+
+  async function finalizar() {
+    setOcupado(true);
+    const { error } = await supabase.from("matches").update({ status: "finalizada" }).eq("id", id);
+    setOcupado(false);
+    if (error) {
+      // as recusas do banco já vêm em português e dizem o motivo (ex.: ainda não deu o horário)
+      toast.error(
+        /[áéíóúãõç]/i.test(error.message) ? error.message : "Não deu pra finalizar a pelada.",
+      );
       return;
     }
     toast.success("Pelada finalizada! Agora todo mundo pode avaliar por 24h.");
@@ -324,7 +341,7 @@ function DetalhePelada() {
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col">
       <header className={cn("px-4 pt-4 pb-5", finalizada ? "bg-neutral-900" : "bg-primary")}>
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Voltar" onClick={voltar}>
@@ -354,10 +371,21 @@ function DetalhePelada() {
               {dataLonga(pelada.data, pelada.horario, pelada.horario_fim)}
             </span>
           </p>
-          <p className="flex items-center gap-2 px-4 py-3 text-sm text-foreground">
-            <MapPin className="size-4 text-muted-foreground" />
-            {pelada.local} · {pelada.cidade}
-          </p>
+          {/* tocar no local abre a rota: direto no link do organizador, ou escolhendo Maps/Waze */}
+          <button
+            type="button"
+            onClick={() => {
+              if (destinos.direto) window.open(destinos.direto, "_blank", "noopener,noreferrer");
+              else setEscolhendoRota(true);
+            }}
+            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-foreground active:bg-secondary/60"
+          >
+            <MapPin className="size-4 shrink-0 text-primary" />
+            <span className="min-w-0 flex-1">
+              {pelada.local} · {pelada.cidade}
+            </span>
+            <span className="shrink-0 text-xs font-semibold text-primary">Como chegar</span>
+          </button>
           <p className="flex items-center gap-2 px-4 py-3 text-sm text-foreground">
             {finalizada ? (
               <Flag className="size-4 text-destructive" />
@@ -483,11 +511,14 @@ function DetalhePelada() {
                       )}
                     </p>
                     {tier && (
+                      // a cor do tier é clara demais pra texto em fundo branco (Lendário é
+                      // quase branco): o texto leva a mesma cor, só que escurecida
                       <span
-                        className={cn(
-                          "mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold",
-                          tier.chipClass,
-                        )}
+                        className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        style={{
+                          background: `color-mix(in oklch, ${tier.destaque} 18%, transparent)`,
+                          color: `color-mix(in oklch, ${tier.destaque} 55%, black)`,
+                        }}
                       >
                         {tier.nome}
                       </span>
@@ -531,28 +562,31 @@ function DetalhePelada() {
           </section>
         )}
 
-        {podeGerir && !finalizada && (
-          <Link
-            to="/pelada/$id/times"
-            params={{ id }}
-            className="flex items-center gap-3 rounded-2xl border border-dashed border-border bg-card/60 p-3 active:opacity-60"
-          >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-mint-soft">
-              <UserPlus className="size-4 text-primary" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm font-semibold text-foreground">
-                Adicionar jogadores
-              </span>
-              <span className="block text-xs text-muted-foreground">
-                Cole a lista do WhatsApp, busque quem tem conta ou digite o nome.
-              </span>
-            </span>
-          </Link>
+        {(souOrganizador || (podeGerir && pelada.status === "agendada")) && (
+          <div className="flex items-center justify-center gap-6">
+            {podeGerir && pelada.status === "agendada" && (
+              <Link
+                to="/pelada/$id/editar"
+                params={{ id }}
+                className="flex items-center gap-1.5 py-2 text-xs font-semibold text-primary"
+              >
+                <Pencil className="size-3.5" /> Editar pelada
+              </Link>
+            )}
+            {souOrganizador && (
+              <button
+                type="button"
+                onClick={() => setConfirmandoApagar(true)}
+                className="flex items-center gap-1.5 py-2 text-xs font-semibold text-destructive"
+              >
+                <Trash2 className="size-3.5" /> Apagar pelada
+              </button>
+            )}
+          </div>
         )}
       </div>
 
-      <div className="sticky bottom-0 space-y-2 border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto space-y-2 border-t border-border bg-card p-4">
         {finalizada && podeGerir && temPlacar && (
           <Button asChild variant="ghost" className="w-full">
             <Link to="/pelada/$id/placar" params={{ id }}>
@@ -561,7 +595,11 @@ function DetalhePelada() {
           </Button>
         )}
         {finalizada ? (
-          dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 && jaAvaliei ? (
+          dentroDaJanela && eu?.status === "aprovado" && souConvidado ? (
+            <p className="text-center text-xs text-muted-foreground">
+              Pra avaliar a galera você precisa de uma conta. Convidado só joga.
+            </p>
+          ) : dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 && jaAvaliei ? (
             <>
               <p className="flex items-center justify-center gap-1.5 text-center text-xs font-medium text-primary">
                 <CheckCheck className="size-4" />
@@ -610,17 +648,23 @@ function DetalhePelada() {
               <>
                 <Button asChild className="w-full">
                   <Link to="/pelada/$id/times" params={{ id }}>
-                    <Users className="mr-2 size-4" /> Jogadores e times
+                    <Users className="mr-2 size-4" /> Revisar e iniciar
                   </Link>
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
-                  Lá você adiciona mais gente e sorteia só quando quiser.
+                  Lá você adiciona jogadores, monta os times e inicia quando quiser.
                 </p>
               </>
             )}
-            <Button variant="ghost" className="w-full" disabled={ocupado} onClick={finalizar}>
-              <Flag className="mr-2 size-4" /> Finalizar sem placar
-            </Button>
+            {jaComecou ? (
+              <Button variant="ghost" className="w-full" disabled={ocupado} onClick={finalizar}>
+                <Flag className="mr-2 size-4" /> Finalizar sem placar
+              </Button>
+            ) : (
+              <p className="text-center text-xs text-muted-foreground">
+                Dá pra finalizar a partir do horário da pelada ({pelada.horario.slice(0, 5)}).
+              </p>
+            )}
           </>
         ) : eu?.status === "aprovado" ? (
           <Button variant="outline" className="w-full" disabled={ocupado} onClick={sair}>
@@ -644,6 +688,91 @@ function DetalhePelada() {
           </Button>
         )}
       </div>
+
+      {escolhendoRota && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEscolhendoRota(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-label="Como chegar"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+          >
+            <h2 className="text-lg font-extrabold text-foreground">Como chegar</h2>
+            <p className="text-sm text-muted-foreground">
+              {pelada.local} · {pelada.cidade}
+              {!pelada.local_link &&
+                ". O organizador não marcou o ponto: a busca é pelo nome do local."}
+            </p>
+            {destinos.maps && (
+              <Button asChild className="w-full">
+                <a
+                  href={destinos.maps}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setEscolhendoRota(false)}
+                >
+                  Abrir no Google Maps
+                </a>
+              </Button>
+            )}
+            {destinos.waze && (
+              <Button asChild variant="outline" className="w-full">
+                <a
+                  href={destinos.waze}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setEscolhendoRota(false)}
+                >
+                  Abrir no Waze
+                </a>
+              </Button>
+            )}
+            <Button variant="ghost" className="w-full" onClick={() => setEscolhendoRota(false)}>
+              Fechar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {confirmandoApagar && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !ocupado) setConfirmandoApagar(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-label="Apagar pelada"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+          >
+            <h2 className="text-lg font-extrabold text-foreground">Apagar essa pelada?</h2>
+            <p className="text-sm text-muted-foreground">
+              Isso não tem volta. Some a pelada, a lista de confirmados e o link de convite.
+              {temPlacar &&
+                " O placar e as avaliações dela também: gols e vitórias desse dia saem do ranking da turma."}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Se for uma pelada recorrente, só esta data é apagada.
+            </p>
+            <Button variant="destructive" className="w-full" disabled={ocupado} onClick={apagar}>
+              {ocupado ? "Apagando…" : "Apagar pelada"}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={ocupado}
+              onClick={() => setConfirmandoApagar(false)}
+            >
+              Manter
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

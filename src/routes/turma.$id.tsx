@@ -7,17 +7,23 @@ import {
   Image as ImageIcon,
   Link2,
   LogOut,
+  Pencil,
   Plus,
+  Settings,
   Share2,
   Trophy,
+  Users,
   UserPlus,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { PERIODOS, rotuloDoPeriodo, useRankingDaTurma, type Periodo } from "@/hooks/use-turmas";
 import { useVoltar } from "@/hooks/use-voltar";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
+import { ConfigTurma } from "@/components/goating/config-turma";
+import { FolhaNome } from "@/components/goating/folha-nome";
 import {
   COLUNAS_RANKING,
   TabelaRanking,
@@ -30,9 +36,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { compartilhar } from "@/lib/placar/dados";
 import { compartilharRanking } from "@/lib/placar/poster";
+import { urlDaFotoDaTurma } from "@/lib/foto-turma";
+import { origemDoSite } from "@/lib/site";
 
 type Aba = "ranking" | "peladas" | "membros";
-type Periodo = "mes" | "ano" | "tudo";
 
 export const Route = createFileRoute("/turma/$id")({
   ssr: false,
@@ -49,18 +56,6 @@ const ABAS: { id: Aba; rotulo: string }[] = [
   { id: "peladas", rotulo: "Peladas" },
   { id: "membros", rotulo: "Jogadores" },
 ];
-const PERIODOS: { id: Periodo; rotulo: string }[] = [
-  { id: "mes", rotulo: "Mês" },
-  { id: "ano", rotulo: "Ano" },
-  { id: "tudo", rotulo: "Tudo" },
-];
-
-function inicioDoPeriodo(periodo: Periodo) {
-  const hoje = new Date();
-  if (periodo === "tudo") return null;
-  const mes = periodo === "mes" ? hoje.getMonth() + 1 : 1;
-  return `${hoje.getFullYear()}-${String(mes).padStart(2, "0")}-01`;
-}
 
 function PaginaDaTurma() {
   const { id } = useParams({ from: "/turma/$id" });
@@ -74,11 +69,16 @@ function PaginaDaTurma() {
   const [ordem, setOrdem] = useState<ColunaRanking>("gols");
   const [gerandoImagem, setGerandoImagem] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  const [renomeando, setRenomeando] = useState<{ memberId: string; nome: string } | null>(null);
   const [nomeNovo, setNomeNovo] = useState("");
+  const [nomeConfirmado, setNomeConfirmado] = useState("");
   const [folha, setFolha] = useState<
     | { tipo: "entrar" }
     | { tipo: "sair" }
+    | { tipo: "excluir" }
+    | { tipo: "config" }
     | { tipo: "vincular"; memberId: string; nome: string }
+    | { tipo: "remover"; memberId: string; nome: string; jaJogou: boolean }
     | null
   >(null);
 
@@ -87,11 +87,16 @@ function PaginaDaTurma() {
     enabled: !!userId,
     queryFn: async () => {
       const [turmaRes, membrosRes, peladasRes] = await Promise.all([
-        supabase.from("crews").select("id, nome, dono_id").eq("id", id).maybeSingle(),
+        supabase
+          .from("crews")
+          .select("id, nome, dono_id, escudo_url, capa_url")
+          .eq("id", id)
+          .maybeSingle(),
         supabase
           .from("crew_members")
           .select("id, user_id, nome, admin")
           .eq("crew_id", id)
+          .is("removido_em", null)
           .order("nome"),
         supabase
           .from("matches")
@@ -105,7 +110,7 @@ function PaginaDaTurma() {
       if (peladasRes.error) throw peladasRes.error;
       if (!turmaRes.data) return null;
 
-      // quem já jogou não pode ser apagado da turma (levaria o histórico junto)
+      // quem já jogou sai da turma mas as peladas antigas continuam com ele; o aviso muda
       const ids = membrosRes.data.map((m) => m.id);
       const { data: comJogo } = ids.length
         ? await supabase.from("match_players").select("member_id").in("member_id", ids)
@@ -120,25 +125,7 @@ function PaginaDaTurma() {
     },
   });
 
-  const ranking = useQuery({
-    queryKey: ["turma-ranking", id, periodo],
-    enabled: !!userId && aba === "ranking",
-    queryFn: async () => {
-      const desde = inicioDoPeriodo(periodo);
-      const { data, error } = await supabase.rpc("crew_stats", {
-        p_crew_id: id,
-        ...(desde ? { p_desde: desde } : {}),
-      });
-      if (error) throw error;
-      return data.map((l) => ({
-        ...l,
-        // 3 pontos por vitória, 1 por empate, sobre o máximo possível
-        aproveitamento:
-          l.jogos > 0 ? Math.round(((l.vitorias * 3 + l.empates) / (l.jogos * 3)) * 100) : 0,
-        media: l.jogos > 0 ? l.gols / l.jogos : 0,
-      }));
-    },
-  });
+  const ranking = useRankingDaTurma(id, periodo, !!userId && aba === "ranking");
 
   if (carregando || (!!userId && turma.isLoading)) {
     return (
@@ -150,7 +137,7 @@ function PaginaDaTurma() {
   }
   if (!userId || !turma.data) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {userId
             ? "Essa turma não existe mais."
@@ -171,12 +158,14 @@ function PaginaDaTurma() {
 
   const dados = turma.data;
   const souDono = dados.dono_id === userId;
+  const finalizadas = dados.peladas.filter((p) => p.status === "finalizada").length;
+  const porJogar = dados.peladas.length - finalizadas;
   const souMembro = dados.membros.some((m) => m.user_id === userId);
   // dono e administradores cuidam da lista de jogadores e das peladas
   const souGestor = souDono || dados.membros.some((m) => m.user_id === userId && m.admin);
   const semConta = dados.membros.filter((m) => !m.user_id);
   const contasNaTurma = dados.membros.flatMap((m) => (m.user_id ? [m.user_id] : []));
-  const link = `${window.location.origin}/turma/${id}`;
+  const link = `${origemDoSite()}/turma/${id}`;
 
   async function recarregar() {
     await Promise.all([
@@ -224,6 +213,25 @@ function PaginaDaTurma() {
       "Não deu pra sair da turma.",
     );
 
+  async function excluirTurma() {
+    setOcupado(true);
+    const { error } = await supabase.rpc("excluir_turma", { p_crew_id: id });
+    setOcupado(false);
+    if (error) {
+      toast.error(
+        /[áéíóúãõç]/i.test(error.message) ? error.message : "Não deu pra excluir a turma.",
+      );
+      return;
+    }
+    toast.success("Turma excluída.");
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["minhas-turmas-resumo"] }),
+      queryClient.invalidateQueries({ queryKey: ["minhas-turmas"] }),
+      queryClient.invalidateQueries({ queryKey: ["feed"] }),
+    ]);
+    await navigate({ to: "/turmas", replace: true });
+  }
+
   const adicionarConta = (perfil: PerfilAchado) =>
     executar(
       () =>
@@ -252,9 +260,16 @@ function PaginaDaTurma() {
       "Não deu pra vincular.",
     );
 
+  const renomear = (memberId: string, nome: string) =>
+    executar(
+      () => supabase.from("crew_members").update({ nome }).eq("id", memberId),
+      "Nome corrigido.",
+      "Não deu pra mudar o nome.",
+    );
+
   const remover = (memberId: string, nome: string) =>
     executar(
-      () => supabase.from("crew_members").delete().eq("id", memberId),
+      () => supabase.rpc("remover_da_turma", { p_member_id: memberId }),
       `${nome} saiu da turma.`,
       "Não deu pra tirar esse jogador.",
     );
@@ -278,12 +293,7 @@ function PaginaDaTurma() {
       b.vitorias - a.vitorias ||
       a.nome.localeCompare(b.nome),
   );
-  const rotuloPeriodo =
-    periodo === "mes"
-      ? new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
-      : periodo === "ano"
-        ? String(new Date().getFullYear())
-        : "desde o começo";
+  const rotuloPeriodo = rotuloDoPeriodo(periodo);
   const colunaOrdenada = COLUNAS_RANKING.find((c) => c.id === ordem);
 
   /** Texto pro WhatsApp: um jogador por bloco, com todos os números. */
@@ -331,6 +341,9 @@ function PaginaDaTurma() {
     }
   }
 
+  const escudo = urlDaFotoDaTurma(dados.escudo_url);
+  const capa = urlDaFotoDaTurma(dados.capa_url);
+
   const hoje = new Date().toLocaleDateString("sv-SE");
   const proximas = dados.peladas
     .filter((p) => p.status !== "finalizada" && p.status !== "cancelada" && p.data >= hoje)
@@ -338,28 +351,69 @@ function PaginaDaTurma() {
   const passadas = dados.peladas.filter((p) => p.status === "finalizada");
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-28">
-      <header className="bg-primary px-4 pt-4 pb-5">
-        <div className="flex items-center gap-3">
+    <div className="app-shell flex min-h-dvh flex-col">
+      <header className="relative isolate overflow-hidden bg-primary px-4 pt-4 pb-5">
+        {/* capa no fundo, escurecida pra o texto continuar legível por cima de qualquer foto */}
+        {capa && (
+          <>
+            <img src={capa} alt="" className="absolute inset-0 -z-10 size-full object-cover" />
+            <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/55 via-black/25 to-black/80" />
+          </>
+        )}
+        <div className="flex items-center gap-2">
           <button type="button" aria-label="Voltar" onClick={voltar}>
             <ArrowLeft className="size-5 text-primary-foreground" />
           </button>
-          <span className="flex-1 text-xs font-semibold tracking-wide text-mint uppercase">
+          <span
+            className={cn(
+              "ml-1 flex-1 text-xs font-semibold tracking-wide uppercase",
+              capa ? "text-white/80" : "text-mint",
+            )}
+          >
             Turma
           </span>
           <button
             type="button"
             onClick={convidar}
-            className="flex items-center gap-1.5 rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint"
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",
+              capa ? "bg-black/45 text-white" : "bg-mint/15 text-mint",
+            )}
           >
             <Link2 className="size-4" /> Convidar
           </button>
+          {souGestor && (
+            <button
+              type="button"
+              aria-label="Configurações da turma"
+              onClick={() => setFolha({ tipo: "config" })}
+              className={cn(
+                "flex size-8 items-center justify-center rounded-full",
+                capa ? "bg-black/45 text-white" : "bg-mint/15 text-mint",
+              )}
+            >
+              <Settings className="size-4" />
+            </button>
+          )}
         </div>
-        <h1 className="mt-3 text-2xl font-extrabold text-primary-foreground">{dados.nome}</h1>
-        <p className="mt-1 text-sm text-mint">
-          {dados.membros.length} {dados.membros.length === 1 ? "jogador" : "jogadores"} ·{" "}
-          {passadas.length} {passadas.length === 1 ? "pelada" : "peladas"}
-        </p>
+        <div className={cn("flex items-end gap-3", capa ? "mt-20" : "mt-4")}>
+          <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/85 bg-primary shadow-lg">
+            {escudo ? (
+              <img src={escudo} alt="" className="size-full object-cover" />
+            ) : (
+              <Users className="size-7 text-mint" />
+            )}
+          </span>
+          <div className="min-w-0 pb-0.5">
+            <h1 className="truncate text-2xl leading-tight font-extrabold text-primary-foreground">
+              {dados.nome}
+            </h1>
+            <p className={cn("mt-0.5 text-sm", capa ? "text-white/85" : "text-mint")}>
+              {dados.membros.length} {dados.membros.length === 1 ? "jogador" : "jogadores"} ·{" "}
+              {passadas.length} {passadas.length === 1 ? "pelada" : "peladas"}
+            </p>
+          </div>
+        </div>
       </header>
 
       <div className="space-y-3 p-4">
@@ -476,6 +530,16 @@ function PaginaDaTurma() {
                               : "Sem conta"}
                       </span>
                     </span>
+                    {souGestor && (
+                      <button
+                        type="button"
+                        aria-label={`Corrigir o nome de ${m.nome}`}
+                        onClick={() => setRenomeando({ memberId: m.id, nome: m.nome })}
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
+                    )}
                     {m.user_id && m.user_id !== userId && (
                       <Link
                         to="/jogador/$id"
@@ -505,14 +569,21 @@ function PaginaDaTurma() {
                       </button>
                     )}
                     {souGestor &&
-                      !m.jaJogou &&
                       m.user_id !== userId &&
-                      m.user_id !== dados.dono_id && (
+                      m.user_id !== dados.dono_id &&
+                      (souDono || !m.admin) && (
                         <button
                           type="button"
                           aria-label={`Tirar ${m.nome} da turma`}
                           disabled={ocupado}
-                          onClick={() => remover(m.id, m.nome)}
+                          onClick={() =>
+                            setFolha({
+                              tipo: "remover",
+                              memberId: m.id,
+                              nome: m.nome,
+                              jaJogou: m.jaJogou,
+                            })
+                          }
                           className="flex size-8 items-center justify-center rounded-lg text-muted-foreground"
                         >
                           <X className="size-4" />
@@ -555,6 +626,14 @@ function PaginaDaTurma() {
         </div>
       )}
 
+      {renomeando && (
+        <FolhaNome
+          nomeAtual={renomeando.nome}
+          onSalvar={(nome) => renomear(renomeando.memberId, nome)}
+          onFechar={() => setRenomeando(null)}
+        />
+      )}
+
       {folha?.tipo === "entrar" && (
         <Folha titulo="Você já jogou nessa turma?" onFechar={() => setFolha(null)}>
           <p className="text-sm text-muted-foreground">
@@ -590,6 +669,83 @@ function PaginaDaTurma() {
             ocupado={ocupado}
             onEscolher={(perfil) => vincular(folha.memberId, perfil)}
           />
+        </Folha>
+      )}
+
+      {folha?.tipo === "remover" && (
+        <Folha titulo={`Tirar ${folha.nome} da turma?`} onFechar={() => setFolha(null)}>
+          <p className="text-sm text-muted-foreground">
+            {folha.jaJogou
+              ? "Sai da lista de jogadores e do ranking. As peladas que já aconteceram continuam como foram. Se o nome voltar numa lista, o jogador volta pra turma com os gols e vitórias que tinha."
+              : "Esse jogador ainda não jogou nenhuma pelada da turma: sai sem deixar nada pra trás."}
+          </p>
+          <Button
+            variant="destructive"
+            className="w-full"
+            disabled={ocupado}
+            onClick={() => remover(folha.memberId, folha.nome)}
+          >
+            Tirar da turma
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => setFolha(null)}>
+            Cancelar
+          </Button>
+        </Folha>
+      )}
+
+      {folha?.tipo === "config" && (
+        <ConfigTurma
+          turma={dados}
+          souDono={souDono}
+          onMudou={recarregar}
+          onExcluir={() => {
+            setNomeConfirmado("");
+            setFolha({ tipo: "excluir" });
+          }}
+          onFechar={() => setFolha(null)}
+        />
+      )}
+
+      {folha?.tipo === "excluir" && (
+        <Folha titulo="Excluir a turma?" onFechar={() => setFolha(null)}>
+          <p className="text-sm text-muted-foreground">
+            A turma some do app, com o ranking e a lista de jogadores, e não dá pra desfazer.
+          </p>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+            <li>
+              {finalizadas === 0
+                ? "Nenhuma pelada já jogada pra guardar."
+                : `${finalizadas} ${finalizadas === 1 ? "pelada já jogada continua" : "peladas já jogadas continuam"} no histórico de quem jogou, com placar, gols, avaliações e XP.`}
+            </li>
+            <li>
+              {porJogar === 0
+                ? "Nenhuma pelada agendada pra apagar."
+                : `${porJogar} ${porJogar === 1 ? "pelada que ainda não aconteceu é apagada" : "peladas que ainda não aconteceram são apagadas"}.`}
+            </li>
+          </ul>
+          <p className="text-sm text-foreground">
+            Pra confirmar, escreva o nome da turma: <span className="font-bold">{dados.nome}</span>
+          </p>
+          <Input
+            value={nomeConfirmado}
+            onChange={(e) => setNomeConfirmado(e.target.value)}
+            aria-label="Nome da turma"
+            autoCapitalize="none"
+            autoCorrect="off"
+          />
+          <Button
+            variant="destructive"
+            className="w-full"
+            disabled={
+              ocupado || nomeConfirmado.trim().toLowerCase() !== dados.nome.trim().toLowerCase()
+            }
+            onClick={excluirTurma}
+          >
+            Excluir turma
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => setFolha(null)}>
+            Cancelar
+          </Button>
         </Folha>
       )}
 

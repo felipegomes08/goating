@@ -62,7 +62,9 @@ function PlacarDaPelada() {
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const voltar = useVoltar(() => void navigate({ to: "/pelada/$id", params: { id } }));
+  const voltar = useVoltar(
+    () => void navigate({ to: "/pelada/$id", params: { id }, replace: true }),
+  );
 
   const consulta = useQuery({
     queryKey: ["placar", id, userId],
@@ -174,7 +176,7 @@ function PlacarDaPelada() {
   }
   if (!dados || !estado || !souOrganizador) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {consulta.isError
             ? "Não conseguimos carregar o placar."
@@ -193,6 +195,7 @@ function PlacarDaPelada() {
 
   const { pelada, elenco } = dados;
   const numTimes = pelada.num_times;
+  const jaComecou = new Date(`${pelada.data}T${pelada.horario}`).getTime() <= Date.now();
   const nomeTime = (time: number) => nomeDoTime(pelada.nomes_times, time);
   const nomeJogador = (memberId: string | null) =>
     memberId
@@ -396,6 +399,7 @@ function PlacarDaPelada() {
       <Link
         to="/pelada/$id/times"
         params={{ id }}
+        replace
         className="flex items-center gap-1 text-xs font-semibold text-mint"
       >
         <Users className="size-4" /> Editar times
@@ -415,7 +419,7 @@ function PlacarDaPelada() {
     const ultimo = encerrados.at(-1);
 
     return (
-      <div className="app-shell flex min-h-screen flex-col pb-28">
+      <div className="app-shell flex min-h-dvh flex-col">
         {cabecalho}
         <div className="space-y-4 p-4">
           <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
@@ -535,9 +539,15 @@ function PlacarDaPelada() {
 
         {encerrados.length > 0 && (
           <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
+            {!jaComecou && (
+              <p className="mb-2 text-center text-xs text-muted-foreground">
+                Dá pra finalizar a partir do horário da pelada ({pelada.horario.slice(0, 5)}).
+              </p>
+            )}
             <Button
               variant="outline"
               className="w-full"
+              disabled={!jaComecou}
               onClick={() => setFolha({ tipo: "finalizar" })}
             >
               <Flag className="mr-2 size-4" /> Finalizar pelada
@@ -575,7 +585,7 @@ function PlacarDaPelada() {
     folha?.tipo === "autor" ? atual.gols.find((g) => g.id === folha.golId) : undefined;
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-32">
+    <div className={cn("app-shell flex min-h-dvh flex-col", alarme && "pb-28")}>
       {cabecalho}
       <div className="space-y-4 p-4">
         <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">

@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 import { paraEscalaCard } from "@/lib/tiers";
 
 export const CHAVES_ATRIBUTOS = [
@@ -15,9 +16,24 @@ export type MediasAtributos = Record<ChaveAtributo, number>;
 
 type LinhaAvaliacao = { nota_geral: number } & Record<ChaveAtributo, number | null>;
 
-/** Colunas necessárias para `mediasAtributos` (usar no `.select()` de evaluations). */
-export const SELECT_ATRIBUTOS =
-  "nota_geral, chute, drible, velocidade, toque, posicionamento, comportamento, pontualidade";
+/**
+ * Médias do radar/carta de um jogador. Vêm prontas do banco (função `medias_do_jogador`):
+ * as avaliações são privadas, ninguém lê a nota que cada pessoa deu.
+ */
+export async function carregarMedias(userId: string): Promise<MediasAtributos> {
+  const { data, error } = await supabase.rpc("medias_do_jogador", { p_user_id: userId });
+  if (error) throw error;
+  const medias = data[0];
+  if (!medias || Number(medias.total) === 0 || medias.nota_geral === null) {
+    return { ...MEDIAS_ZERADAS };
+  }
+  const resultado = { ...MEDIAS_ZERADAS };
+  for (const chave of CHAVES_ATRIBUTOS) {
+    // atributo sem nenhuma avaliação detalhada mostra a média das notas gerais
+    resultado[chave] = paraEscalaCard(Number(medias[chave] ?? medias.nota_geral));
+  }
+  return resultado;
+}
 
 /**
  * Quantas avaliações detalhadas um atributo precisa para usar só elas.

@@ -47,6 +47,7 @@ export type Database = {
           id: string
           nome: string
           posicao: string | null
+          removido_em: string | null
           user_id: string | null
         }
         Insert: {
@@ -57,6 +58,7 @@ export type Database = {
           id?: string
           nome: string
           posicao?: string | null
+          removido_em?: string | null
           user_id?: string | null
         }
         Update: {
@@ -67,6 +69,7 @@ export type Database = {
           id?: string
           nome?: string
           posicao?: string | null
+          removido_em?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -88,20 +91,29 @@ export type Database = {
       }
       crews: {
         Row: {
+          capa_url: string | null
           criado_em: string
           dono_id: string
+          escudo_url: string | null
+          excluida_em: string | null
           id: string
           nome: string
         }
         Insert: {
+          capa_url?: string | null
           criado_em?: string
           dono_id: string
+          escudo_url?: string | null
+          excluida_em?: string | null
           id?: string
           nome: string
         }
         Update: {
+          capa_url?: string | null
           criado_em?: string
           dono_id?: string
+          escudo_url?: string | null
+          excluida_em?: string | null
           id?: string
           nome?: string
         }
@@ -476,6 +488,7 @@ export type Database = {
           horario_fim: string | null
           id: string
           local: string
+          local_link: string | null
           minutos_tempo: number
           mvp_id: string | null
           nomes_times: string[] | null
@@ -502,6 +515,7 @@ export type Database = {
           horario_fim?: string | null
           id?: string
           local: string
+          local_link?: string | null
           minutos_tempo?: number
           mvp_id?: string | null
           nomes_times?: string[] | null
@@ -528,6 +542,7 @@ export type Database = {
           horario_fim?: string | null
           id?: string
           local?: string
+          local_link?: string | null
           minutos_tempo?: number
           mvp_id?: string | null
           nomes_times?: string[] | null
@@ -573,7 +588,6 @@ export type Database = {
           cidade: string | null
           criado_em: string
           eh_convidado: boolean
-          email: string | null
           foto_url: string | null
           handle: string | null
           id: string
@@ -595,7 +609,6 @@ export type Database = {
           cidade?: string | null
           criado_em?: string
           eh_convidado?: boolean
-          email?: string | null
           foto_url?: string | null
           handle?: string | null
           id: string
@@ -617,7 +630,6 @@ export type Database = {
           cidade?: string | null
           criado_em?: string
           eh_convidado?: boolean
-          email?: string | null
           foto_url?: string | null
           handle?: string | null
           id?: string
@@ -707,6 +719,22 @@ export type Database = {
         Returns: boolean
       }
       reivindicar_tier: { Args: never; Returns: string }
+      excluir_turma: { Args: { p_crew_id: string }; Returns: undefined }
+      medias_do_jogador: {
+        Args: { p_user_id: string }
+        Returns: {
+          chute: number | null
+          comportamento: number | null
+          drible: number | null
+          nota_geral: number | null
+          pontualidade: number | null
+          posicionamento: number | null
+          toque: number | null
+          total: number
+          velocidade: number | null
+        }[]
+      }
+      remover_da_turma: { Args: { p_member_id: string }; Returns: undefined }
       sair_da_turma: { Args: { p_crew_id: string }; Returns: undefined }
       salvar_placar: {
         Args: { p_match_id: string; p_payload: Json }

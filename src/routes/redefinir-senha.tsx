@@ -113,7 +113,7 @@ function RedefinirSenha() {
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 className="mt-1"
               />
             </div>
@@ -125,7 +125,7 @@ function RedefinirSenha() {
                 value={confirmarSenha}
                 onChange={(e) => setConfirmarSenha(e.target.value)}
                 required
-                minLength={6}
+                minLength={8}
                 className="mt-1"
               />
             </div>

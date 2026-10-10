@@ -1,6 +1,7 @@
 /** Pôster do resumo da pelada e tabela do ranking: imagens prontas pra mandar no grupo. */
 
 import { LOGO } from "@/lib/logo";
+import { hostDoSite } from "@/lib/site";
 
 export type DadosDoPoster = {
   titulo: string;
@@ -15,28 +16,28 @@ export type DadosDoPoster = {
   foto?: Blob | null | undefined;
 };
 
-const LARGURA = 1080;
+export const LARGURA = 1080;
 const ALTURA = 1350;
 /** com foto o pôster cresce pra ela caber sem espremer o placar */
 const ALTURA_COM_FOTO = 2000;
 const ALTURA_DA_FOTO = 620;
-const MARGEM = 80;
+export const MARGEM = 80;
 const FONTE = "Poppins, system-ui, sans-serif";
 
 // Canvas não lê as variáveis de cor do tema: mesmas cores, em hexadecimal.
-const VERDE = "#0F3D2E";
-const VERDE_CLARO = "#17573F";
-const MENTA = "#7FE0A0";
-const OURO = "#E9BC4B";
-const BRANCO = "#FFFFFF";
-const APAGADO = "rgba(255,255,255,0.6)";
+export const VERDE = "#0F3D2E";
+export const VERDE_CLARO = "#17573F";
+export const MENTA = "#7FE0A0";
+export const OURO = "#E9BC4B";
+export const BRANCO = "#FFFFFF";
+export const APAGADO = "rgba(255,255,255,0.6)";
 
-type Ctx = CanvasRenderingContext2D;
+export type Ctx = CanvasRenderingContext2D;
 
-const fonte = (peso: number, tamanho: number) => `${peso} ${tamanho}px ${FONTE}`;
+export const fonte = (peso: number, tamanho: number) => `${peso} ${tamanho}px ${FONTE}`;
 
 /** Escreve diminuindo a letra até caber na largura. */
-function escrever(
+export function escrever(
   ctx: Ctx,
   texto: string,
   x: number,
@@ -66,7 +67,14 @@ function escrever(
   ctx.fillText(visivel, x, y);
 }
 
-function retanguloArredondado(ctx: Ctx, x: number, y: number, w: number, h: number, r: number) {
+export function retanguloArredondado(
+  ctx: Ctx,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, r);
   ctx.closePath();
@@ -109,7 +117,7 @@ function fundo(ctx: Ctx, altura: number, centroDoCirculo: number) {
 }
 
 /** Baixa a imagem como arquivo antes de desenhar: assim o canvas nunca fica "travado" pra exportar. */
-async function carregarImagem(url: string) {
+export async function carregarImagem(url: string) {
   try {
     const resposta = await fetch(url);
     if (!resposta.ok) return null;
@@ -120,7 +128,7 @@ async function carregarImagem(url: string) {
 }
 
 /** Logo do Goating no canto de cima. Se a imagem não carregar, vai o nome escrito. */
-async function desenharLogo(ctx: Ctx) {
+export async function desenharLogo(ctx: Ctx) {
   const [icone, letreiro] = await Promise.all([
     carregarImagem(LOGO.iconeBranco),
     carregarImagem(LOGO.letreiroBranco),
@@ -332,7 +340,7 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
     });
   }
 
-  escrever(ctx, window.location.host, meio, altura - 70, {
+  escrever(ctx, hostDoSite(), meio, altura - 70, {
     peso: 600,
     tamanho: 26,
     cor: APAGADO,
@@ -472,7 +480,7 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
     rodape,
     { peso: 600, tamanho: 24, cor: APAGADO, largura: util, alinhar: "center" },
   );
-  escrever(ctx, window.location.host, LARGURA / 2, altura - 60, {
+  escrever(ctx, hostDoSite(), LARGURA / 2, altura - 60, {
     peso: 600,
     tamanho: 26,
     cor: APAGADO,
@@ -483,7 +491,7 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
   return canvas;
 }
 
-async function paraArquivo(canvas: HTMLCanvasElement) {
+export async function paraArquivo(canvas: HTMLCanvasElement) {
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("Não deu pra gerar a imagem.");
   return blob;

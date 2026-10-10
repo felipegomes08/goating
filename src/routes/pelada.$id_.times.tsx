@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ClipboardPaste,
   Minus,
+  Pencil,
   Play,
   Plus,
   Share2,
@@ -20,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
+import { FolhaNome } from "@/components/goating/folha-nome";
 import { QuadroTimes } from "@/components/goating/quadro-times";
 import { cn } from "@/lib/utils";
 import {
@@ -54,7 +56,9 @@ function TimesDaPelada() {
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const voltar = useVoltar(() => void navigate({ to: "/pelada/$id", params: { id } }));
+  const voltar = useVoltar(
+    () => void navigate({ to: "/pelada/$id", params: { id }, replace: true }),
+  );
 
   const consulta = useQuery({
     queryKey: ["pelada-times", id, userId],
@@ -80,6 +84,7 @@ function TimesDaPelada() {
   });
   const [texto, setTexto] = useState("");
   const [ocupado, setOcupado] = useState(false);
+  const [renomeando, setRenomeando] = useState<{ memberId: string; nome: string } | null>(null);
 
   const dados = consulta.data;
   useEffect(() => {
@@ -101,7 +106,7 @@ function TimesDaPelada() {
   }
   if (!dados?.souOrganizador) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           {consulta.isError
             ? "Não conseguimos carregar os times."
@@ -210,6 +215,18 @@ function TimesDaPelada() {
     setJogadores((lista) => lista.map((j) => (j.memberId === memberId ? { ...j, ...mudanca } : j)));
     const { error } = await supabase.from("crew_members").update(mudanca).eq("id", memberId);
     if (error) toast.error("Não deu pra salvar esse jogador.");
+  }
+
+  /** Corrige o nome (lista colada veio com erro). Vale pra turma inteira. */
+  async function renomear(memberId: string, nome: string) {
+    const { error } = await supabase.from("crew_members").update({ nome }).eq("id", memberId);
+    if (error) {
+      toast.error("Não deu pra mudar o nome.");
+      return false;
+    }
+    setJogadores((lista) => lista.map((j) => (j.memberId === memberId ? { ...j, nome } : j)));
+    setMembros((lista) => lista.map((m) => (m.id === memberId ? { ...m, nome } : m)));
+    return true;
   }
 
   async function remover(memberId: string) {
@@ -357,11 +374,12 @@ function TimesDaPelada() {
 
   async function iniciar() {
     await queryClient.invalidateQueries({ queryKey: ["placar", id] });
-    await navigate({ to: "/pelada/$id/placar", params: { id } });
+    // o placar ocupa o lugar dessa tela no histórico: "voltar" de lá cai na pelada, não aqui
+    await navigate({ to: "/pelada/$id/placar", params: { id }, replace: true });
   }
 
   return (
-    <div className="app-shell flex min-h-screen flex-col pb-28">
+    <div className="app-shell flex min-h-dvh flex-col">
       <header className="bg-primary px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Voltar" onClick={voltar}>
@@ -451,9 +469,17 @@ function TimesDaPelada() {
                 .sort((a, b) => a.nome.localeCompare(b.nome))
                 .map((j) => (
                   <div key={j.memberId} className="flex items-center gap-2 px-3 py-2">
-                    <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-                      {j.nome}
-                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Corrigir o nome de ${j.nome}`}
+                      onClick={() => setRenomeando({ memberId: j.memberId, nome: j.nome })}
+                      className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                    >
+                      <span className="truncate text-sm font-semibold text-foreground">
+                        {j.nome}
+                      </span>
+                      <Pencil className="size-3 shrink-0 text-muted-foreground" />
+                    </button>
                     <select
                       aria-label={`Posição de ${j.nome}`}
                       value={j.posicao ?? ""}
@@ -569,6 +595,14 @@ function TimesDaPelada() {
           <Play className="mr-2 size-4" /> Iniciar partida
         </Button>
       </div>
+
+      {renomeando && (
+        <FolhaNome
+          nomeAtual={renomeando.nome}
+          onSalvar={(nome) => renomear(renomeando.memberId, nome)}
+          onFechar={() => setRenomeando(null)}
+        />
+      )}
     </div>
   );
 }

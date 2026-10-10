@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { traduzirErroAuth } from "@/lib/auth-erros";
+import { CAPTCHA_LIGADO, Captcha, comCaptcha } from "@/components/goating/captcha";
 import { GoatingLogo } from "@/components/goating/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,8 @@ function Convite() {
   const [mostrarConvidado, setMostrarConvidado] = useState(false);
   const [nomeConvidado, setNomeConvidado] = useState("");
   const [enviandoConvidado, setEnviandoConvidado] = useState(false);
+  const [comprovante, setComprovante] = useState<string | null>(null);
+  const [rodada, setRodada] = useState(0);
 
   const consulta = useQuery({
     queryKey: ["convite", token],
@@ -93,7 +96,7 @@ function Convite() {
     setEnviandoConvidado(true);
     try {
       const { data: sessao, error: erroAuth } = await supabase.auth.signInAnonymously({
-        options: { data: { nome_exibicao: nomeConvidado.trim() } },
+        options: { data: { nome_exibicao: nomeConvidado.trim() }, ...comCaptcha(comprovante) },
       });
       if (erroAuth) throw erroAuth;
       const uid = sessao.user?.id;
@@ -120,12 +123,13 @@ function Convite() {
       toast.error(traduzirErroAuth(err));
     } finally {
       setEnviandoConvidado(false);
+      setRodada((r) => r + 1);
     }
   }
 
   if (consulta.isLoading || carregando) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 bg-primary p-6">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 bg-primary p-6">
         <GoatingLogo withWordmark />
         <Skeleton className="h-64 w-full max-w-xs rounded-2xl" />
       </div>
@@ -134,7 +138,7 @@ function Convite() {
 
   if (consulta.isError || !info) {
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 bg-primary p-6 text-center">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 bg-primary p-6 text-center">
         <GoatingLogo withWordmark />
         <p className="text-sm text-primary-foreground/70">
           Esse link de convite não é mais válido.
@@ -149,7 +153,7 @@ function Convite() {
   if (userId) {
     // Redirecionando (efeito acima já disparou). Evita piscar a tela de convite.
     return (
-      <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 bg-primary p-6">
+      <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-4 bg-primary p-6">
         <GoatingLogo withWordmark />
         <Skeleton className="h-24 w-full max-w-xs rounded-2xl" />
       </div>
@@ -160,7 +164,7 @@ function Convite() {
   const lotado = info.confirmados >= info.quantidade_vagas;
 
   return (
-    <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-5 bg-primary p-6">
+    <div className="app-shell flex min-h-dvh flex-col items-center justify-center gap-5 bg-primary p-6">
       <GoatingLogo withWordmark />
 
       <div className="w-full max-w-xs rounded-2xl bg-card p-5 shadow-[var(--shadow-card)]">
@@ -246,9 +250,12 @@ function Convite() {
                 className="mt-1"
               />
             </div>
+            <Captcha key={rodada} onComprovante={setComprovante} />
             <Button
               type="submit"
-              disabled={enviandoConvidado || !nomeConvidado.trim()}
+              disabled={
+                enviandoConvidado || !nomeConvidado.trim() || (CAPTCHA_LIGADO && !comprovante)
+              }
               className="w-full"
             >
               {aberta ? "Confirmar presença" : "Solicitar entrada"}

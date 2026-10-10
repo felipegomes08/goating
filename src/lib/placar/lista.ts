@@ -18,6 +18,7 @@ function limparNome(bruto: string) {
     .replace(/^\d+\s*[-.)º°:]?\s*/, "")
     .replace(/\([^)]*\)/g, "")
     .replace(/[*_~]/g, "")
+    .replace(/[\s\-–—•·>.,:;/|]+$/, "")
     .replace(/\s+/g, " ")
     .trim();
 }
