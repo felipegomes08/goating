@@ -718,6 +718,7 @@ export type Database = {
         Returns: boolean
       }
       reivindicar_tier: { Args: never; Returns: string }
+      excluir_minha_conta: { Args: never; Returns: undefined }
       excluir_turma: { Args: { p_crew_id: string }; Returns: undefined }
       medias_do_jogador: {
         Args: { p_user_id: string }

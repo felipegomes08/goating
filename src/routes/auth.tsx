@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -290,9 +290,12 @@ function AuthPage() {
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               required
-              minLength={6}
+              minLength={modo === "criar" ? 8 : 1}
               className="mt-1"
             />
+            {modo === "criar" && (
+              <p className="mt-1 text-xs text-muted-foreground">Pelo menos 8 caracteres.</p>
+            )}
           </div>
 
           {modo === "entrar" && (
@@ -311,6 +314,15 @@ function AuthPage() {
           <Button type="submit" disabled={carregando || faltaCaptcha} className="w-full">
             {modo === "entrar" ? "Entrar" : "Criar conta"}
           </Button>
+          {modo === "criar" && (
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Ao criar a conta você concorda com a{" "}
+              <Link to="/privacidade" className="font-semibold underline">
+                política de privacidade
+              </Link>
+              .
+            </p>
+          )}
         </form>
       )}
     </div>

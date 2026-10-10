@@ -7,6 +7,12 @@ import type { Ponto } from "@/lib/local";
 // O mapa é o Leaflet com as imagens do OpenStreetMap: os dois são gratuitos e não pedem chave.
 // A biblioteca só é baixada quando alguém abre essa folha.
 const LEAFLET = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4";
+// Assinatura dos dois arquivos (publicada pelo cdnjs pra essa versão). Se o conteúdo que
+// chegar for diferente, o navegador se recusa a usar: ninguém troca a biblioteca no caminho.
+const INTEGRIDADE = {
+  js: "sha512-puJW3E/qXDqYp9IfhAI54BJEaWIfloJ7JWs7OeD5i6ruC9JZL1gERT1wjtwXFlh7CjE7ZJ+/vcRZRkIYIb6p4g==",
+  css: "sha512-h9FcoyWjHcOcmEVkxOfTLnmZFWIH0iZhZT1H2TbOq55xssQGEJHEaIm+PgoUaZbRvQTNTluNOEfb1ZRy6D3BOw==",
+};
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let carregando: Promise<any> | null = null;
@@ -18,9 +24,13 @@ function carregarLeaflet(): Promise<any> {
     const estilo = document.createElement("link");
     estilo.rel = "stylesheet";
     estilo.href = `${LEAFLET}/leaflet.min.css`;
+    estilo.integrity = INTEGRIDADE.css;
+    estilo.crossOrigin = "anonymous";
     document.head.appendChild(estilo);
     const script = document.createElement("script");
     script.src = `${LEAFLET}/leaflet.min.js`;
+    script.integrity = INTEGRIDADE.js;
+    script.crossOrigin = "anonymous";
     script.onload = () => resolve((window as any).L);
     script.onerror = () => {
       carregando = null;
