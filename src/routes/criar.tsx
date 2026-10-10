@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { CampoHorario } from "@/components/goating/campo-horario";
+import { CampoLocalizacao, problemaDoLink } from "@/components/goating/campo-localizacao";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import {
   CONFIG_PADRAO,
@@ -66,6 +67,7 @@ function CriarPelada() {
   const [horarioFimTocado, setHorarioFimTocado] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [local, setLocal] = useState("");
+  const [localLink, setLocalLink] = useState("");
   const [cidade, setCidade] = useState("");
   const [vagas, setVagas] = useState(10);
   const [tipo, setTipo] = useState<"aberta" | "fechada">("aberta");
@@ -120,7 +122,13 @@ function CriarPelada() {
   const valido =
     modo === "agora"
       ? !!titulo.trim()
-      : titulo.trim() && data && horario && local.trim() && cidadeFinal.trim() && !problemaHorario;
+      : titulo.trim() &&
+        data &&
+        horario &&
+        local.trim() &&
+        cidadeFinal.trim() &&
+        !problemaHorario &&
+        !problemaDoLink(localLink);
 
   // As estatísticas somam por turma: mesmo título de antes cai na mesma turma.
   const turmaDoTitulo = (turmas.data ?? []).find((t) => chaveNome(t.nome) === chaveNome(titulo));
@@ -189,6 +197,7 @@ function CriarPelada() {
                   horario_fim: horarioFim,
                   descricao: descricao.trim() || null,
                   local: local.trim(),
+                  local_link: localLink.trim() || null,
                   cidade: cidadeFinal.trim(),
                   quantidade_vagas: vagas,
                   tipo,
@@ -459,6 +468,8 @@ function CriarPelada() {
                 className="mt-1"
               />
             </div>
+
+            <CampoLocalizacao valor={localLink} onMudar={setLocalLink} cidade={cidadeFinal} />
 
             <div>
               <Label>Cidade</Label>

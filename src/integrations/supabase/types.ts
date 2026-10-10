@@ -488,6 +488,7 @@ export type Database = {
           horario_fim: string | null
           id: string
           local: string
+          local_link: string | null
           minutos_tempo: number
           mvp_id: string | null
           nomes_times: string[] | null
@@ -514,6 +515,7 @@ export type Database = {
           horario_fim?: string | null
           id?: string
           local: string
+          local_link?: string | null
           minutos_tempo?: number
           mvp_id?: string | null
           nomes_times?: string[] | null
@@ -540,6 +542,7 @@ export type Database = {
           horario_fim?: string | null
           id?: string
           local?: string
+          local_link?: string | null
           minutos_tempo?: number
           mvp_id?: string | null
           nomes_times?: string[] | null

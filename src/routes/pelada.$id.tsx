@@ -32,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { podeGerirPelada } from "@/lib/placar/dados";
 import { tierPorNome } from "@/lib/tiers";
+import { destinosDoLocal } from "@/lib/local";
 import { TierBadge } from "@/components/goating/tier-badge";
 
 export const Route = createFileRoute("/pelada/$id")({
@@ -109,6 +110,7 @@ function DetalhePelada() {
   const voltar = useVoltar(() => void navigate({ to: "/", replace: true }));
   const [ocupado, setOcupado] = useState(false);
   const [confirmandoApagar, setConfirmandoApagar] = useState(false);
+  const [escolhendoRota, setEscolhendoRota] = useState(false);
 
   const consulta = useQuery({
     queryKey: ["pelada", id, userId],
@@ -226,6 +228,7 @@ function DetalhePelada() {
   const finalizada = pelada.status === "finalizada";
   const emAndamento = pelada.status === "em_andamento";
   const temPlacar = !!pelada.placar_finalizado_em;
+  const destinos = destinosDoLocal(pelada);
   // finalizar só faz sentido depois que a pelada começou
   const jaComecou = new Date(`${pelada.data}T${pelada.horario}`).getTime() <= Date.now();
   const mvpNome = pelada.mvp_id
@@ -352,10 +355,21 @@ function DetalhePelada() {
               {dataLonga(pelada.data, pelada.horario, pelada.horario_fim)}
             </span>
           </p>
-          <p className="flex items-center gap-2 px-4 py-3 text-sm text-foreground">
-            <MapPin className="size-4 text-muted-foreground" />
-            {pelada.local} · {pelada.cidade}
-          </p>
+          {/* tocar no local abre a rota: direto no link do organizador, ou escolhendo Maps/Waze */}
+          <button
+            type="button"
+            onClick={() => {
+              if (destinos.direto) window.open(destinos.direto, "_blank", "noopener,noreferrer");
+              else setEscolhendoRota(true);
+            }}
+            className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-foreground active:bg-secondary/60"
+          >
+            <MapPin className="size-4 shrink-0 text-primary" />
+            <span className="min-w-0 flex-1">
+              {pelada.local} · {pelada.cidade}
+            </span>
+            <span className="shrink-0 text-xs font-semibold text-primary">Como chegar</span>
+          </button>
           <p className="flex items-center gap-2 px-4 py-3 text-sm text-foreground">
             {finalizada ? (
               <Flag className="size-4 text-destructive" />
@@ -481,11 +495,14 @@ function DetalhePelada() {
                       )}
                     </p>
                     {tier && (
+                      // a cor do tier é clara demais pra texto em fundo branco (Lendário é
+                      // quase branco): o texto leva a mesma cor, só que escurecida
                       <span
-                        className={cn(
-                          "mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold",
-                          tier.chipClass,
-                        )}
+                        className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        style={{
+                          background: `color-mix(in oklch, ${tier.destaque} 18%, transparent)`,
+                          color: `color-mix(in oklch, ${tier.destaque} 55%, black)`,
+                        }}
                       >
                         {tier.nome}
                       </span>
@@ -651,6 +668,55 @@ function DetalhePelada() {
           </Button>
         )}
       </div>
+
+      {escolhendoRota && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEscolhendoRota(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-label="Como chegar"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+          >
+            <h2 className="text-lg font-extrabold text-foreground">Como chegar</h2>
+            <p className="text-sm text-muted-foreground">
+              {pelada.local} · {pelada.cidade}
+              {!pelada.local_link &&
+                ". O organizador não marcou o ponto: a busca é pelo nome do local."}
+            </p>
+            {destinos.maps && (
+              <Button asChild className="w-full">
+                <a
+                  href={destinos.maps}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setEscolhendoRota(false)}
+                >
+                  Abrir no Google Maps
+                </a>
+              </Button>
+            )}
+            {destinos.waze && (
+              <Button asChild variant="outline" className="w-full">
+                <a
+                  href={destinos.waze}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setEscolhendoRota(false)}
+                >
+                  Abrir no Waze
+                </a>
+              </Button>
+            )}
+            <Button variant="ghost" className="w-full" onClick={() => setEscolhendoRota(false)}>
+              Fechar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {confirmandoApagar && (
         <div

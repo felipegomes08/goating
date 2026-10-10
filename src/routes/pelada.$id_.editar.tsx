@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useVoltar } from "@/hooks/use-voltar";
 import { CampoHorario } from "@/components/goating/campo-horario";
+import { CampoLocalizacao, problemaDoLink } from "@/components/goating/campo-localizacao";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import {
   CONFIG_PADRAO,
@@ -80,6 +81,7 @@ function EditarPelada() {
   const [horarioFim, setHorarioFim] = useState("20:30");
   const [descricao, setDescricao] = useState("");
   const [local, setLocal] = useState("");
+  const [localLink, setLocalLink] = useState("");
   const [cidade, setCidade] = useState("");
   const [vagas, setVagas] = useState(10);
   const [tipo, setTipo] = useState<"aberta" | "fechada">("aberta");
@@ -97,6 +99,7 @@ function EditarPelada() {
     setHorarioFim((p.horario_fim ?? p.horario).slice(0, 5));
     setDescricao(p.descricao ?? "");
     setLocal(p.local);
+    setLocalLink(p.local_link ?? "");
     setCidade(p.cidade);
     setVagas(p.quantidade_vagas);
     setTipo(p.tipo === "fechada" ? "fechada" : "aberta");
@@ -142,7 +145,13 @@ function EditarPelada() {
         : duracaoMin < 60
           ? "A pelada precisa ter pelo menos 1 hora."
           : null;
-  const valido = titulo.trim() && data && local.trim() && cidade.trim() && !problemaHorario;
+  const valido =
+    titulo.trim() &&
+    data &&
+    local.trim() &&
+    cidade.trim() &&
+    !problemaHorario &&
+    !problemaDoLink(localLink);
 
   async function salvar() {
     if (!valido) return;
@@ -153,6 +162,7 @@ function EditarPelada() {
       horario_fim: horarioFim,
       descricao: descricao.trim() || null,
       local: local.trim(),
+      local_link: localLink.trim() || null,
       cidade: cidade.trim(),
       quantidade_vagas: vagas,
       tipo,
@@ -262,6 +272,8 @@ function EditarPelada() {
             className="mt-1"
           />
         </div>
+
+        <CampoLocalizacao valor={localLink} onMudar={setLocalLink} cidade={cidade} />
 
         <div>
           <Label>Cidade</Label>
