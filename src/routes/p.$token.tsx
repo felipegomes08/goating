@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { traduzirErroAuth } from "@/lib/auth-erros";
+import { CAPTCHA_LIGADO, Captcha, comCaptcha } from "@/components/goating/captcha";
 import { GoatingLogo } from "@/components/goating/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,8 @@ function Convite() {
   const [mostrarConvidado, setMostrarConvidado] = useState(false);
   const [nomeConvidado, setNomeConvidado] = useState("");
   const [enviandoConvidado, setEnviandoConvidado] = useState(false);
+  const [comprovante, setComprovante] = useState<string | null>(null);
+  const [rodada, setRodada] = useState(0);
 
   const consulta = useQuery({
     queryKey: ["convite", token],
@@ -93,7 +96,7 @@ function Convite() {
     setEnviandoConvidado(true);
     try {
       const { data: sessao, error: erroAuth } = await supabase.auth.signInAnonymously({
-        options: { data: { nome_exibicao: nomeConvidado.trim() } },
+        options: { data: { nome_exibicao: nomeConvidado.trim() }, ...comCaptcha(comprovante) },
       });
       if (erroAuth) throw erroAuth;
       const uid = sessao.user?.id;
@@ -120,6 +123,7 @@ function Convite() {
       toast.error(traduzirErroAuth(err));
     } finally {
       setEnviandoConvidado(false);
+      setRodada((r) => r + 1);
     }
   }
 
@@ -246,9 +250,12 @@ function Convite() {
                 className="mt-1"
               />
             </div>
+            <Captcha key={rodada} onComprovante={setComprovante} />
             <Button
               type="submit"
-              disabled={enviandoConvidado || !nomeConvidado.trim()}
+              disabled={
+                enviandoConvidado || !nomeConvidado.trim() || (CAPTCHA_LIGADO && !comprovante)
+              }
               className="w-full"
             >
               {aberta ? "Confirmar presença" : "Solicitar entrada"}

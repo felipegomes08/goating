@@ -4,6 +4,7 @@ import { MailCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { traduzirErroAuth } from "@/lib/auth-erros";
+import { CAPTCHA_LIGADO, Captcha, comCaptcha } from "@/components/goating/captcha";
 import { GoatingLogo } from "@/components/goating/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +42,11 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [carregando, setCarregando] = useState(false);
+  // comprovante do "não sou um robô": vale pra uma tentativa; a rodada nova pede outro
+  const [comprovante, setComprovante] = useState<string | null>(null);
+  const [rodada, setRodada] = useState(0);
+  const faltaCaptcha = CAPTCHA_LIGADO && !comprovante;
+  const novaRodada = () => setRodada((r) => r + 1);
 
   const destino = search?.convite
     ? `/p/${search.convite}`
@@ -54,6 +60,7 @@ function AuthPage() {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/redefinir-senha`,
+        ...comCaptcha(comprovante),
       });
       if (error) throw error;
       toast.success("Se esse e-mail tiver conta, mandamos um link pra redefinir a senha.");
@@ -62,6 +69,7 @@ function AuthPage() {
       toast.error(traduzirErroAuth(err));
     } finally {
       setCarregando(false);
+      novaRodada();
     }
   }
 
@@ -69,7 +77,11 @@ function AuthPage() {
   async function entrarDepoisDeConfirmar() {
     setCarregando(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: senha,
+        options: comCaptcha(comprovante),
+      });
       if (error) throw error;
       toast.success("Conta confirmada. Bem-vindo ao Goating!");
       navigate({ to: destino, replace: true });
@@ -81,6 +93,7 @@ function AuthPage() {
       );
     } finally {
       setCarregando(false);
+      novaRodada();
     }
   }
 
@@ -90,7 +103,7 @@ function AuthPage() {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: window.location.origin, ...comCaptcha(comprovante) },
       });
       if (error) throw error;
       toast.success("Mandamos o e-mail de novo.");
@@ -98,6 +111,7 @@ function AuthPage() {
       toast.error(traduzirErroAuth(err));
     } finally {
       setCarregando(false);
+      novaRodada();
     }
   }
 
@@ -112,6 +126,7 @@ function AuthPage() {
           options: {
             emailRedirectTo: window.location.origin,
             data: { nome_exibicao: nome },
+            ...comCaptcha(comprovante),
           },
         });
         if (error) throw error;
@@ -123,7 +138,11 @@ function AuthPage() {
         toast.success("Conta criada. Bem-vindo ao Goating!");
         navigate({ to: destino, replace: true });
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password: senha,
+          options: comCaptcha(comprovante),
+        });
         if (error) throw error;
         navigate({ to: destino, replace: true });
       }
@@ -131,6 +150,7 @@ function AuthPage() {
       toast.error(traduzirErroAuth(err));
     } finally {
       setCarregando(false);
+      novaRodada();
     }
   }
 
@@ -159,13 +179,20 @@ function AuthPage() {
           <p className="mt-2 text-xs text-muted-foreground">
             Não achou? Olha na caixa de spam ou promoções.
           </p>
-          <Button className="mt-5 w-full" disabled={carregando} onClick={entrarDepoisDeConfirmar}>
+          <div className="mt-4">
+            <Captcha key={`confirmar-${rodada}`} onComprovante={setComprovante} />
+          </div>
+          <Button
+            className="mt-3 w-full"
+            disabled={carregando || faltaCaptcha}
+            onClick={entrarDepoisDeConfirmar}
+          >
             Já confirmei, entrar
           </Button>
           <Button
             variant="outline"
             className="mt-2 w-full"
-            disabled={carregando}
+            disabled={carregando || faltaCaptcha}
             onClick={reenviarConfirmacao}
           >
             Reenviar e-mail
@@ -197,7 +224,10 @@ function AuthPage() {
               className="mt-1"
             />
           </div>
-          <Button type="submit" disabled={carregando} className="w-full">
+          <div className="mb-3">
+            <Captcha key={`recuperar-${rodada}`} onComprovante={setComprovante} />
+          </div>
+          <Button type="submit" disabled={carregando || faltaCaptcha} className="w-full">
             Enviar link de recuperação
           </Button>
           <button
@@ -275,7 +305,10 @@ function AuthPage() {
             </button>
           )}
 
-          <Button type="submit" disabled={carregando} className="w-full">
+          <div className="mb-3">
+            <Captcha key={`${modo}-${rodada}`} onComprovante={setComprovante} />
+          </div>
+          <Button type="submit" disabled={carregando || faltaCaptcha} className="w-full">
             {modo === "entrar" ? "Entrar" : "Criar conta"}
           </Button>
         </form>

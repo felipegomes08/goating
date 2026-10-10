@@ -588,7 +588,6 @@ export type Database = {
           cidade: string | null
           criado_em: string
           eh_convidado: boolean
-          email: string | null
           foto_url: string | null
           handle: string | null
           id: string
@@ -610,7 +609,6 @@ export type Database = {
           cidade?: string | null
           criado_em?: string
           eh_convidado?: boolean
-          email?: string | null
           foto_url?: string | null
           handle?: string | null
           id: string
@@ -632,7 +630,6 @@ export type Database = {
           cidade?: string | null
           criado_em?: string
           eh_convidado?: boolean
-          email?: string | null
           foto_url?: string | null
           handle?: string | null
           id?: string

@@ -24,7 +24,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAvatarUrl } from "@/hooks/use-avatar";
-import { useSession } from "@/hooks/use-session";
+import { usePerfil, useSession } from "@/hooks/use-session";
 import { useVoltar } from "@/hooks/use-voltar";
 import { Button } from "@/components/ui/button";
 import { avaliouTodos } from "@/components/goating/match-card";
@@ -106,6 +106,9 @@ function DetalhePelada() {
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // convidado (entrou pelo link, sem conta) joga mas não avalia
+  const souConvidado = usePerfil(userId).data?.eh_convidado === true;
 
   const voltar = useVoltar(() => void navigate({ to: "/", replace: true }));
   const [ocupado, setOcupado] = useState(false);
@@ -311,13 +314,13 @@ function DetalhePelada() {
 
   async function finalizar() {
     setOcupado(true);
-    const { error } = await supabase
-      .from("matches")
-      .update({ status: "finalizada", finalizada_em: new Date().toISOString() })
-      .eq("id", id);
+    const { error } = await supabase.from("matches").update({ status: "finalizada" }).eq("id", id);
     setOcupado(false);
     if (error) {
-      toast.error("Não deu pra finalizar a pelada.");
+      // as recusas do banco já vêm em português e dizem o motivo (ex.: ainda não deu o horário)
+      toast.error(
+        /[áéíóúãõç]/i.test(error.message) ? error.message : "Não deu pra finalizar a pelada.",
+      );
       return;
     }
     toast.success("Pelada finalizada! Agora todo mundo pode avaliar por 24h.");
@@ -579,7 +582,11 @@ function DetalhePelada() {
           </Button>
         )}
         {finalizada ? (
-          dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 && jaAvaliei ? (
+          dentroDaJanela && eu?.status === "aprovado" && souConvidado ? (
+            <p className="text-center text-xs text-muted-foreground">
+              Pra avaliar a galera você precisa de uma conta. Convidado só joga.
+            </p>
+          ) : dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 && jaAvaliei ? (
             <>
               <p className="flex items-center justify-center gap-1.5 text-center text-xs font-medium text-primary">
                 <CheckCheck className="size-4" />
