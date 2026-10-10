@@ -70,6 +70,7 @@ function PaginaDaTurma() {
     | { tipo: "entrar" }
     | { tipo: "sair" }
     | { tipo: "vincular"; memberId: string; nome: string }
+    | { tipo: "remover"; memberId: string; nome: string; jaJogou: boolean }
     | null
   >(null);
 
@@ -83,6 +84,7 @@ function PaginaDaTurma() {
           .from("crew_members")
           .select("id, user_id, nome, admin")
           .eq("crew_id", id)
+          .is("removido_em", null)
           .order("nome"),
         supabase
           .from("matches")
@@ -96,7 +98,7 @@ function PaginaDaTurma() {
       if (peladasRes.error) throw peladasRes.error;
       if (!turmaRes.data) return null;
 
-      // quem já jogou não pode ser apagado da turma (levaria o histórico junto)
+      // quem já jogou sai da turma mas as peladas antigas continuam com ele; o aviso muda
       const ids = membrosRes.data.map((m) => m.id);
       const { data: comJogo } = ids.length
         ? await supabase.from("match_players").select("member_id").in("member_id", ids)
@@ -234,7 +236,7 @@ function PaginaDaTurma() {
 
   const remover = (memberId: string, nome: string) =>
     executar(
-      () => supabase.from("crew_members").delete().eq("id", memberId),
+      () => supabase.rpc("remover_da_turma", { p_member_id: memberId }),
       `${nome} saiu da turma.`,
       "Não deu pra tirar esse jogador.",
     );
@@ -490,14 +492,21 @@ function PaginaDaTurma() {
                       </button>
                     )}
                     {souGestor &&
-                      !m.jaJogou &&
                       m.user_id !== userId &&
-                      m.user_id !== dados.dono_id && (
+                      m.user_id !== dados.dono_id &&
+                      (souDono || !m.admin) && (
                         <button
                           type="button"
                           aria-label={`Tirar ${m.nome} da turma`}
                           disabled={ocupado}
-                          onClick={() => remover(m.id, m.nome)}
+                          onClick={() =>
+                            setFolha({
+                              tipo: "remover",
+                              memberId: m.id,
+                              nome: m.nome,
+                              jaJogou: m.jaJogou,
+                            })
+                          }
                           className="flex size-8 items-center justify-center rounded-lg text-muted-foreground"
                         >
                           <X className="size-4" />
@@ -583,6 +592,27 @@ function PaginaDaTurma() {
             ocupado={ocupado}
             onEscolher={(perfil) => vincular(folha.memberId, perfil)}
           />
+        </Folha>
+      )}
+
+      {folha?.tipo === "remover" && (
+        <Folha titulo={`Tirar ${folha.nome} da turma?`} onFechar={() => setFolha(null)}>
+          <p className="text-sm text-muted-foreground">
+            {folha.jaJogou
+              ? "Sai da lista de jogadores e do ranking. As peladas que já aconteceram continuam como foram. Se o nome voltar numa lista, o jogador volta pra turma com os gols e vitórias que tinha."
+              : "Esse jogador ainda não jogou nenhuma pelada da turma: sai sem deixar nada pra trás."}
+          </p>
+          <Button
+            variant="destructive"
+            className="w-full"
+            disabled={ocupado}
+            onClick={() => remover(folha.memberId, folha.nome)}
+          >
+            Tirar da turma
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => setFolha(null)}>
+            Cancelar
+          </Button>
         </Folha>
       )}
 

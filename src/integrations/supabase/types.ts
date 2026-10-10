@@ -47,6 +47,7 @@ export type Database = {
           id: string
           nome: string
           posicao: string | null
+          removido_em: string | null
           user_id: string | null
         }
         Insert: {
@@ -57,6 +58,7 @@ export type Database = {
           id?: string
           nome: string
           posicao?: string | null
+          removido_em?: string | null
           user_id?: string | null
         }
         Update: {
@@ -67,6 +69,7 @@ export type Database = {
           id?: string
           nome?: string
           posicao?: string | null
+          removido_em?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -706,6 +709,7 @@ export type Database = {
         Returns: boolean
       }
       reivindicar_tier: { Args: never; Returns: string }
+      remover_da_turma: { Args: { p_member_id: string }; Returns: undefined }
       sair_da_turma: { Args: { p_crew_id: string }; Returns: undefined }
       salvar_placar: {
         Args: { p_match_id: string; p_payload: Json }
