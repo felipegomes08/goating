@@ -719,6 +719,20 @@ export type Database = {
       }
       reivindicar_tier: { Args: never; Returns: string }
       excluir_turma: { Args: { p_crew_id: string }; Returns: undefined }
+      medias_do_jogador: {
+        Args: { p_user_id: string }
+        Returns: {
+          chute: number | null
+          comportamento: number | null
+          drible: number | null
+          nota_geral: number | null
+          pontualidade: number | null
+          posicionamento: number | null
+          toque: number | null
+          total: number
+          velocidade: number | null
+        }[]
+      }
       remover_da_turma: { Args: { p_member_id: string }; Returns: undefined }
       sair_da_turma: { Args: { p_crew_id: string }; Returns: undefined }
       salvar_placar: {

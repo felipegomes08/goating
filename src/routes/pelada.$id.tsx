@@ -299,10 +299,22 @@ function DetalhePelada() {
 
   async function apagar() {
     setOcupado(true);
-    const { error } = await supabase.from("matches").delete().eq("id", id);
+    const { data: apagadas, error } = await supabase
+      .from("matches")
+      .delete()
+      .eq("id", id)
+      .select("id");
     setOcupado(false);
     if (error) {
       toast.error("Não deu pra apagar a pelada.");
+      return;
+    }
+    if (apagadas.length === 0) {
+      // o banco recusa em silêncio: a pelada foi finalizada com mais gente com conta nela
+      toast.error(
+        "Essa pelada já foi finalizada com outros jogadores. Apagar tiraria o XP e as notas deles.",
+      );
+      setConfirmandoApagar(false);
       return;
     }
     toast.success("Pelada apagada.");

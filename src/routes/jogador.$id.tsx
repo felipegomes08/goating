@@ -10,7 +10,7 @@ import { useAvatarUrl } from "@/hooks/use-avatar";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { PlayerCard } from "@/components/goating/player-card";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
-import { MEDIAS_ZERADAS, SELECT_ATRIBUTOS, mediasAtributos } from "@/lib/atributos";
+import { MEDIAS_ZERADAS, carregarMedias } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { overallLiberado, tierPorNome } from "@/lib/tiers";
@@ -69,14 +69,7 @@ function JogadorPublico() {
   const medias = useQuery({
     queryKey: ["medias", id],
     enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("evaluations")
-        .select(SELECT_ATRIBUTOS)
-        .eq("avaliado_id", id);
-      if (error) throw error;
-      return mediasAtributos(data ?? []);
-    },
+    queryFn: () => carregarMedias(id),
   });
 
   const rede = useQuery({
@@ -154,7 +147,9 @@ function JogadorPublico() {
       <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col items-center justify-center gap-4 bg-background p-6 text-center">
         <p className="text-sm text-muted-foreground">Não encontramos esse jogador.</p>
         <Button asChild>
-          <Link to="/ranking" search={{ aba: "cidade" }}>Ver ranking</Link>
+          <Link to="/ranking" search={{ aba: "cidade" }}>
+            Ver ranking
+          </Link>
         </Button>
       </div>
     );

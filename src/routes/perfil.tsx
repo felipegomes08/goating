@@ -12,7 +12,7 @@ import { AuraTier } from "@/components/goating/aura-tier";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ProgressoTier } from "@/components/goating/progresso-tier";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
-import { MEDIAS_ZERADAS, SELECT_ATRIBUTOS, mediasAtributos } from "@/lib/atributos";
+import { MEDIAS_ZERADAS, carregarMedias } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -142,14 +142,7 @@ function Perfil() {
   const medias = useQuery({
     queryKey: ["medias", userId],
     enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("evaluations")
-        .select(SELECT_ATRIBUTOS)
-        .eq("avaliado_id", userId!);
-      if (error) throw error;
-      return mediasAtributos(data ?? []);
-    },
+    queryFn: () => carregarMedias(userId!),
   });
 
   const seguidores = useQuery({
