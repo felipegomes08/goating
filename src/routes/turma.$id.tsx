@@ -10,6 +10,7 @@ import {
   Pencil,
   Plus,
   Share2,
+  Trash2,
   Trophy,
   UserPlus,
   X,
@@ -66,9 +67,11 @@ function PaginaDaTurma() {
   const [ocupado, setOcupado] = useState(false);
   const [renomeando, setRenomeando] = useState<{ memberId: string; nome: string } | null>(null);
   const [nomeNovo, setNomeNovo] = useState("");
+  const [nomeConfirmado, setNomeConfirmado] = useState("");
   const [folha, setFolha] = useState<
     | { tipo: "entrar" }
     | { tipo: "sair" }
+    | { tipo: "excluir" }
     | { tipo: "vincular"; memberId: string; nome: string }
     | { tipo: "remover"; memberId: string; nome: string; jaJogou: boolean }
     | null
@@ -146,6 +149,8 @@ function PaginaDaTurma() {
 
   const dados = turma.data;
   const souDono = dados.dono_id === userId;
+  const finalizadas = dados.peladas.filter((p) => p.status === "finalizada").length;
+  const porJogar = dados.peladas.length - finalizadas;
   const souMembro = dados.membros.some((m) => m.user_id === userId);
   // dono e administradores cuidam da lista de jogadores e das peladas
   const souGestor = souDono || dados.membros.some((m) => m.user_id === userId && m.admin);
@@ -198,6 +203,25 @@ function PaginaDaTurma() {
       "Você saiu da turma.",
       "Não deu pra sair da turma.",
     );
+
+  async function excluirTurma() {
+    setOcupado(true);
+    const { error } = await supabase.rpc("excluir_turma", { p_crew_id: id });
+    setOcupado(false);
+    if (error) {
+      toast.error(
+        /[áéíóúãõç]/i.test(error.message) ? error.message : "Não deu pra excluir a turma.",
+      );
+      return;
+    }
+    toast.success("Turma excluída.");
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["minhas-turmas-resumo"] }),
+      queryClient.invalidateQueries({ queryKey: ["minhas-turmas"] }),
+      queryClient.invalidateQueries({ queryKey: ["feed"] }),
+    ]);
+    await navigate({ to: "/turmas", replace: true });
+  }
 
   const adicionarConta = (perfil: PerfilAchado) =>
     executar(
@@ -526,6 +550,19 @@ function PaginaDaTurma() {
                 <LogOut className="mr-2 size-4" /> Sair da turma
               </Button>
             )}
+
+            {souDono && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNomeConfirmado("");
+                  setFolha({ tipo: "excluir" });
+                }}
+                className="mx-auto flex items-center gap-1.5 py-2 text-xs font-semibold text-destructive"
+              >
+                <Trash2 className="size-3.5" /> Excluir turma
+              </button>
+            )}
           </>
         )}
       </div>
@@ -609,6 +646,49 @@ function PaginaDaTurma() {
             onClick={() => remover(folha.memberId, folha.nome)}
           >
             Tirar da turma
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => setFolha(null)}>
+            Cancelar
+          </Button>
+        </Folha>
+      )}
+
+      {folha?.tipo === "excluir" && (
+        <Folha titulo="Excluir a turma?" onFechar={() => setFolha(null)}>
+          <p className="text-sm text-muted-foreground">
+            A turma some do app, com o ranking e a lista de jogadores, e não dá pra desfazer.
+          </p>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+            <li>
+              {finalizadas === 0
+                ? "Nenhuma pelada já jogada pra guardar."
+                : `${finalizadas} ${finalizadas === 1 ? "pelada já jogada continua" : "peladas já jogadas continuam"} no histórico de quem jogou, com placar, gols, avaliações e XP.`}
+            </li>
+            <li>
+              {porJogar === 0
+                ? "Nenhuma pelada agendada pra apagar."
+                : `${porJogar} ${porJogar === 1 ? "pelada que ainda não aconteceu é apagada" : "peladas que ainda não aconteceram são apagadas"}.`}
+            </li>
+          </ul>
+          <p className="text-sm text-foreground">
+            Pra confirmar, escreva o nome da turma: <span className="font-bold">{dados.nome}</span>
+          </p>
+          <Input
+            value={nomeConfirmado}
+            onChange={(e) => setNomeConfirmado(e.target.value)}
+            aria-label="Nome da turma"
+            autoCapitalize="none"
+            autoCorrect="off"
+          />
+          <Button
+            variant="destructive"
+            className="w-full"
+            disabled={
+              ocupado || nomeConfirmado.trim().toLowerCase() !== dados.nome.trim().toLowerCase()
+            }
+            onClick={excluirTurma}
+          >
+            Excluir turma
           </Button>
           <Button variant="outline" className="w-full" onClick={() => setFolha(null)}>
             Cancelar

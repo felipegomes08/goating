@@ -709,6 +709,7 @@ export type Database = {
         Returns: boolean
       }
       reivindicar_tier: { Args: never; Returns: string }
+      excluir_turma: { Args: { p_crew_id: string }; Returns: undefined }
       remover_da_turma: { Args: { p_member_id: string }; Returns: undefined }
       sair_da_turma: { Args: { p_crew_id: string }; Returns: undefined }
       salvar_placar: {
