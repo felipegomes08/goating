@@ -9,7 +9,20 @@ export function useMinhasTurmas(userId: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("minhas_turmas");
       if (error) throw error;
-      return data;
+      // escudo e capa vêm direto da turma (a função do resumo não devolve as fotos)
+      const { data: fotos } = data.length
+        ? await supabase
+            .from("crews")
+            .select("id, escudo_url, capa_url")
+            .in(
+              "id",
+              data.map((t) => t.crew_id),
+            )
+        : { data: [] };
+      return data.map((t) => {
+        const foto = (fotos ?? []).find((f) => f.id === t.crew_id);
+        return { ...t, escudo_url: foto?.escudo_url ?? null, capa_url: foto?.capa_url ?? null };
+      });
     },
   });
 }

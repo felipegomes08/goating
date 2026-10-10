@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { CalendarDays, ChevronRight, Crown, Users } from "lucide-react";
 import type { TurmaResumo } from "@/hooks/use-turmas";
+import { urlDaFotoDaTurma } from "@/lib/foto-turma";
 import { cn } from "@/lib/utils";
 
 const SEMANA = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
@@ -28,6 +29,8 @@ export function CartaoTurma({ turma }: { turma: TurmaResumo }) {
     turma.proxima_data && turma.proxima_horario
       ? quando(turma.proxima_data, turma.proxima_horario)
       : null;
+  const escudo = urlDaFotoDaTurma(turma.escudo_url);
+  const capa = urlDaFotoDaTurma(turma.capa_url);
 
   return (
     <Link
@@ -35,9 +38,21 @@ export function CartaoTurma({ turma }: { turma: TurmaResumo }) {
       params={{ id: turma.crew_id }}
       className="block overflow-hidden rounded-3xl bg-card shadow-[var(--shadow-card)] transition-transform active:scale-[0.98]"
     >
-      <div className="flex items-center gap-3 p-4 pb-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary">
-          <Users className="size-5 text-mint" />
+      {capa && <img src={capa} alt="" loading="lazy" className="h-20 w-full object-cover" />}
+      <div className={cn("flex items-center gap-3 p-4 pb-3", capa && "pt-3")}>
+        <span
+          className={cn(
+            "flex size-11 shrink-0 items-center justify-center overflow-hidden bg-primary",
+            escudo ? "rounded-full" : "rounded-2xl",
+            // com capa o escudo sobe um pouco por cima dela, como foto de perfil
+            capa && "-mt-8 size-14 border-[3px] border-card",
+          )}
+        >
+          {escudo ? (
+            <img src={escudo} alt="" loading="lazy" className="size-full object-cover" />
+          ) : (
+            <Users className="size-5 text-mint" />
+          )}
         </span>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1.5">

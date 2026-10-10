@@ -91,20 +91,29 @@ export type Database = {
       }
       crews: {
         Row: {
+          capa_url: string | null
           criado_em: string
           dono_id: string
+          escudo_url: string | null
+          excluida_em: string | null
           id: string
           nome: string
         }
         Insert: {
+          capa_url?: string | null
           criado_em?: string
           dono_id: string
+          escudo_url?: string | null
+          excluida_em?: string | null
           id?: string
           nome: string
         }
         Update: {
+          capa_url?: string | null
           criado_em?: string
           dono_id?: string
+          escudo_url?: string | null
+          excluida_em?: string | null
           id?: string
           nome?: string
         }

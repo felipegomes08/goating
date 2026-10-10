@@ -9,9 +9,10 @@ import {
   LogOut,
   Pencil,
   Plus,
+  Settings,
   Share2,
-  Trash2,
   Trophy,
+  Users,
   UserPlus,
   X,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import { useSession } from "@/hooks/use-session";
 import { PERIODOS, rotuloDoPeriodo, useRankingDaTurma, type Periodo } from "@/hooks/use-turmas";
 import { useVoltar } from "@/hooks/use-voltar";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
+import { ConfigTurma } from "@/components/goating/config-turma";
 import { FolhaNome } from "@/components/goating/folha-nome";
 import {
   COLUNAS_RANKING,
@@ -34,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { compartilhar } from "@/lib/placar/dados";
 import { compartilharRanking } from "@/lib/placar/poster";
+import { urlDaFotoDaTurma } from "@/lib/foto-turma";
 
 type Aba = "ranking" | "peladas" | "membros";
 
@@ -72,6 +75,7 @@ function PaginaDaTurma() {
     | { tipo: "entrar" }
     | { tipo: "sair" }
     | { tipo: "excluir" }
+    | { tipo: "config" }
     | { tipo: "vincular"; memberId: string; nome: string }
     | { tipo: "remover"; memberId: string; nome: string; jaJogou: boolean }
     | null
@@ -82,7 +86,11 @@ function PaginaDaTurma() {
     enabled: !!userId,
     queryFn: async () => {
       const [turmaRes, membrosRes, peladasRes] = await Promise.all([
-        supabase.from("crews").select("id, nome, dono_id").eq("id", id).maybeSingle(),
+        supabase
+          .from("crews")
+          .select("id, nome, dono_id, escudo_url, capa_url")
+          .eq("id", id)
+          .maybeSingle(),
         supabase
           .from("crew_members")
           .select("id, user_id, nome, admin")
@@ -332,6 +340,9 @@ function PaginaDaTurma() {
     }
   }
 
+  const escudo = urlDaFotoDaTurma(dados.escudo_url);
+  const capa = urlDaFotoDaTurma(dados.capa_url);
+
   const hoje = new Date().toLocaleDateString("sv-SE");
   const proximas = dados.peladas
     .filter((p) => p.status !== "finalizada" && p.status !== "cancelada" && p.data >= hoje)
@@ -340,27 +351,68 @@ function PaginaDaTurma() {
 
   return (
     <div className="app-shell flex min-h-dvh flex-col">
-      <header className="bg-primary px-4 pt-4 pb-5">
-        <div className="flex items-center gap-3">
+      <header className="relative isolate overflow-hidden bg-primary px-4 pt-4 pb-5">
+        {/* capa no fundo, escurecida pra o texto continuar legível por cima de qualquer foto */}
+        {capa && (
+          <>
+            <img src={capa} alt="" className="absolute inset-0 -z-10 size-full object-cover" />
+            <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/55 via-black/25 to-black/80" />
+          </>
+        )}
+        <div className="flex items-center gap-2">
           <button type="button" aria-label="Voltar" onClick={voltar}>
             <ArrowLeft className="size-5 text-primary-foreground" />
           </button>
-          <span className="flex-1 text-xs font-semibold tracking-wide text-mint uppercase">
+          <span
+            className={cn(
+              "ml-1 flex-1 text-xs font-semibold tracking-wide uppercase",
+              capa ? "text-white/80" : "text-mint",
+            )}
+          >
             Turma
           </span>
           <button
             type="button"
             onClick={convidar}
-            className="flex items-center gap-1.5 rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint"
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold",
+              capa ? "bg-black/45 text-white" : "bg-mint/15 text-mint",
+            )}
           >
             <Link2 className="size-4" /> Convidar
           </button>
+          {souGestor && (
+            <button
+              type="button"
+              aria-label="Configurações da turma"
+              onClick={() => setFolha({ tipo: "config" })}
+              className={cn(
+                "flex size-8 items-center justify-center rounded-full",
+                capa ? "bg-black/45 text-white" : "bg-mint/15 text-mint",
+              )}
+            >
+              <Settings className="size-4" />
+            </button>
+          )}
         </div>
-        <h1 className="mt-3 text-2xl font-extrabold text-primary-foreground">{dados.nome}</h1>
-        <p className="mt-1 text-sm text-mint">
-          {dados.membros.length} {dados.membros.length === 1 ? "jogador" : "jogadores"} ·{" "}
-          {passadas.length} {passadas.length === 1 ? "pelada" : "peladas"}
-        </p>
+        <div className={cn("flex items-end gap-3", capa ? "mt-20" : "mt-4")}>
+          <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/85 bg-primary shadow-lg">
+            {escudo ? (
+              <img src={escudo} alt="" className="size-full object-cover" />
+            ) : (
+              <Users className="size-7 text-mint" />
+            )}
+          </span>
+          <div className="min-w-0 pb-0.5">
+            <h1 className="truncate text-2xl leading-tight font-extrabold text-primary-foreground">
+              {dados.nome}
+            </h1>
+            <p className={cn("mt-0.5 text-sm", capa ? "text-white/85" : "text-mint")}>
+              {dados.membros.length} {dados.membros.length === 1 ? "jogador" : "jogadores"} ·{" "}
+              {passadas.length} {passadas.length === 1 ? "pelada" : "peladas"}
+            </p>
+          </div>
+        </div>
       </header>
 
       <div className="space-y-3 p-4">
@@ -550,19 +602,6 @@ function PaginaDaTurma() {
                 <LogOut className="mr-2 size-4" /> Sair da turma
               </Button>
             )}
-
-            {souDono && (
-              <button
-                type="button"
-                onClick={() => {
-                  setNomeConfirmado("");
-                  setFolha({ tipo: "excluir" });
-                }}
-                className="mx-auto flex items-center gap-1.5 py-2 text-xs font-semibold text-destructive"
-              >
-                <Trash2 className="size-3.5" /> Excluir turma
-              </button>
-            )}
           </>
         )}
       </div>
@@ -651,6 +690,19 @@ function PaginaDaTurma() {
             Cancelar
           </Button>
         </Folha>
+      )}
+
+      {folha?.tipo === "config" && (
+        <ConfigTurma
+          turma={dados}
+          souDono={souDono}
+          onMudou={recarregar}
+          onExcluir={() => {
+            setNomeConfirmado("");
+            setFolha({ tipo: "excluir" });
+          }}
+          onFechar={() => setFolha(null)}
+        />
       )}
 
       {folha?.tipo === "excluir" && (
