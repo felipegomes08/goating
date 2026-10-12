@@ -5,7 +5,7 @@ import { useVoltar } from "@/hooks/use-voltar";
 
 /** E-mail de contato sobre dados pessoais (provisório: trocar quando existir um do Goating). Vazio esconde o trecho. */
 const CONTATO: string = "felipecgomes02@gmail.com";
-const ATUALIZADA_EM = "12 de outubro de 2026";
+const ATUALIZADA_EM = "13 de outubro de 2026";
 
 export const Route = createFileRoute("/privacidade")({
   ssr: false,
@@ -63,8 +63,12 @@ function Privacidade() {
               você. Ninguém vê a nota que cada pessoa deu: aparece só a média.
             </li>
             <li>
-              <strong>Comentários:</strong> o texto que você escrever ao avaliar alguém, e as
-              denúncias de comentário que você fizer.
+              <strong>Comentários:</strong> o texto que você escrever ao avaliar alguém ou uma
+              turma, e as denúncias de comentário que você fizer.
+            </li>
+            <li>
+              <strong>Avaliações de turma e pedidos de entrada:</strong> as notas que você der a uma
+              turma e os pedidos que fizer pra entrar em alguma.
             </li>
             <li>
               <strong>Turmas:</strong> nome, escudo e capa que o organizador colocar, e o nome dos
@@ -103,9 +107,14 @@ function Privacidade() {
             </li>
             <li>Seu e-mail não aparece pra outros usuários.</li>
             <li>
+              Quando você pede pra entrar numa turma, o dono e os administradores dela veem o seu
+              pedido e o seu perfil.
+            </li>
+            <li>
               Os comentários das avaliações são públicos pra quem está logado e levam o nome de quem
-              escreveu. Eles aparecem no perfil de quem foi avaliado. Quem escreveu pode apagar o
-              seu, e qualquer pessoa pode denunciar um comentário; a denúncia é anônima.
+              escreveu. Eles aparecem no perfil de quem foi avaliado, ou na página da turma
+              avaliada. Quem escreveu pode apagar o seu, e qualquer pessoa pode denunciar um
+              comentário; a denúncia é anônima.
             </li>
             <li>
               O escudo e a capa de uma turma são imagens públicas: quem tiver o endereço da imagem

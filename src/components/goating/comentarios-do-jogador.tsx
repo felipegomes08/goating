@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Flag, MessageSquareText, Trash2, User } from "lucide-react";
@@ -15,54 +15,68 @@ type Comentario = {
   autor_foto: string | null;
   comentario: string;
   criado_em: string;
-  pelada: string;
+  /** só nos comentários de jogador: de qual pelada veio */
+  pelada?: string;
   meu: boolean;
   denunciei: boolean;
   oculto: boolean;
 };
+
+type ErroDoBanco = { message: string } | null;
 
 /** As mensagens das funções do banco já vêm em português e explicam o motivo. */
 const mensagem = (erro: { message: string }, reserva: string) =>
   /[áéíóúãõç]/i.test(erro.message) ? erro.message : reserva;
 
 /**
- * O que escreveram sobre um jogador nas avaliações pós-pelada. Cada comentário é
- * assinado; as notas de quem comentou não aparecem. Quem escreveu pode apagar o seu,
- * e qualquer outro pode denunciar.
+ * Lista de comentários assinados (de um jogador ou de uma turma). Quem escreveu pode
+ * apagar o seu; qualquer outro pode denunciar. Com 3 denúncias o comentário some pros
+ * outros, e quem escreveu passa a ver o aviso.
  */
-export function ComentariosDoJogador({ userId, proprio }: { userId: string; proprio: boolean }) {
+export function ListaDeComentarios({
+  chave,
+  carregar,
+  tipo,
+  apagar,
+  titulo,
+  subtitulo,
+  vazio,
+}: {
+  /** chave da consulta: quem grava um comentário novo invalida por ela */
+  chave: readonly unknown[];
+  carregar: () => Promise<Comentario[]>;
+  tipo: "comentario_jogador" | "comentario_turma";
+  apagar: (id: string) => PromiseLike<{ error: ErroDoBanco }>;
+  titulo: string;
+  subtitulo: string;
+  /** o que mostrar sem comentário nenhum; sem isso a seção nem aparece */
+  vazio?: ReactNode;
+}) {
   const queryClient = useQueryClient();
   const [denunciando, setDenunciando] = useState<Comentario | null>(null);
   const [motivo, setMotivo] = useState("");
   const [ocupado, setOcupado] = useState(false);
 
-  const consulta = useQuery({
-    queryKey: ["comentarios", userId],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("comentarios_do_jogador", { p_user_id: userId });
-      if (error) throw error;
-      return data as Comentario[];
-    },
-  });
+  const consulta = useQuery({ queryKey: chave, queryFn: carregar });
   const comentarios = consulta.data ?? [];
 
-  async function apagar(c: Comentario) {
+  async function apagarMeu(c: Comentario) {
     setOcupado(true);
-    const { error } = await supabase.rpc("apagar_meu_comentario", { p_evaluation_id: c.id });
+    const { error } = await apagar(c.id);
     setOcupado(false);
     if (error) {
       toast.error(mensagem(error, "Não deu pra apagar o comentário."));
       return;
     }
     toast.success("Comentário apagado.");
-    await queryClient.invalidateQueries({ queryKey: ["comentarios", userId] });
+    await queryClient.invalidateQueries({ queryKey: chave });
   }
 
   async function denunciar() {
     if (!denunciando) return;
     setOcupado(true);
     const { error } = await supabase.rpc("denunciar_comentario", {
-      p_tipo: "comentario_jogador",
+      p_tipo: tipo,
       p_alvo_id: denunciando.id,
       ...(motivo.trim() ? { p_motivo: motivo.trim() } : {}),
     });
@@ -74,80 +88,82 @@ export function ComentariosDoJogador({ userId, proprio }: { userId: string; prop
     toast.success("Denúncia enviada. Obrigado por avisar.");
     setDenunciando(null);
     setMotivo("");
-    await queryClient.invalidateQueries({ queryKey: ["comentarios", userId] });
+    await queryClient.invalidateQueries({ queryKey: chave });
   }
 
-  // sem comentário nenhum a seção nem aparece: perfil novo não precisa de um quadro vazio
-  if (consulta.isLoading || comentarios.length === 0) return null;
+  if (consulta.isLoading) return null;
+  if (comentarios.length === 0 && !vazio) return null;
 
   return (
     <section className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
       <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
         <MessageSquareText className="size-4 text-primary" />
-        {proprio ? "O que falam de você" : "O que falam desse jogador"}
+        {titulo}
       </h2>
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        Comentários de quem jogou junto, deixados na avaliação pós-pelada.
-      </p>
+      <p className="mt-0.5 text-xs text-muted-foreground">{subtitulo}</p>
 
-      <ul className="mt-2 divide-y divide-border">
-        {comentarios.map((c) => (
-          <li key={c.id} className="py-3">
-            <div className="flex items-center gap-2">
-              <FotoDoAutor foto={c.autor_foto} />
-              <div className="min-w-0 flex-1">
-                <Link
-                  to="/jogador/$id"
-                  params={{ id: c.autor_id }}
-                  className="block truncate text-sm font-bold text-foreground"
-                >
-                  {c.meu ? "Você" : c.autor_nome}
-                </Link>
-                <p className="truncate text-[11px] text-muted-foreground">
-                  {c.pelada} ·{" "}
-                  {new Date(c.criado_em).toLocaleDateString("pt-BR", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </p>
+      {comentarios.length === 0 ? (
+        <div className="mt-3 text-sm text-muted-foreground">{vazio}</div>
+      ) : (
+        <ul className="mt-2 divide-y divide-border">
+          {comentarios.map((c) => (
+            <li key={c.id} className="py-3">
+              <div className="flex items-center gap-2">
+                <FotoDoAutor foto={c.autor_foto} />
+                <div className="min-w-0 flex-1">
+                  <Link
+                    to="/jogador/$id"
+                    params={{ id: c.autor_id }}
+                    className="block truncate text-sm font-bold text-foreground"
+                  >
+                    {c.meu ? "Você" : c.autor_nome}
+                  </Link>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {c.pelada ? `${c.pelada} · ` : ""}
+                    {new Date(c.criado_em).toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                {c.meu ? (
+                  <button
+                    type="button"
+                    aria-label="Apagar meu comentário"
+                    disabled={ocupado}
+                    onClick={() => void apagarMeu(c)}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                ) : c.denunciei ? (
+                  <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">
+                    Denunciado
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label={`Denunciar o comentário de ${c.autor_nome}`}
+                    onClick={() => setDenunciando(c)}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground"
+                  >
+                    <Flag className="size-4" />
+                  </button>
+                )}
               </div>
-              {c.meu ? (
-                <button
-                  type="button"
-                  aria-label="Apagar meu comentário"
-                  disabled={ocupado}
-                  onClick={() => void apagar(c)}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground"
-                >
-                  <Trash2 className="size-4" />
-                </button>
-              ) : c.denunciei ? (
-                <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">
-                  Denunciado
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  aria-label={`Denunciar o comentário de ${c.autor_nome}`}
-                  onClick={() => setDenunciando(c)}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground"
-                >
-                  <Flag className="size-4" />
-                </button>
-              )}
-            </div>
-            <p className="mt-1.5 text-sm break-words whitespace-pre-line text-foreground">
-              {c.comentario}
-            </p>
-            {c.oculto && (
-              <p className="mt-1 text-[11px] font-medium text-destructive">
-                Escondido dos outros por denúncias. Só você está vendo.
+              <p className="mt-1.5 text-sm break-words whitespace-pre-line text-foreground">
+                {c.comentario}
               </p>
-            )}
-          </li>
-        ))}
-      </ul>
+              {c.oculto && (
+                <p className="mt-1 text-[11px] font-medium text-destructive">
+                  Escondido dos outros por denúncias. Só você está vendo.
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {denunciando && (
         <div
@@ -196,6 +212,29 @@ export function ComentariosDoJogador({ userId, proprio }: { userId: string; prop
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * O que escreveram sobre um jogador nas avaliações pós-pelada. Cada comentário é
+ * assinado; as notas de quem comentou não aparecem.
+ */
+export function ComentariosDoJogador({ userId, proprio }: { userId: string; proprio: boolean }) {
+  return (
+    <ListaDeComentarios
+      chave={["comentarios", userId]}
+      tipo="comentario_jogador"
+      titulo={proprio ? "O que falam de você" : "O que falam desse jogador"}
+      subtitulo="Comentários de quem jogou junto, deixados na avaliação pós-pelada."
+      carregar={async () => {
+        const { data, error } = await supabase.rpc("comentarios_do_jogador", {
+          p_user_id: userId,
+        });
+        if (error) throw error;
+        return data;
+      }}
+      apagar={(id) => supabase.rpc("apagar_meu_comentario", { p_evaluation_id: id })}
+    />
   );
 }
 

@@ -111,7 +111,7 @@ function Avaliar() {
     queryFn: async () => {
       const { data: pelada, error } = await supabase
         .from("matches")
-        .select("id, titulo, status, finalizada_em")
+        .select("id, titulo, status, finalizada_em, crew_id")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -229,6 +229,13 @@ function Avaliar() {
           {jogadores.length > 0 && (
             <Button variant="outline" onClick={() => irPara(0)}>
               Revisar minhas notas
+            </Button>
+          )}
+          {pelada.crew_id && (
+            <Button asChild variant="outline">
+              <Link to="/turma/$id" params={{ id: pelada.crew_id }} search={{ aba: "notas" }}>
+                Avaliar a turma também
+              </Link>
             </Button>
           )}
           <Button asChild>

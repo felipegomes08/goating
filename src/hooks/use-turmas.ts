@@ -13,7 +13,7 @@ export function useMinhasTurmas(userId: string | null) {
       const { data: fotos } = data.length
         ? await supabase
             .from("crews")
-            .select("id, escudo_url, capa_url")
+            .select("id, escudo_url, capa_url, nota, avaliacoes")
             .in(
               "id",
               data.map((t) => t.crew_id),
@@ -21,7 +21,13 @@ export function useMinhasTurmas(userId: string | null) {
         : { data: [] };
       return data.map((t) => {
         const foto = (fotos ?? []).find((f) => f.id === t.crew_id);
-        return { ...t, escudo_url: foto?.escudo_url ?? null, capa_url: foto?.capa_url ?? null };
+        return {
+          ...t,
+          escudo_url: foto?.escudo_url ?? null,
+          capa_url: foto?.capa_url ?? null,
+          nota: foto?.nota ?? null,
+          avaliacoes: foto?.avaliacoes ?? 0,
+        };
       });
     },
   });

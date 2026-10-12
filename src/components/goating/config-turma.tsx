@@ -2,9 +2,12 @@ import { useRef, useState } from "react";
 import { Camera, ImagePlus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { CidadeCombobox } from "@/components/goating/cidade-combobox";
+import { PedidosDaTurma } from "@/components/goating/pedidos-da-turma";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   tirarFotoDaTurma,
   trocarFotoDaTurma,
@@ -12,7 +15,7 @@ import {
   type TipoDeFoto,
 } from "@/lib/foto-turma";
 
-/** Folha de configurações da turma: capa, escudo, nome e (só o dono) excluir. */
+/** Folha de configurações da turma: pedidos de entrada, capa, escudo, nome, cidade, convite e (só o dono) excluir. */
 export function ConfigTurma({
   turma,
   souDono,
@@ -20,7 +23,14 @@ export function ConfigTurma({
   onExcluir,
   onFechar,
 }: {
-  turma: { id: string; nome: string; escudo_url: string | null; capa_url: string | null };
+  turma: {
+    id: string;
+    nome: string;
+    escudo_url: string | null;
+    capa_url: string | null;
+    cidade: string | null;
+    aceita_pedidos: boolean;
+  };
   souDono: boolean;
   /** algo foi salvo: a tela de trás recarrega a turma */
   onMudou: () => Promise<void> | void;
@@ -28,7 +38,7 @@ export function ConfigTurma({
   onFechar: () => void;
 }) {
   const [nome, setNome] = useState(turma.nome);
-  const [ocupado, setOcupado] = useState<TipoDeFoto | "nome" | null>(null);
+  const [ocupado, setOcupado] = useState<TipoDeFoto | "nome" | "ajuste" | null>(null);
   const campoEscudo = useRef<HTMLInputElement>(null);
   const campoCapa = useRef<HTMLInputElement>(null);
   const escudo = urlDaFotoDaTurma(turma.escudo_url);
@@ -78,6 +88,30 @@ export function ConfigTurma({
     toast.success("Nome da turma atualizado.");
   }
 
+  /** Cidade e "aceita pedidos" salvam na hora, sem botão. */
+  async function ajustar(mudanca: { cidade?: string | null; aceita_pedidos?: boolean }) {
+    setOcupado("ajuste");
+    const { error } = await supabase.from("crews").update(mudanca).eq("id", turma.id);
+    setOcupado(null);
+    if (error) {
+      toast.error("Não deu pra salvar.");
+      return;
+    }
+    await onMudou();
+  }
+
+  async function trocarLink() {
+    setOcupado("ajuste");
+    const { error } = await supabase.rpc("renovar_convite_da_turma", { p_crew_id: turma.id });
+    setOcupado(null);
+    if (error) {
+      toast.error("Não deu pra gerar um link novo.");
+      return;
+    }
+    await onMudou();
+    toast.success("Link novo gerado. O antigo parou de valer.");
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/45"
@@ -91,6 +125,8 @@ export function ConfigTurma({
         className="max-h-[92dvh] w-full max-w-[480px] space-y-4 overflow-auto rounded-t-3xl bg-card p-4 pb-6"
       >
         <h2 className="text-lg font-extrabold text-foreground">Configurações da turma</h2>
+
+        <PedidosDaTurma crewId={turma.id} onMudou={onMudou} />
 
         {/* prévia: capa no fundo e escudo redondo por cima, como fica na página da turma */}
         <div>
@@ -191,6 +227,50 @@ export function ConfigTurma({
               {ocupado === "nome" ? "Salvando..." : "Salvar"}
             </Button>
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Cidade</Label>
+          <CidadeCombobox
+            value={turma.cidade}
+            onChange={(cidade) => void ajustar({ cidade: cidade || null })}
+          />
+          <p className="text-xs text-muted-foreground">
+            É por ela que a turma aparece no ranking de turmas da cidade.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border p-3">
+          <div>
+            <Label htmlFor="aceitaPedidos">Aceitar pedidos de entrada</Label>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Quem achar a turma no ranking pode pedir pra entrar, e você aprova ou recusa.
+              Desligado, só entra quem tem o seu link.
+            </p>
+          </div>
+          <Switch
+            id="aceitaPedidos"
+            checked={turma.aceita_pedidos}
+            disabled={ocupado !== null}
+            onCheckedChange={(ligado) => void ajustar({ aceita_pedidos: ligado })}
+          />
+        </div>
+
+        <div className="rounded-2xl border border-border p-3">
+          <p className="text-sm font-semibold text-foreground">Link de convite</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Quem abre o link do botão “Convidar” entra direto na turma. Se o link foi parar onde não
+            devia, gere um novo: o antigo para de valer.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2"
+            disabled={ocupado !== null}
+            onClick={() => void trocarLink()}
+          >
+            Gerar link novo
+          </Button>
         </div>
 
         <Button variant="outline" className="w-full" onClick={onFechar}>

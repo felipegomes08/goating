@@ -11,6 +11,7 @@ import {
   Plus,
   Settings,
   Share2,
+  Star,
   Trophy,
   Users,
   UserPlus,
@@ -22,7 +23,9 @@ import { useSession } from "@/hooks/use-session";
 import { PERIODOS, rotuloDoPeriodo, useRankingDaTurma, type Periodo } from "@/hooks/use-turmas";
 import { useVoltar } from "@/hooks/use-voltar";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
+import { AvaliacoesDaTurma, type ResumoDaTurma } from "@/components/goating/avaliacoes-da-turma";
 import { ConfigTurma } from "@/components/goating/config-turma";
+import { usePedidosDaTurma } from "@/components/goating/pedidos-da-turma";
 import { FolhaNome } from "@/components/goating/folha-nome";
 import {
   COLUNAS_RANKING,
@@ -39,13 +42,23 @@ import { compartilharRanking } from "@/lib/placar/poster";
 import { urlDaFotoDaTurma } from "@/lib/foto-turma";
 import { origemDoSite } from "@/lib/site";
 
-type Aba = "ranking" | "peladas" | "membros";
+type Aba = "ranking" | "peladas" | "membros" | "notas";
 
 export const Route = createFileRoute("/turma/$id")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { aba?: Aba | undefined } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { aba?: Aba | undefined; c?: string | undefined } => ({
     aba:
-      search["aba"] === "peladas" ? "peladas" : search["aba"] === "membros" ? "membros" : undefined,
+      search["aba"] === "peladas"
+        ? "peladas"
+        : search["aba"] === "membros"
+          ? "membros"
+          : search["aba"] === "notas"
+            ? "notas"
+            : undefined,
+    // código do link de convite: com ele a pessoa entra direto, sem ele vira pedido
+    c: typeof search["c"] === "string" ? search["c"] : undefined,
   }),
   head: () => ({ meta: [{ title: "Turma · Goating" }] }),
   component: PaginaDaTurma,
@@ -55,11 +68,12 @@ const ABAS: { id: Aba; rotulo: string }[] = [
   { id: "ranking", rotulo: "Ranking" },
   { id: "peladas", rotulo: "Peladas" },
   { id: "membros", rotulo: "Jogadores" },
+  { id: "notas", rotulo: "Notas" },
 ];
 
 function PaginaDaTurma() {
   const { id } = useParams({ from: "/turma/$id" });
-  const { aba: abaDaUrl } = useSearch({ from: "/turma/$id" });
+  const { aba: abaDaUrl, c: codigo } = useSearch({ from: "/turma/$id" });
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -75,6 +89,7 @@ function PaginaDaTurma() {
   const [folha, setFolha] = useState<
     | { tipo: "entrar" }
     | { tipo: "sair" }
+    | { tipo: "pedir" }
     | { tipo: "excluir" }
     | { tipo: "config" }
     | { tipo: "vincular"; memberId: string; nome: string }
@@ -89,7 +104,7 @@ function PaginaDaTurma() {
       const [turmaRes, membrosRes, peladasRes] = await Promise.all([
         supabase
           .from("crews")
-          .select("id, nome, dono_id, escudo_url, capa_url")
+          .select("id, nome, dono_id, escudo_url, capa_url, cidade, aceita_pedidos")
           .eq("id", id)
           .maybeSingle(),
         supabase
@@ -127,6 +142,32 @@ function PaginaDaTurma() {
 
   const ranking = useRankingDaTurma(id, periodo, !!userId && aba === "ranking");
 
+  // nota da turma, minha avaliação e a situação do meu pedido de entrada
+  const resumo = useQuery({
+    queryKey: ["turma-resumo", id, userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("resumo_da_turma", { p_crew_id: id });
+      if (error) throw error;
+      return (data[0] ?? null) as unknown as
+        (ResumoDaTurma & { pedido: string | null; aceita_pedidos: boolean }) | null;
+    },
+  });
+  // o código do link só chega pra quem já é da turma ou a gere
+  const convite = useQuery({
+    queryKey: ["turma-convite", id, userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("crew_invites")
+        .select("token")
+        .eq("crew_id", id)
+        .maybeSingle();
+      return data?.token ?? null;
+    },
+  });
+  const pedidos = usePedidosDaTurma(id, !!userId);
+
   if (carregando || (!!userId && turma.isLoading)) {
     return (
       <div className="app-shell space-y-3 p-4">
@@ -147,7 +188,7 @@ function PaginaDaTurma() {
           {userId ? (
             <Link to="/turmas">Minhas turmas</Link>
           ) : (
-            <Link to="/auth" search={{ turma: id }}>
+            <Link to="/auth" search={{ turma: id, ...(codigo ? { c: codigo } : {}) }}>
               Entrar no Goating
             </Link>
           )}
@@ -165,13 +206,18 @@ function PaginaDaTurma() {
   const souGestor = souDono || dados.membros.some((m) => m.user_id === userId && m.admin);
   const semConta = dados.membros.filter((m) => !m.user_id);
   const contasNaTurma = dados.membros.flatMap((m) => (m.user_id ? [m.user_id] : []));
-  const link = `${origemDoSite()}/turma/${id}`;
+  const link = `${origemDoSite()}/turma/${id}${convite.data ? `?c=${convite.data}` : ""}`;
+  const pedidosPendentes = souGestor ? (pedidos.data?.length ?? 0) : 0;
+  const meuPedido = resumo.data?.pedido ?? null;
 
   async function recarregar() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["turma", id] }),
       queryClient.invalidateQueries({ queryKey: ["turma-ranking", id] }),
       queryClient.invalidateQueries({ queryKey: ["minhas-turmas-resumo"] }),
+      queryClient.invalidateQueries({ queryKey: ["turma-resumo", id] }),
+      queryClient.invalidateQueries({ queryKey: ["turma-convite", id] }),
+      queryClient.invalidateQueries({ queryKey: ["ranking-turmas"] }),
     ]);
   }
 
@@ -201,9 +247,24 @@ function PaginaDaTurma() {
         supabase.rpc("entrar_na_turma", {
           p_crew_id: id,
           ...(memberId ? { p_member_id: memberId } : {}),
+          ...(codigo ? { p_token: codigo } : {}),
         }),
       "Você entrou na turma!",
       "Não deu pra entrar na turma.",
+    );
+
+  const pedirEntrada = () =>
+    executar(
+      () => supabase.rpc("pedir_entrada_na_turma", { p_crew_id: id }),
+      "Pedido enviado. O organizador vai responder.",
+      "Não deu pra enviar o pedido.",
+    );
+
+  const cancelarPedido = () =>
+    executar(
+      () => supabase.rpc("cancelar_pedido_de_entrada", { p_crew_id: id }),
+      "Pedido cancelado.",
+      "Não deu pra cancelar o pedido.",
     );
 
   const sair = () =>
@@ -388,11 +449,16 @@ function PaginaDaTurma() {
               aria-label="Configurações da turma"
               onClick={() => setFolha({ tipo: "config" })}
               className={cn(
-                "flex size-8 items-center justify-center rounded-full",
+                "relative flex size-8 items-center justify-center rounded-full",
                 capa ? "bg-black/45 text-white" : "bg-mint/15 text-mint",
               )}
             >
               <Settings className="size-4" />
+              {pedidosPendentes > 0 && (
+                <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
+                  {pedidosPendentes}
+                </span>
+              )}
             </button>
           )}
         </div>
@@ -411,13 +477,21 @@ function PaginaDaTurma() {
             <p className={cn("mt-0.5 text-sm", capa ? "text-white/85" : "text-mint")}>
               {dados.membros.length} {dados.membros.length === 1 ? "jogador" : "jogadores"} ·{" "}
               {passadas.length} {passadas.length === 1 ? "pelada" : "peladas"}
+              {resumo.data?.nota != null && (
+                <>
+                  {" · "}
+                  <Star className="mb-0.5 inline size-3.5 fill-current" />{" "}
+                  {Number(resumo.data.nota).toFixed(1).replace(".", ",")}
+                </>
+              )}
             </p>
           </div>
         </div>
       </header>
 
       <div className="space-y-3 p-4">
-        {!souMembro && !souDono && (
+        {/* com o código do link do organizador entra direto; sem ele, pede e espera aprovação */}
+        {!souMembro && !souDono && codigo && (
           <Button
             className="w-full"
             disabled={ocupado}
@@ -425,6 +499,37 @@ function PaginaDaTurma() {
           >
             <UserPlus className="mr-2 size-4" /> Entrar na turma
           </Button>
+        )}
+        {!souMembro && !souDono && !codigo && resumo.data && (
+          <>
+            {meuPedido === "pendente" ? (
+              <div className="flex items-center gap-3 rounded-2xl bg-mint-soft p-3">
+                <p className="flex-1 text-sm font-semibold text-primary">
+                  Pedido enviado. Esperando o organizador responder.
+                </p>
+                <button
+                  type="button"
+                  disabled={ocupado}
+                  onClick={() => void cancelarPedido()}
+                  className="shrink-0 text-xs font-semibold text-muted-foreground underline"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : resumo.data.aceita_pedidos ? (
+              <Button
+                className="w-full"
+                disabled={ocupado}
+                onClick={() => setFolha({ tipo: "pedir" })}
+              >
+                <UserPlus className="mr-2 size-4" /> Pedir pra entrar
+              </Button>
+            ) : (
+              <p className="rounded-2xl bg-card p-3 text-center text-xs text-muted-foreground shadow-[var(--shadow-card)]">
+                Essa turma não está aceitando pedidos. Pra entrar, só com o link de quem organiza.
+              </p>
+            )}
+          </>
         )}
 
         <Abas
@@ -434,7 +539,10 @@ function PaginaDaTurma() {
             void navigate({
               to: "/turma/$id",
               params: { id },
-              search: nova === "ranking" ? {} : { aba: nova },
+              search: {
+                ...(nova === "ranking" ? {} : { aba: nova }),
+                ...(codigo ? { c: codigo } : {}),
+              },
               replace: true,
             })
           }
@@ -452,6 +560,13 @@ function PaginaDaTurma() {
             )}
           </>
         )}
+
+        {aba === "notas" &&
+          (resumo.data ? (
+            <AvaliacoesDaTurma crewId={id} resumo={resumo.data} onMudou={recarregar} />
+          ) : (
+            <Skeleton className="h-40 w-full rounded-2xl" />
+          ))}
 
         {aba === "peladas" && (
           <>
@@ -686,6 +801,22 @@ function PaginaDaTurma() {
             onClick={() => remover(folha.memberId, folha.nome)}
           >
             Tirar da turma
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => setFolha(null)}>
+            Cancelar
+          </Button>
+        </Folha>
+      )}
+
+      {folha?.tipo === "pedir" && (
+        <Folha titulo="Pedir pra entrar na turma?" onFechar={() => setFolha(null)}>
+          <p className="text-sm text-muted-foreground">
+            O dono ou um administrador da turma recebe o seu pedido e vê o seu perfil: carta,
+            estatísticas e os comentários de quem já jogou com você. Se aprovarem, a turma aparece
+            na sua lista.
+          </p>
+          <Button className="w-full" disabled={ocupado} onClick={() => void pedirEntrada()}>
+            Enviar pedido
           </Button>
           <Button variant="outline" className="w-full" onClick={() => setFolha(null)}>
             Cancelar

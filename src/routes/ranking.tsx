@@ -15,6 +15,7 @@ import {
 } from "@/components/goating/titulo-grande";
 import { JogadorItem, type JogadorResumo } from "@/components/goating/jogador-item";
 import { RankingDeTurma } from "@/components/goating/ranking-de-turma";
+import { RankingDeTurmasDaCidade } from "@/components/goating/ranking-de-turmas-da-cidade";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,7 +25,9 @@ type Aba = "cidade" | "seguindo" | "geral" | "turma";
 
 export const Route = createFileRoute("/ranking")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { aba: Aba; turma?: string | undefined } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { aba: Aba; turma?: string | undefined; ver?: "turmas" | undefined } => ({
     aba:
       search["aba"] === "seguindo"
         ? "seguindo"
@@ -35,6 +38,8 @@ export const Route = createFileRoute("/ranking")({
             : "cidade",
     // qual turma está aberta na aba Turma
     turma: typeof search["turma"] === "string" ? search["turma"] : undefined,
+    // na aba Cidade: ranking de jogadores (padrão) ou de turmas
+    ver: search["ver"] === "turmas" ? "turmas" : undefined,
   }),
   head: () => ({
     meta: [
@@ -59,7 +64,7 @@ const CAMPOS =
 function Ranking() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { aba, turma: turmaDaUrl } = useSearch({ from: "/ranking" });
+  const { aba, turma: turmaDaUrl, ver } = useSearch({ from: "/ranking" });
   const { userId, carregando } = useSession();
   const { data: perfil } = usePerfil(userId);
   const [termo, setTermo] = useState("");
@@ -79,6 +84,7 @@ function Ranking() {
   const naTurma = aba === "turma";
   // a busca é de jogadores; na aba Turma ela some e não vale
   const buscando = !!busca && !naTurma;
+  const vendoTurmas = aba === "cidade" && ver === "turmas" && !buscando;
 
   const meusSeguidos = useQuery({
     queryKey: ["meus-seguidos", userId],
@@ -228,66 +234,95 @@ function Ranking() {
         ) : (
           <>
             {aba === "cidade" && cidade && !buscando && (
-              <p className="px-1 text-xs font-semibold text-muted-foreground">
-                Jogadores de {cidade}
-              </p>
-            )}
-            {!buscando && !liberado && aba !== "seguindo" && (
-              <p className="rounded-2xl bg-mint-soft p-3 text-xs font-medium text-primary">
-                Faltam {avaliacoesFaltando(perfil?.avaliacoes_recebidas ?? 0)} avaliações pós-pelada
-                pra você aparecer no ranking.
-              </p>
-            )}
-            {!buscando && liberado && !euApareco && aba === "cidade" && !cidade && (
-              <p className="rounded-2xl bg-mint-soft p-3 text-xs font-medium text-primary">
-                Complete sua cidade no perfil pra ver seu ranking local.
-              </p>
-            )}
-
-            {lista.isLoading ? (
-              <>
-                <Skeleton className="h-16 w-full rounded-2xl" />
-                <Skeleton className="h-16 w-full rounded-2xl" />
-                <Skeleton className="h-16 w-full rounded-2xl" />
-              </>
-            ) : (lista.data ?? []).length === 0 ? (
-              <div className="space-y-3 pt-10 text-center">
-                <p className="text-sm text-muted-foreground">
-                  {buscando
-                    ? "Nenhum jogador encontrado com esse nome."
-                    : aba === "seguindo"
-                      ? "Ninguém que você segue tem ranking ainda."
-                      : "Ainda não tem ninguém no ranking por aqui."}
+              <div className="flex items-center justify-between gap-3 px-1">
+                <p className="min-w-0 truncate text-xs font-semibold text-muted-foreground">
+                  {vendoTurmas ? "Turmas" : "Jogadores"} de {cidade}
                 </p>
-                {!buscando && aba === "seguindo" && (
-                  <p className="text-xs text-muted-foreground">
-                    Busca pelo nome de um jogador aí em cima pra começar a seguir.
+                <div className="flex shrink-0 gap-1 rounded-full bg-secondary p-0.5">
+                  {(
+                    [
+                      [undefined, "Jogadores"],
+                      ["turmas", "Turmas"],
+                    ] as const
+                  ).map(([valor, rotulo]) => (
+                    <Link
+                      key={rotulo}
+                      to="/ranking"
+                      search={{ aba: "cidade", ...(valor ? { ver: valor } : {}) }}
+                      replace
+                      className={
+                        ver === valor
+                          ? "rounded-full bg-card px-3 py-1 text-xs font-bold text-foreground shadow-sm"
+                          : "rounded-full px-3 py-1 text-xs font-semibold text-muted-foreground"
+                      }
+                    >
+                      {rotulo}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+            {vendoTurmas && cidade && <RankingDeTurmasDaCidade cidade={cidade} />}
+            {!vendoTurmas && (
+              <>
+                {!buscando && !liberado && aba !== "seguindo" && (
+                  <p className="rounded-2xl bg-mint-soft p-3 text-xs font-medium text-primary">
+                    Faltam {avaliacoesFaltando(perfil?.avaliacoes_recebidas ?? 0)} avaliações
+                    pós-pelada pra você aparecer no ranking.
                   </p>
                 )}
-              </div>
-            ) : (
-              (lista.data ?? []).map((j, i) => (
-                <div
-                  key={j.id}
-                  className={
-                    j.id === userId
-                      ? "rounded-2xl ring-2 ring-mint ring-offset-2 ring-offset-background"
-                      : ""
-                  }
-                >
-                  <JogadorItem
-                    jogador={j}
-                    posicao={buscando ? undefined : i + 1}
-                    seguindo={buscando ? (meusSeguidos.data?.has(j.id) ?? false) : undefined}
-                    ocupado={ocupados.has(j.id)}
-                    onAlternarSeguir={
-                      buscando
-                        ? () => alternarSeguir(j.id, meusSeguidos.data?.has(j.id) ?? false)
-                        : undefined
-                    }
-                  />
-                </div>
-              ))
+                {!buscando && liberado && !euApareco && aba === "cidade" && !cidade && (
+                  <p className="rounded-2xl bg-mint-soft p-3 text-xs font-medium text-primary">
+                    Complete sua cidade no perfil pra ver seu ranking local.
+                  </p>
+                )}
+
+                {lista.isLoading ? (
+                  <>
+                    <Skeleton className="h-16 w-full rounded-2xl" />
+                    <Skeleton className="h-16 w-full rounded-2xl" />
+                    <Skeleton className="h-16 w-full rounded-2xl" />
+                  </>
+                ) : (lista.data ?? []).length === 0 ? (
+                  <div className="space-y-3 pt-10 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      {buscando
+                        ? "Nenhum jogador encontrado com esse nome."
+                        : aba === "seguindo"
+                          ? "Ninguém que você segue tem ranking ainda."
+                          : "Ainda não tem ninguém no ranking por aqui."}
+                    </p>
+                    {!buscando && aba === "seguindo" && (
+                      <p className="text-xs text-muted-foreground">
+                        Busca pelo nome de um jogador aí em cima pra começar a seguir.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  (lista.data ?? []).map((j, i) => (
+                    <div
+                      key={j.id}
+                      className={
+                        j.id === userId
+                          ? "rounded-2xl ring-2 ring-mint ring-offset-2 ring-offset-background"
+                          : ""
+                      }
+                    >
+                      <JogadorItem
+                        jogador={j}
+                        posicao={buscando ? undefined : i + 1}
+                        seguindo={buscando ? (meusSeguidos.data?.has(j.id) ?? false) : undefined}
+                        ocupado={ocupados.has(j.id)}
+                        onAlternarSeguir={
+                          buscando
+                            ? () => alternarSeguir(j.id, meusSeguidos.data?.has(j.id) ?? false)
+                            : undefined
+                        }
+                      />
+                    </div>
+                  ))
+                )}
+              </>
             )}
           </>
         )}

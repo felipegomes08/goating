@@ -89,33 +89,63 @@ export type Database = {
           },
         ]
       }
+      crew_invites: {
+        Row: {
+          crew_id: string
+          criado_em: string
+          token: string
+        }
+        Insert: {
+          crew_id: string
+          criado_em?: string
+          token?: string
+        }
+        Update: {
+          crew_id?: string
+          criado_em?: string
+          token?: string
+        }
+        Relationships: []
+      }
       crews: {
         Row: {
+          aceita_pedidos: boolean
+          avaliacoes: number
           capa_url: string | null
+          cidade: string | null
           criado_em: string
           dono_id: string
           escudo_url: string | null
           excluida_em: string | null
           id: string
           nome: string
+          nota: number | null
         }
         Insert: {
+          aceita_pedidos?: boolean
+          avaliacoes?: number
           capa_url?: string | null
+          cidade?: string | null
           criado_em?: string
           dono_id: string
           escudo_url?: string | null
           excluida_em?: string | null
           id?: string
           nome: string
+          nota?: number | null
         }
         Update: {
+          aceita_pedidos?: boolean
+          avaliacoes?: number
           capa_url?: string | null
+          cidade?: string | null
           criado_em?: string
           dono_id?: string
           escudo_url?: string | null
           excluida_em?: string | null
           id?: string
           nome?: string
+          nota?: number | null
         }
         Relationships: [
           {
@@ -706,9 +736,91 @@ export type Database = {
         Args: { p_admin: boolean; p_member_id: string }
         Returns: undefined
       }
+      apagar_meu_comentario_de_turma: { Args: { p_review_id: string }; Returns: undefined }
+      avaliar_turma: {
+        Args: {
+          p_ambiente: number
+          p_comentario?: string
+          p_crew_id: string
+          p_estrutura: number
+          p_nivel: number
+          p_organizacao: number
+          p_pontualidade: number
+        }
+        Returns: undefined
+      }
+      cancelar_pedido_de_entrada: { Args: { p_crew_id: string }; Returns: undefined }
+      comentarios_da_turma: {
+        Args: { p_crew_id: string }
+        Returns: {
+          autor_foto: string | null
+          autor_id: string
+          autor_nome: string
+          comentario: string
+          criado_em: string
+          denunciei: boolean
+          id: string
+          meu: boolean
+          oculto: boolean
+        }[]
+      }
       entrar_na_turma: {
-        Args: { p_crew_id: string; p_member_id?: string }
+        Args: { p_crew_id: string; p_member_id?: string; p_token?: string }
         Returns: string
+      }
+      pedidos_da_turma: {
+        Args: { p_crew_id: string }
+        Returns: {
+          avaliacoes_recebidas: number
+          cidade: string | null
+          criado_em: string
+          foto_url: string | null
+          handle: string | null
+          id: string
+          nome: string
+          overall: number
+          peladas: number
+          posicao: string | null
+          tier: string | null
+          user_id: string
+        }[]
+      }
+      pedir_entrada_na_turma: { Args: { p_crew_id: string }; Returns: undefined }
+      ranking_de_turmas: {
+        Args: { p_cidade: string }
+        Returns: {
+          aceita_pedidos: boolean
+          avaliacoes: number
+          cidade: string | null
+          crew_id: string
+          escudo_url: string | null
+          membros: number
+          nome: string
+          nota: number | null
+          peladas: number
+          sou_membro: boolean
+        }[]
+      }
+      renovar_convite_da_turma: { Args: { p_crew_id: string }; Returns: string }
+      responder_pedido_de_entrada: {
+        Args: { p_aprovar: boolean; p_pedido_id: string }
+        Returns: undefined
+      }
+      resumo_da_turma: {
+        Args: { p_crew_id: string }
+        Returns: {
+          aceita_pedidos: boolean
+          ambiente: number | null
+          estrutura: number | null
+          minha: Json | null
+          nivel: number | null
+          nota: number | null
+          organizacao: number | null
+          pedido: string | null
+          pontualidade: number | null
+          posso_avaliar: boolean
+          total: number
+        }[]
       }
       excluir_minha_conta: { Args: never; Returns: undefined }
       finalizar_peladas_vencidas: { Args: never; Returns: undefined }

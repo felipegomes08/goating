@@ -64,6 +64,11 @@ export function CartaoTurma({ turma }: { turma: TurmaResumo }) {
             )}
           </p>
           <p className="text-xs text-muted-foreground">
+            {turma.nota !== null && (
+              <span className="font-bold text-foreground">
+                ★ {Number(turma.nota).toFixed(1).replace(".", ",")} ·{" "}
+              </span>
+            )}
             {turma.membros} {turma.membros === 1 ? "jogador" : "jogadores"} · {turma.peladas}{" "}
             {turma.peladas === 1 ? "pelada com placar" : "peladas com placar"}
           </p>

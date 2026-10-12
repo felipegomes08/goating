@@ -36,6 +36,8 @@ function AuthPage() {
   const search = useRouterState({ select: (s) => s.location.search }) as {
     convite?: string;
     turma?: string;
+    /** código do link de convite da turma */
+    c?: string;
   };
   // "confirmar": conta criada, esperando a pessoa clicar no link do e-mail
   const [modo, setModo] = useState<"entrar" | "criar" | "recuperar" | "confirmar">("entrar");
@@ -49,11 +51,21 @@ function AuthPage() {
   const faltaCaptcha = CAPTCHA_LIGADO && !comprovante;
   const novaRodada = () => setRodada((r) => r + 1);
 
-  const destino = search?.convite
-    ? `/p/${search.convite}`
-    : search?.turma
-      ? `/turma/${search.turma}`
-      : "/";
+  /** Depois de entrar, a pessoa volta pra onde estava indo: convite de pelada, turma ou o feed. */
+  function irParaDestino() {
+    if (search?.convite) {
+      void navigate({ to: "/p/$token", params: { token: search.convite }, replace: true });
+    } else if (search?.turma) {
+      void navigate({
+        to: "/turma/$id",
+        params: { id: search.turma },
+        search: search.c ? { c: search.c } : {},
+        replace: true,
+      });
+    } else {
+      void navigate({ to: "/", replace: true });
+    }
+  }
 
   async function enviarRecuperacao(e: React.FormEvent) {
     e.preventDefault();
@@ -85,7 +97,7 @@ function AuthPage() {
       });
       if (error) throw error;
       toast.success("Conta confirmada. Bem-vindo ao Goating!");
-      navigate({ to: destino, replace: true });
+      irParaDestino();
     } catch (err) {
       toast.error(
         err instanceof Error && /email not confirmed/i.test(err.message)
@@ -137,7 +149,7 @@ function AuthPage() {
           return;
         }
         toast.success("Conta criada. Bem-vindo ao Goating!");
-        navigate({ to: destino, replace: true });
+        irParaDestino();
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -145,7 +157,7 @@ function AuthPage() {
           options: comCaptcha(comprovante),
         });
         if (error) throw error;
-        navigate({ to: destino, replace: true });
+        irParaDestino();
       }
     } catch (err) {
       toast.error(traduzirErroAuth(err));
