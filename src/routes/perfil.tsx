@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
+import { ComentariosDoJogador } from "@/components/goating/comentarios-do-jogador";
 import { ExcluirConta } from "@/components/goating/excluir-conta";
 import { FolhaCartao } from "@/components/goating/folha-cartao";
 import { AuraTier } from "@/components/goating/aura-tier";
@@ -385,6 +386,8 @@ function Perfil() {
           <h2 className="mb-2 text-sm font-bold text-primary-foreground">Atributos</h2>
           <RadarAttrs eixos={attrs.map((a) => ({ label: a.radar, valor: a.valor }))} />
         </section>
+
+        {userId && <ComentariosDoJogador userId={userId} proprio />}
 
         <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
           <div className="flex items-center justify-between">

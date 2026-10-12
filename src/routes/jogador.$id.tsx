@@ -9,6 +9,7 @@ import { useVoltar } from "@/hooks/use-voltar";
 import { useAvatarUrl } from "@/hooks/use-avatar";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { PlayerCard } from "@/components/goating/player-card";
+import { ComentariosDoJogador } from "@/components/goating/comentarios-do-jogador";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
 import { atributosZerados, carregarMedias, ehGoleiro } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
@@ -255,6 +256,8 @@ function JogadorPublico() {
           <h2 className="mb-2 text-sm font-bold text-primary-foreground">Atributos</h2>
           <RadarAttrs eixos={attrs.map((a) => ({ label: a.radar, valor: a.valor }))} />
         </section>
+
+        <ComentariosDoJogador userId={id} proprio={false} />
       </main>
 
       <BottomNav />

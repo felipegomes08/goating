@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { COLUNAS_DE_NOTA, atributosDe, ehGoleiro } from "@/lib/atributos";
 import { cn } from "@/lib/utils";
 
@@ -94,6 +95,8 @@ function Avaliar() {
   const [rascunhos, setRascunhos] = useState<Record<string, Atributos>>({});
   // "Jogou no gol hoje" quando quem avalia mexe na chave; sem mexer vale o perfil do jogador.
   const [goleiroManual, setGoleiroManual] = useState<Record<string, boolean>>({});
+  // Comentário digitado pra cada jogador (opcional; aparece assinado no perfil dele).
+  const [comentarios, setComentarios] = useState<Record<string, string>>({});
   // Jogadores avaliados nesta sessão (somados aos que já vieram do banco).
   const [enviadosAgora, setEnviadosAgora] = useState<Set<string>>(new Set());
   // null = automático (abre sozinho se a avaliação salva tiver atributos diferentes).
@@ -123,19 +126,20 @@ function Avaliar() {
         supabase
           .from("evaluations")
           .select(
-            "avaliado_id, nota_geral, como_goleiro, chute, drible, velocidade, toque, posicionamento, comportamento, pontualidade, reflexo, elasticidade, reposicao, jogo_pes",
+            "avaliado_id, nota_geral, como_goleiro, comentario, chute, drible, velocidade, toque, posicionamento, comportamento, pontualidade, reflexo, elasticidade, reposicao, jogo_pes",
           )
           .eq("match_id", id)
           .eq("avaliador_id", userId!),
       ]);
 
       // Avaliações que eu já fiz, para poder revisar/corrigir.
-      const salvas: Record<string, { goleiro: boolean; attrs: Atributos }> = {};
+      const salvas: Record<string, { goleiro: boolean; attrs: Atributos; comentario: string }> = {};
       for (const f of feitas ?? []) {
         const geral = Number(f.nota_geral);
         const notas = f as unknown as Record<string, number | null>;
         salvas[f.avaliado_id] = {
           goleiro: f.como_goleiro,
+          comentario: f.comentario ?? "",
           attrs: Object.fromEntries(
             atributosDe(f.como_goleiro).map((a) => [
               a.chave,
@@ -250,6 +254,7 @@ function Avaliar() {
   const detalhado = detalhadoManual ?? !todosIguais(lista, attrs);
   const enviadoEste = jaEnviado(jogador.id);
   const ultimo = indice + 1 >= jogadores.length;
+  const comentario = comentarios[jogador.id] ?? salva?.comentario ?? "";
 
   function setAttrs(novos: Atributos) {
     setRascunhos((r) => ({ ...r, [chaveRascunho]: novos }));
@@ -276,6 +281,7 @@ function Avaliar() {
       ...(usouDetalhada ? attrs : {}),
       nota_geral: notaGeral,
       como_goleiro: goleiro,
+      comentario: comentario.trim() || null,
     };
 
     let erro: { code?: string } | null = null;
@@ -315,6 +321,7 @@ function Avaliar() {
     // Cards e detalhe da pelada passam a refletir "já avaliei".
     void queryClient.invalidateQueries({ queryKey: ["pelada", id] });
     void queryClient.invalidateQueries({ queryKey: ["feed"] });
+    void queryClient.invalidateQueries({ queryKey: ["comentarios", jogador.id] });
     if (ultimo) {
       setConcluido(true);
     } else {
@@ -451,6 +458,28 @@ function Avaliar() {
               Mexer na nota geral deixa todos os atributos com o mesmo valor.
             </p>
           )}
+        </div>
+
+        <div className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+          <label htmlFor="comentario" className="text-sm font-semibold text-foreground">
+            Comentário (opcional)
+          </label>
+          <Textarea
+            id="comentario"
+            className="mt-2"
+            rows={3}
+            maxLength={200}
+            value={comentario}
+            onChange={(e) => setComentarios((c) => ({ ...c, [jogador.id]: e.target.value }))}
+            placeholder="Joga limpo? É pontual? Vale a pena chamar de novo?"
+          />
+          <p className="mt-1.5 flex justify-between gap-3 text-xs text-muted-foreground">
+            <span>
+              Aparece no perfil de {jogador.nome.split(" ")[0]} com o seu nome. As notas continuam
+              anônimas.
+            </span>
+            <span className="shrink-0 tabular-nums">{comentario.length}/200</span>
+          </p>
         </div>
       </div>
 

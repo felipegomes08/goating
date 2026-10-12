@@ -132,6 +132,7 @@ export type Database = {
           avaliado_id: string
           avaliador_id: string
           chute: number | null
+          comentario: string | null
           como_goleiro: boolean
           elasticidade: number | null
           jogo_pes: number | null
@@ -152,6 +153,7 @@ export type Database = {
           avaliado_id: string
           avaliador_id: string
           chute?: number | null
+          comentario?: string | null
           como_goleiro?: boolean
           elasticidade?: number | null
           jogo_pes?: number | null
@@ -172,6 +174,7 @@ export type Database = {
           avaliado_id?: string
           avaliador_id?: string
           chute?: number | null
+          comentario?: string | null
           como_goleiro?: boolean
           elasticidade?: number | null
           jogo_pes?: number | null
@@ -735,6 +738,26 @@ export type Database = {
       }
       reivindicar_tier: { Args: never; Returns: string }
       excluir_turma: { Args: { p_crew_id: string }; Returns: undefined }
+      apagar_meu_comentario: { Args: { p_evaluation_id: string }; Returns: undefined }
+      comentarios_do_jogador: {
+        Args: { p_user_id: string }
+        Returns: {
+          autor_foto: string | null
+          autor_id: string
+          autor_nome: string
+          comentario: string
+          criado_em: string
+          denunciei: boolean
+          id: string
+          meu: boolean
+          oculto: boolean
+          pelada: string
+        }[]
+      }
+      denunciar_comentario: {
+        Args: { p_alvo_id: string; p_motivo?: string; p_tipo: string }
+        Returns: undefined
+      }
       medias_do_jogador: {
         Args: { p_user_id: string }
         Returns: {
