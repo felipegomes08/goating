@@ -480,6 +480,7 @@ export type Database = {
           jogos: number
           match_id: string
           member_id: string
+          ordem: number
           time: number | null
           vitorias: number
         }
@@ -491,6 +492,7 @@ export type Database = {
           jogos?: number
           match_id: string
           member_id: string
+          ordem?: number
           time?: number | null
           vitorias?: number
         }
@@ -502,6 +504,7 @@ export type Database = {
           jogos?: number
           match_id?: string
           member_id?: string
+          ordem?: number
           time?: number | null
           vitorias?: number
         }

@@ -145,7 +145,8 @@ function DetalhePelada() {
           supabase
             .from("match_players")
             .select("member_id, time, crew_members(nome, user_id)")
-            .eq("match_id", id),
+            .eq("match_id", id)
+            .order("ordem"),
         ]);
       const podeGerir = await podeGerirPelada(pelada, userId!);
 

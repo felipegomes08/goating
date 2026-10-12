@@ -104,7 +104,7 @@ export async function prepararTimes(matchId: string, userId: string) {
       .select("user_id")
       .eq("match_id", matchId)
       .eq("status", "aprovado"),
-    supabase.from("match_players").select("member_id, time").eq("match_id", matchId),
+    supabase.from("match_players").select("member_id, time").eq("match_id", matchId).order("ordem"),
   ]);
   if (membrosRes.error) throw membrosRes.error;
   if (confirmadosRes.error) throw confirmadosRes.error;
@@ -174,7 +174,9 @@ export async function carregarElenco(matchId: string) {
     .select(
       "member_id, time, gols, jogos, vitorias, empates, derrotas, crew_members(nome, user_id)",
     )
-    .eq("match_id", matchId);
+    .eq("match_id", matchId)
+    // a ordem que o organizador arrumou na tela de times
+    .order("ordem");
   if (error) throw error;
   return data.map((l) => ({
     memberId: l.member_id,

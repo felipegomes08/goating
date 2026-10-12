@@ -132,7 +132,8 @@ function TimesDaPelada() {
   async function gravarTimes(lista: JogadorDoDia[]) {
     setJogadores(lista);
     const { error } = await supabase.from("match_players").upsert(
-      lista.map((j) => ({ match_id: id, member_id: j.memberId, time: j.time })),
+      // a posição na lista é a ordem dentro do time (goleiro em cima, e por aí vai)
+      lista.map((j, ordem) => ({ match_id: id, member_id: j.memberId, time: j.time, ordem })),
       { onConflict: "match_id,member_id" },
     );
     if (error) toast.error("Não deu pra salvar os times. Confere a internet.");
@@ -170,8 +171,15 @@ function TimesDaPelada() {
       anterior,
     );
     setSelecionado(null);
+    // já sai arrumado por posição: goleiro, zaga, laterais, volantes, meias, atacantes
+    const lugar = (posicao: string | null) => {
+      const i = POSICOES.indexOf(posicao as (typeof POSICOES)[number]);
+      return i === -1 ? POSICOES.length : i;
+    };
     await gravarTimes(
-      jogadores.map((j) => ({ ...j, time: sorteio.findIndex((t) => t.includes(j.memberId)) })),
+      jogadores
+        .map((j) => ({ ...j, time: sorteio.findIndex((t) => t.includes(j.memberId)) }))
+        .sort((a, b) => lugar(a.posicao) - lugar(b.posicao) || a.nome.localeCompare(b.nome)),
     );
   }
 
@@ -182,21 +190,28 @@ function TimesDaPelada() {
     const a = jogadores.find((j) => j.memberId === selecionado);
     const b = jogadores.find((j) => j.memberId === memberId);
     setSelecionado(null);
-    if (!a || !b || a.time === b.time) return;
+    if (!a || !b) return;
+    // um vai pro lugar do outro: troca de time e de posição na lista (no mesmo time, só a posição)
     await gravarTimes(
       jogadores.map((j) =>
         j.memberId === a.memberId
-          ? { ...j, time: b.time }
+          ? { ...b, time: a.time }
           : j.memberId === b.memberId
-            ? { ...j, time: a.time }
+            ? { ...a, time: b.time }
             : j,
       ),
     );
   }
 
-  async function moverJogador(memberId: string, time: number | null) {
+  /** Muda de time e/ou de posição. `antesDe` = quem fica logo abaixo; sem ele, vai pro fim do time. */
+  async function moverJogador(memberId: string, time: number | null, antesDe?: string | null) {
     setSelecionado(null);
-    await gravarTimes(jogadores.map((j) => (j.memberId === memberId ? { ...j, time } : j)));
+    const movido = jogadores.find((j) => j.memberId === memberId);
+    if (!movido) return;
+    const resto = jogadores.filter((j) => j.memberId !== memberId);
+    const i = antesDe ? resto.findIndex((j) => j.memberId === antesDe) : -1;
+    const novo = { ...movido, time };
+    await gravarTimes(i >= 0 ? [...resto.slice(0, i), novo, ...resto.slice(i)] : [...resto, novo]);
   }
 
   function mudarBase(nova: BaseDoSorteio) {

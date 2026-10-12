@@ -16,6 +16,15 @@ function zonaEm(x: number, y: number): Zona | null {
   return valor === "sem" ? "sem" : Number(valor);
 }
 
+/** Em cima de qual jogador o dedo está, e se é na metade de cima ou de baixo do cartão dele. */
+function alvoEm(x: number, y: number): { id: string; depois: boolean } | null {
+  const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-jogador]");
+  const id = el?.dataset["jogador"];
+  if (!el || !id) return null;
+  const caixa = el.getBoundingClientRect();
+  return { id, depois: y > caixa.top + caixa.height / 2 };
+}
+
 function etiqueta(jogador: JogadorDoDia, base: BaseDoSorteio) {
   const forca =
     base === "overall"
@@ -27,8 +36,9 @@ function etiqueta(jogador: JogadorDoDia, base: BaseDoSorteio) {
 }
 
 /**
- * Os times lado a lado. Dá pra mudar alguém de time de dois jeitos:
- * arrastando pela alça (⋮⋮) até outro time, ou tocando em dois jogadores pra trocar.
+ * Os times lado a lado. Arrastando pela alça (⋮⋮) dá pra mudar alguém de time ou de
+ * posição dentro do próprio time (soltando em cima de outro jogador); tocando em dois
+ * jogadores, eles trocam de lugar.
  */
 export function QuadroTimes({
   jogadores,
@@ -45,7 +55,8 @@ export function QuadroTimes({
   base: BaseDoSorteio;
   selecionado: string | null;
   onTocar: (memberId: string) => void;
-  onMover: (memberId: string, time: number | null) => void;
+  /** `antesDe`: o jogador que fica logo abaixo de onde soltou; sem ele, vai pro fim do time */
+  onMover: (memberId: string, time: number | null, antesDe?: string | null) => void;
 }) {
   const [arraste, setArraste] = useState<{
     memberId: string;
@@ -53,6 +64,8 @@ export function QuadroTimes({
     x: number;
     y: number;
     zona: Zona | null;
+    /** jogador embaixo do dedo: a linha de "vai entrar aqui" aparece nele */
+    alvo: { id: string; depois: boolean } | null;
   } | null>(null);
 
   const times = Array.from({ length: numTimes }, (_, i) => jogadores.filter((j) => j.time === i));
@@ -66,16 +79,44 @@ export function QuadroTimes({
       : `${time.length} jogadores · ${total}★`;
   };
 
+  const zonaDe = (j: JogadorDoDia): Zona => (j.time !== null && j.time < numTimes ? j.time : "sem");
+
+  /** Onde o jogador arrastado vai parar se soltar agora: quem fica logo abaixo dele. */
+  function destinoDoArraste(memberId: string, x: number, y: number) {
+    const zona = zonaEm(x, y);
+    if (zona === null) return null;
+    const alvo = alvoEm(x, y);
+    if (!alvo || alvo.id === memberId) return { zona, antesDe: undefined };
+    // a lista do time de destino, sem o próprio arrastado
+    const lista = jogadores.filter((j) => zonaDe(j) === zona && j.memberId !== memberId);
+    const i = lista.findIndex((j) => j.memberId === alvo.id);
+    if (i === -1) return { zona, antesDe: undefined };
+    return { zona, antesDe: alvo.depois ? (lista[i + 1]?.memberId ?? null) : alvo.id };
+  }
+
   const cartao = (jogador: JogadorDoDia, classe: string) => (
     <div
       key={jogador.memberId}
+      data-jogador={jogador.memberId}
       className={cn(
-        "flex items-stretch rounded-xl border-2 text-sm font-semibold text-foreground",
+        "relative flex items-stretch rounded-xl border-2 text-sm font-semibold text-foreground",
         classe,
         selecionado === jogador.memberId && "ring-2 ring-primary ring-offset-2",
         arraste?.memberId === jogador.memberId && "opacity-40",
       )}
     >
+      {/* linha mostrando onde o jogador arrastado entra: acima ou abaixo deste */}
+      {arraste &&
+        arraste.alvo?.id === jogador.memberId &&
+        arraste.memberId !== jogador.memberId && (
+          <span
+            aria-hidden
+            className={cn(
+              "pointer-events-none absolute inset-x-0 h-1 rounded-full bg-primary",
+              arraste.alvo.depois ? "-bottom-[7px]" : "-top-[7px]",
+            )}
+          />
+        )}
       <button
         type="button"
         aria-pressed={selecionado === jogador.memberId}
@@ -91,7 +132,7 @@ export function QuadroTimes({
       <span
         role="button"
         tabIndex={-1}
-        aria-label={`Arrastar ${jogador.nome} pra outro time`}
+        aria-label={`Arrastar ${jogador.nome} pra outro time ou outra posição`}
         className="flex w-8 shrink-0 cursor-grab touch-none items-center justify-center text-muted-foreground active:cursor-grabbing"
         onPointerDown={(e) => {
           e.preventDefault();
@@ -108,6 +149,7 @@ export function QuadroTimes({
             x: e.clientX,
             y: e.clientY,
             zona: null,
+            alvo: null,
           });
         }}
         onPointerMove={(e) => {
@@ -120,16 +162,18 @@ export function QuadroTimes({
             x: e.clientX,
             y: e.clientY,
             zona: zonaEm(e.clientX, e.clientY),
+            alvo: alvoEm(e.clientX, e.clientY),
           });
         }}
         onPointerUp={(e) => {
           if (!arraste) return;
-          const zona = zonaEm(e.clientX, e.clientY);
+          const destino = destinoDoArraste(jogador.memberId, e.clientX, e.clientY);
           setArraste(null);
-          if (zona === null) return;
-          const destino = zona === "sem" ? null : zona;
-          const atual = jogador.time !== null && jogador.time < numTimes ? jogador.time : null;
-          if (destino !== atual) onMover(jogador.memberId, destino);
+          if (!destino) return;
+          const time = destino.zona === "sem" ? null : destino.zona;
+          // soltou em cima de alguém: entra naquela posição. Soltou no vazio de outro time: vai pro fim dele.
+          if (destino.antesDe !== undefined) onMover(jogador.memberId, time, destino.antesDe);
+          else if (destino.zona !== zonaDe(jogador)) onMover(jogador.memberId, time);
         }}
         onPointerCancel={() => setArraste(null)}
       >
@@ -143,7 +187,7 @@ export function QuadroTimes({
       <p className="text-xs text-muted-foreground">
         {selecionado
           ? "Toque em outro jogador pra trocar os dois, ou em “Mover pra cá”."
-          : "Arraste pela alça ⋮⋮ pra mudar de time, ou toque em dois jogadores pra trocar."}
+          : "Arraste pela alça ⋮⋮ pra mudar de time ou de posição no time. Ou toque em dois jogadores pra trocar os dois de lugar."}
       </p>
 
       <div className="grid grid-cols-2 gap-3">
