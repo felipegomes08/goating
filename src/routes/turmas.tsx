@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -9,13 +9,18 @@ import { useMinhasTurmas } from "@/hooks/use-turmas";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
 import { CartaoTurma } from "@/components/goating/cartao-turma";
-import { TituloGrande } from "@/components/goating/titulo-grande";
+import { RedeDeJogadores } from "@/components/goating/rede-de-jogadores";
+import { Segmentos, TituloGrande, classeSegmento } from "@/components/goating/titulo-grande";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/turmas")({
   ssr: false,
+  // a mesma tela mostra as turmas (padrão) ou os jogadores que a pessoa segue
+  validateSearch: (search: Record<string, unknown>): { ver?: "jogadores" | undefined } => ({
+    ver: search["ver"] === "jogadores" ? "jogadores" : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Minhas turmas · Goating" },
@@ -31,6 +36,8 @@ export const Route = createFileRoute("/turmas")({
 function MinhasTurmas() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { ver } = useSearch({ from: "/turmas" });
+  const vendoJogadores = ver === "jogadores";
   const { userId, carregando } = useSession();
   const { data: perfil } = usePerfil(userId);
   const turmas = useMinhasTurmas(userId);
@@ -70,18 +77,55 @@ function MinhasTurmas() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <TituloGrande
-        titulo="Turmas"
-        subtitulo="O futebol fixo da galera, com placar e ranking."
+        titulo={vendoJogadores ? "Jogadores" : "Turmas"}
+        subtitulo={
+          vendoJogadores
+            ? "Quem você segue e quem vale a pena seguir."
+            : "O futebol fixo da galera, com placar e ranking."
+        }
         acao={
-          !criando && (
+          !criando &&
+          !vendoJogadores && (
             <Button size="sm" className="shrink-0" onClick={() => setCriando(true)}>
               <Plus /> Criar
             </Button>
           )
         }
-      />
+      >
+        <Segmentos colunas={2}>
+          <Link to="/turmas" replace className={classeSegmento(!vendoJogadores)}>
+            Turmas
+          </Link>
+          <Link
+            to="/turmas"
+            search={{ ver: "jogadores" }}
+            replace
+            className={classeSegmento(vendoJogadores)}
+          >
+            Jogadores
+          </Link>
+        </Segmentos>
+      </TituloGrande>
 
       <main className="flex-1 space-y-3 px-4 py-4">
+        {vendoJogadores ? (
+          userId ? (
+            <RedeDeJogadores userId={userId} cidade={perfil?.cidade ?? null} />
+          ) : null
+        ) : (
+          listaDeTurmas()
+        )}
+      </main>
+
+      <PuxarParaAtualizar />
+      <BottomNav />
+    </div>
+  );
+
+  // chamada como função, não como componente: assim o campo de criar turma não perde o foco a cada tecla
+  function listaDeTurmas() {
+    return (
+      <>
         {criando ? (
           <div className="space-y-2 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
             <p className="text-sm font-bold text-foreground">Nome da turma</p>
@@ -127,10 +171,7 @@ function MinhasTurmas() {
         ) : (
           (turmas.data ?? []).map((t) => <CartaoTurma key={t.crew_id} turma={t} />)
         )}
-      </main>
-
-      <PuxarParaAtualizar />
-      <BottomNav />
-    </div>
-  );
+      </>
+    );
+  }
 }
