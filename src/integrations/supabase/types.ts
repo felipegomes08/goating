@@ -132,6 +132,11 @@ export type Database = {
           avaliado_id: string
           avaliador_id: string
           chute: number | null
+          como_goleiro: boolean
+          elasticidade: number | null
+          jogo_pes: number | null
+          reflexo: number | null
+          reposicao: number | null
           comportamento: number | null
           criado_em: string
           drible: number | null
@@ -147,6 +152,11 @@ export type Database = {
           avaliado_id: string
           avaliador_id: string
           chute?: number | null
+          como_goleiro?: boolean
+          elasticidade?: number | null
+          jogo_pes?: number | null
+          reflexo?: number | null
+          reposicao?: number | null
           comportamento?: number | null
           criado_em?: string
           drible?: number | null
@@ -162,6 +172,11 @@ export type Database = {
           avaliado_id?: string
           avaliador_id?: string
           chute?: number | null
+          como_goleiro?: boolean
+          elasticidade?: number | null
+          jogo_pes?: number | null
+          reflexo?: number | null
+          reposicao?: number | null
           comportamento?: number | null
           criado_em?: string
           drible?: number | null
@@ -726,11 +741,17 @@ export type Database = {
           chute: number | null
           comportamento: number | null
           drible: number | null
+          elasticidade: number | null
+          jogo_pes: number | null
           nota_geral: number | null
           pontualidade: number | null
           posicionamento: number | null
+          posicionamento_goleiro: number | null
+          reflexo: number | null
+          reposicao: number | null
           toque: number | null
           total: number
+          total_goleiro: number
           velocidade: number | null
         }[]
       }

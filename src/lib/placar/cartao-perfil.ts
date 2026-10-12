@@ -1,6 +1,6 @@
 /** Cartão do perfil: a cartinha do jogador num palco, com números e atributos, pra mandar no grupo. */
 
-import type { MediasAtributos } from "@/lib/atributos";
+import type { AtributoExibido } from "@/lib/atributos";
 import {
   APAGADO,
   BRANCO,
@@ -34,7 +34,8 @@ export type DadosDoCartao = {
   overall: number;
   tier: TierNome | null;
   /** já na escala 0–100 */
-  atributos: MediasAtributos;
+  /** as sete notas, de linha ou de goleiro, já na escala 0–100 */
+  atributos: AtributoExibido[];
   peladas: number;
   mvps: number;
   xp: number;
@@ -59,16 +60,6 @@ const CORES: Record<TierNome, { texto: string; brilho: string }> = {
   Lendário: { texto: "#F6F5EE", brilho: "#F2CF6B" },
   GOAT: { texto: "#63A8F5", brilho: "#3B8BEA" },
 };
-
-const ATRIBUTOS: { chave: keyof MediasAtributos; nome: string; sigla: string }[] = [
-  { chave: "chute", nome: "Chute", sigla: "CHU" },
-  { chave: "drible", nome: "Drible", sigla: "DRI" },
-  { chave: "velocidade", nome: "Velocidade", sigla: "VEL" },
-  { chave: "toque", nome: "Toque", sigla: "TOQ" },
-  { chave: "posicionamento", nome: "Posição", sigla: "POS" },
-  { chave: "comportamento", nome: "Postura", sigla: "COM" },
-  { chave: "pontualidade", nome: "Pontual", sigla: "PON" },
-];
 
 const milhar = (n: number) => n.toLocaleString("pt-BR");
 
@@ -292,9 +283,9 @@ async function carta(
 
   const atrib = area(visual.layout.atrib);
   const coluna = (atrib.w * 0.94) / 5;
-  ATRIBUTOS.slice(0, 5).forEach((a, i) => {
+  dados.atributos.slice(0, 5).forEach((a, i) => {
     const cx = atrib.x + atrib.w * 0.03 + coluna * (i + 0.5);
-    escrever(ctx, String(dados.atributos[a.chave]), cx, atrib.y + atrib.h * 0.52, {
+    escrever(ctx, String(a.valor), cx, atrib.y + atrib.h * 0.52, {
       peso: 900,
       tamanho: w * 0.066,
       cor: cores.texto,
@@ -317,13 +308,13 @@ async function carta(
 /** Teia dos 7 atributos. */
 function radar(
   ctx: Ctx,
-  atributos: MediasAtributos,
+  atributos: AtributoExibido[],
   cx: number,
   cy: number,
   raio: number,
   cor: string,
 ) {
-  const n = ATRIBUTOS.length;
+  const n = atributos.length;
   const angulo = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
   const ponto = (i: number, escala: number) =>
     [cx + Math.cos(angulo(i)) * raio * escala, cy + Math.sin(angulo(i)) * raio * escala] as const;
@@ -343,7 +334,7 @@ function radar(
     ctx.strokeStyle = "rgba(255,255,255,0.14)";
     ctx.stroke();
   });
-  ATRIBUTOS.forEach((_, i) => {
+  atributos.forEach((_, i) => {
     const [px, py] = ponto(i, 1);
     ctx.beginPath();
     ctx.moveTo(cx, cy);
@@ -352,7 +343,7 @@ function radar(
     ctx.stroke();
   });
 
-  const valores = ATRIBUTOS.map((a) => Math.max(0.05, atributos[a.chave] / 100));
+  const valores = atributos.map((a) => Math.max(0.05, a.valor / 100));
   caminho(valores);
   const preenchimento = ctx.createRadialGradient(cx, cy, 0, cx, cy, raio);
   preenchimento.addColorStop(0, comAlfa(cor, 0.15));
@@ -367,7 +358,7 @@ function radar(
   ctx.stroke();
   ctx.restore();
 
-  ATRIBUTOS.forEach((a, i) => {
+  atributos.forEach((a, i) => {
     const [px, py] = ponto(i, valores[i]!);
     ctx.fillStyle = BRANCO;
     ctx.beginPath();
@@ -549,16 +540,16 @@ export async function desenharCartao(dados: DadosDoCartao): Promise<HTMLCanvasEl
     ctx.stroke();
     radar(ctx, dados.atributos, MARGEM + 196, y + alturaPainel / 2 + 4, 112, cores.brilho);
 
-    const melhor = Math.max(...ATRIBUTOS.map((a) => dados.atributos[a.chave]));
+    const melhor = Math.max(...dados.atributos.map((a) => a.valor));
     const xRotulo = MARGEM + 410;
     const xBarra = xRotulo + 172;
     const xValor = LARGURA - MARGEM - 30;
     const larguraBarra = xValor - 76 - xBarra;
-    ATRIBUTOS.forEach((a, i) => {
-      const valor = dados.atributos[a.chave];
+    dados.atributos.forEach((a, i) => {
+      const valor = a.valor;
       const base = y + 62 + i * 40;
       const topo = valor === melhor && valor > 0;
-      escrever(ctx, a.nome, xRotulo, base, {
+      escrever(ctx, a.radar, xRotulo, base, {
         peso: 600,
         tamanho: 24,
         cor: topo ? BRANCO : APAGADO,

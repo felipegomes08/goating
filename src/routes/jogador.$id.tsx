@@ -10,7 +10,7 @@ import { useAvatarUrl } from "@/hooks/use-avatar";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { PlayerCard } from "@/components/goating/player-card";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
-import { MEDIAS_ZERADAS, carregarMedias } from "@/lib/atributos";
+import { atributosZerados, carregarMedias, ehGoleiro } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { overallLiberado, tierPorNome } from "@/lib/tiers";
@@ -66,10 +66,11 @@ function JogadorPublico() {
   const perfil = perfilQuery.data;
   const fotoUrl = useAvatarUrl(perfil?.foto_url);
 
+  const goleiro = ehGoleiro(perfil?.posicao_preferida);
   const medias = useQuery({
-    queryKey: ["medias", id],
-    enabled: !!userId,
-    queryFn: () => carregarMedias(id),
+    queryKey: ["medias", id, goleiro],
+    enabled: !!userId && !!perfil,
+    queryFn: () => carregarMedias(id, goleiro),
   });
 
   const rede = useQuery({
@@ -158,7 +159,7 @@ function JogadorPublico() {
   const liberado = overallLiberado(perfil.avaliacoes_recebidas);
   const overall = liberado ? Number(perfil.overall) : 0;
   const tier = liberado ? tierPorNome(perfil.tier_reconhecido) : null;
-  const attrs = medias.data ?? MEDIAS_ZERADAS;
+  const attrs = medias.data ?? atributosZerados(goleiro);
   const segue = !!seguindoEste.data;
 
   return (
@@ -252,17 +253,7 @@ function JogadorPublico() {
 
         <section className="rounded-2xl bg-primary p-4">
           <h2 className="mb-2 text-sm font-bold text-primary-foreground">Atributos</h2>
-          <RadarAttrs
-            eixos={[
-              { label: "Chute", valor: attrs.chute },
-              { label: "Drible", valor: attrs.drible },
-              { label: "Velocidade", valor: attrs.velocidade },
-              { label: "Toque", valor: attrs.toque },
-              { label: "Posição", valor: attrs.posicionamento },
-              { label: "Postura", valor: attrs.comportamento },
-              { label: "Pontual", valor: attrs.pontualidade },
-            ]}
-          />
+          <RadarAttrs eixos={attrs.map((a) => ({ label: a.radar, valor: a.valor }))} />
         </section>
       </main>
 

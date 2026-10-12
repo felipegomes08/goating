@@ -13,7 +13,7 @@ import { AuraTier } from "@/components/goating/aura-tier";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ProgressoTier } from "@/components/goating/progresso-tier";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
-import { MEDIAS_ZERADAS, carregarMedias } from "@/lib/atributos";
+import { atributosZerados, carregarMedias, ehGoleiro } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -140,10 +140,12 @@ function Perfil() {
     };
   }, [perfil?.foto_url]);
 
+  // goleiro mostra as habilidades de goleiro na carta e no radar
+  const goleiro = ehGoleiro(perfil?.posicao_preferida);
   const medias = useQuery({
-    queryKey: ["medias", userId],
-    enabled: !!userId,
-    queryFn: () => carregarMedias(userId!),
+    queryKey: ["medias", userId, goleiro],
+    enabled: !!userId && !!perfil,
+    queryFn: () => carregarMedias(userId!, goleiro),
   });
 
   const seguidores = useQuery({
@@ -191,6 +193,7 @@ function Perfil() {
     toast.success("Perfil atualizado!");
     await queryClient.invalidateQueries({ queryKey: ["perfil", userId] });
     await queryClient.invalidateQueries({ queryKey: ["nick-livre"] });
+    await queryClient.invalidateQueries({ queryKey: ["medias", userId] });
     setEditando(false);
   }
 
@@ -232,7 +235,7 @@ function Perfil() {
     ? tierPorNome(perfil.tier_reconhecido)
     : null;
 
-  const attrs = medias.data ?? MEDIAS_ZERADAS;
+  const attrs = medias.data ?? atributosZerados(goleiro);
 
   async function revelarTier() {
     setAbrindo(true);
@@ -380,17 +383,7 @@ function Perfil() {
 
         <section className="rounded-2xl bg-primary p-4">
           <h2 className="mb-2 text-sm font-bold text-primary-foreground">Atributos</h2>
-          <RadarAttrs
-            eixos={[
-              { label: "Chute", valor: attrs.chute },
-              { label: "Drible", valor: attrs.drible },
-              { label: "Velocidade", valor: attrs.velocidade },
-              { label: "Toque", valor: attrs.toque },
-              { label: "Posição", valor: attrs.posicionamento },
-              { label: "Postura", valor: attrs.comportamento },
-              { label: "Pontual", valor: attrs.pontualidade },
-            ]}
-          />
+          <RadarAttrs eixos={attrs.map((a) => ({ label: a.radar, valor: a.valor }))} />
         </section>
 
         <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">

@@ -9,6 +9,8 @@ import { useSession } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { COLUNAS_DE_NOTA, atributosDe, ehGoleiro } from "@/lib/atributos";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pelada/$id_/avaliar")({
@@ -46,38 +48,30 @@ function Aviso({ texto }: { texto: string }) {
   );
 }
 
-const ATRIBUTOS = [
-  { chave: "chute", rotulo: "Chute" },
-  { chave: "drible", rotulo: "Drible" },
-  { chave: "velocidade", rotulo: "Velocidade" },
-  { chave: "toque", rotulo: "Toque de bola" },
-  { chave: "posicionamento", rotulo: "Posicionamento" },
-  { chave: "comportamento", rotulo: "Comportamento" },
-  { chave: "pontualidade", rotulo: "Pontualidade" },
-] as const;
-
-type ChaveAtributo = (typeof ATRIBUTOS)[number]["chave"];
-type Atributos = Record<ChaveAtributo, number>;
+/** As sete notas de uma avaliação: a lista muda se a pessoa jogou na linha ou no gol. */
+type Lista = ReturnType<typeof atributosDe>;
+type Atributos = Record<string, number>;
 
 const NOTA_PADRAO = 7;
 
-function atributosIguais(valor: number): Atributos {
-  return Object.fromEntries(ATRIBUTOS.map((a) => [a.chave, valor])) as Atributos;
+function atributosIguais(lista: Lista, valor: number): Atributos {
+  return Object.fromEntries(lista.map((a) => [a.chave, valor]));
 }
 
-function atributosNulos() {
-  return Object.fromEntries(ATRIBUTOS.map((a) => [a.chave, null])) as Record<ChaveAtributo, null>;
+/** Todas as colunas de nota vazias: a avaliação grava só as do tipo dela. */
+function colunasNulas() {
+  return Object.fromEntries(COLUNAS_DE_NOTA.map((c) => [c, null])) as Record<string, null>;
 }
 
 /** Nota geral = média simples dos atributos (mesma regra do trigger no banco). */
-function mediaGeral(attrs: Atributos) {
-  const soma = ATRIBUTOS.reduce((acc, a) => acc + attrs[a.chave], 0);
-  return Math.round((soma / ATRIBUTOS.length) * 100) / 100;
+function mediaGeral(lista: Lista, attrs: Atributos) {
+  const soma = lista.reduce((acc, a) => acc + (attrs[a.chave] ?? 0), 0);
+  return Math.round((soma / lista.length) * 100) / 100;
 }
 
-function todosIguais(attrs: Atributos) {
-  const primeiro = attrs[ATRIBUTOS[0].chave];
-  return ATRIBUTOS.every((a) => attrs[a.chave] === primeiro);
+function todosIguais(lista: Lista, attrs: Atributos) {
+  const primeiro = attrs[lista[0]!.chave];
+  return lista.every((a) => attrs[a.chave] === primeiro);
 }
 
 function iniciais(nome: string) {
@@ -96,8 +90,10 @@ function Avaliar() {
 
   // null = ainda não navegou; começa no primeiro jogador pendente.
   const [indiceEscolhido, setIndiceEscolhido] = useState<number | null>(null);
-  // Rascunhos por jogador: sobrevivem a "Anterior"/"Pular".
+  // Rascunhos por jogador e por tipo (linha/gol): sobrevivem a "Anterior"/"Pular".
   const [rascunhos, setRascunhos] = useState<Record<string, Atributos>>({});
+  // "Jogou no gol hoje" quando quem avalia mexe na chave; sem mexer vale o perfil do jogador.
+  const [goleiroManual, setGoleiroManual] = useState<Record<string, boolean>>({});
   // Jogadores avaliados nesta sessão (somados aos que já vieram do banco).
   const [enviadosAgora, setEnviadosAgora] = useState<Set<string>>(new Set());
   // null = automático (abre sozinho se a avaliação salva tiver atributos diferentes).
@@ -127,31 +123,46 @@ function Avaliar() {
         supabase
           .from("evaluations")
           .select(
-            "avaliado_id, chute, drible, velocidade, toque, posicionamento, comportamento, pontualidade, nota_geral",
+            "avaliado_id, nota_geral, como_goleiro, chute, drible, velocidade, toque, posicionamento, comportamento, pontualidade, reflexo, elasticidade, reposicao, jogo_pes",
           )
           .eq("match_id", id)
           .eq("avaliador_id", userId!),
       ]);
 
       // Avaliações que eu já fiz, para poder revisar/corrigir.
-      const salvas: Record<string, Atributos> = {};
+      const salvas: Record<string, { goleiro: boolean; attrs: Atributos }> = {};
       for (const f of feitas ?? []) {
         const geral = Number(f.nota_geral);
-        salvas[f.avaliado_id] = Object.fromEntries(
-          ATRIBUTOS.map((a) => [a.chave, f[a.chave] == null ? geral : Number(f[a.chave])]),
-        ) as Atributos;
+        const notas = f as unknown as Record<string, number | null>;
+        salvas[f.avaliado_id] = {
+          goleiro: f.como_goleiro,
+          attrs: Object.fromEntries(
+            atributosDe(f.como_goleiro).map((a) => [
+              a.chave,
+              notas[a.chave] == null ? geral : Number(notas[a.chave]),
+            ]),
+          ),
+        };
       }
 
       const alvos = (parts ?? []).map((p) => p.user_id).filter((uid) => uid !== userId);
 
       const { data: perfis } = alvos.length
-        ? await supabase.from("profiles").select("id, nome_exibicao, foto_url").in("id", alvos)
+        ? await supabase
+            .from("profiles")
+            .select("id, nome_exibicao, foto_url, posicao_preferida")
+            .in("id", alvos)
         : { data: [] };
 
       const jogadores = alvos
         .map((uid) => {
           const p = (perfis ?? []).find((x) => x.id === uid);
-          return { id: uid, nome: p?.nome_exibicao ?? "Jogador", foto: p?.foto_url ?? null };
+          return {
+            id: uid,
+            nome: p?.nome_exibicao ?? "Jogador",
+            foto: p?.foto_url ?? null,
+            goleiroNoPerfil: ehGoleiro(p?.posicao_preferida),
+          };
         })
         // Ordem estável: a lista não muda enquanto a pessoa navega.
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
@@ -226,24 +237,31 @@ function Avaliar() {
     );
   }
 
+  const salva = salvas[jogador.id];
+  const goleiro = goleiroManual[jogador.id] ?? salva?.goleiro ?? jogador.goleiroNoPerfil;
+  const lista = atributosDe(goleiro);
+  const chaveRascunho = `${jogador.id}:${goleiro ? "gol" : "linha"}`;
   const attrs: Atributos =
-    rascunhos[jogador.id] ?? salvas[jogador.id] ?? atributosIguais(NOTA_PADRAO);
-  const notaGeral = mediaGeral(attrs);
-  const detalhado = detalhadoManual ?? !todosIguais(attrs);
+    rascunhos[chaveRascunho] ??
+    // a avaliação salva só serve de ponto de partida se foi do mesmo tipo
+    (salva?.goleiro === goleiro ? salva.attrs : undefined) ??
+    atributosIguais(lista, NOTA_PADRAO);
+  const notaGeral = mediaGeral(lista, attrs);
+  const detalhado = detalhadoManual ?? !todosIguais(lista, attrs);
   const enviadoEste = jaEnviado(jogador.id);
   const ultimo = indice + 1 >= jogadores.length;
 
   function setAttrs(novos: Atributos) {
-    setRascunhos((r) => ({ ...r, [jogador!.id]: novos }));
+    setRascunhos((r) => ({ ...r, [chaveRascunho]: novos }));
   }
 
   // Modo rápido: a nota geral puxa todos os atributos junto.
   function mudarGeral(valor: number) {
-    setAttrs(atributosIguais(valor));
+    setAttrs(atributosIguais(lista, valor));
   }
 
   // Modo detalhado: cada atributo muda sozinho e a geral vira a média.
-  function mudarAtributo(chave: ChaveAtributo, valor: number) {
+  function mudarAtributo(chave: string, valor: number) {
     setAttrs({ ...attrs, [chave]: valor });
   }
 
@@ -252,10 +270,13 @@ function Avaliar() {
     setEnviando(true);
     // Avaliação rápida grava só a nota geral: atributos nulos não entram nas médias
     // do radar. Só grava os atributos quando a pessoa usou a detalhada.
-    const usouDetalhada = detalhado || !todosIguais(attrs);
-    const payload = usouDetalhada
-      ? { ...attrs, nota_geral: notaGeral }
-      : { ...atributosNulos(), nota_geral: notaGeral };
+    const usouDetalhada = detalhado || !todosIguais(lista, attrs);
+    const payload = {
+      ...colunasNulas(),
+      ...(usouDetalhada ? attrs : {}),
+      nota_geral: notaGeral,
+      como_goleiro: goleiro,
+    };
 
     let erro: { code?: string } | null = null;
     if (enviadoEste) {
@@ -342,6 +363,29 @@ function Avaliar() {
           )}
         </div>
 
+        {/* goleiro é avaliado por outras habilidades; a chave já vem ligada pra quem é goleiro no perfil */}
+        <label
+          htmlFor="jogou-no-gol"
+          className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-card)]"
+        >
+          <span>
+            <span className="block text-sm font-semibold text-foreground">Jogou no gol hoje</span>
+            <span className="block text-xs text-muted-foreground">
+              {goleiro
+                ? "Avaliando como goleiro: reflexo, reposição, jogo com os pés..."
+                : "Avaliando como jogador de linha."}
+            </span>
+          </span>
+          <Switch
+            id="jogou-no-gol"
+            checked={goleiro}
+            onCheckedChange={(ligado) => {
+              setGoleiroManual((g) => ({ ...g, [jogador.id]: ligado }));
+              setDetalhadoManual(null);
+            }}
+          />
+        </label>
+
         <div className="rounded-2xl bg-mint-soft p-4">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 text-sm font-bold text-primary">
@@ -382,15 +426,17 @@ function Avaliar() {
           </button>
           {detalhado && (
             <div className="space-y-4 px-4 pb-4">
-              {ATRIBUTOS.map((a) => (
+              {lista.map((a) => (
                 <div key={a.chave}>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-foreground">{a.rotulo}</span>
-                    <span className="font-bold text-primary">{attrs[a.chave].toFixed(1)}</span>
+                    <span className="font-medium text-foreground">{a.nome}</span>
+                    <span className="font-bold text-primary">
+                      {(attrs[a.chave] ?? 0).toFixed(1)}
+                    </span>
                   </div>
                   <Slider
                     className="mt-2"
-                    value={[attrs[a.chave]]}
+                    value={[attrs[a.chave] ?? 0]}
                     min={0}
                     max={10}
                     step={0.5}
@@ -400,7 +446,7 @@ function Avaliar() {
               ))}
             </div>
           )}
-          {!detalhado && !todosIguais(attrs) && (
+          {!detalhado && !todosIguais(lista, attrs) && (
             <p className="px-4 pb-4 text-xs text-muted-foreground">
               Mexer na nota geral deixa todos os atributos com o mesmo valor.
             </p>

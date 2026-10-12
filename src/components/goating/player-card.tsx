@@ -15,13 +15,8 @@ function caixa({ x, y, w, h }: CaixaCarta, folga = 0): CSSProperties {
   };
 }
 
-export type AtributosCard = {
-  chute: number;
-  drible: number;
-  velocidade: number;
-  toque: number;
-  posicionamento: number;
-};
+/** As habilidades que vão na carta: as cinco primeiras da lista (de linha ou de goleiro). */
+export type AtributosCard = { sigla: string; valor: number }[];
 
 /**
  * Renderiza a cartinha. Prioridade:
@@ -175,15 +170,7 @@ export function PlayerCard({
                   className="absolute grid grid-cols-5 items-center px-[2cqw]"
                   style={caixa(atrib)}
                 >
-                  {(
-                    [
-                      ["CHU", atributos.chute],
-                      ["DRI", atributos.drible],
-                      ["VEL", atributos.velocidade],
-                      ["TOQ", atributos.toque],
-                      ["POS", atributos.posicionamento],
-                    ] as const
-                  ).map(([label, valor]) => (
+                  {atributos.slice(0, 5).map(({ sigla: label, valor }) => (
                     <div key={label} className="text-center">
                       <p
                         className={cn("leading-none font-extrabold tabular-nums", cor)}

@@ -1,77 +1,80 @@
 import { supabase } from "@/integrations/supabase/client";
 import { paraEscalaCard } from "@/lib/tiers";
 
-export const CHAVES_ATRIBUTOS = [
-  "chute",
-  "drible",
-  "velocidade",
-  "toque",
-  "posicionamento",
-  "comportamento",
-  "pontualidade",
-] as const;
-
-export type ChaveAtributo = (typeof CHAVES_ATRIBUTOS)[number];
-export type MediasAtributos = Record<ChaveAtributo, number>;
-
-type LinhaAvaliacao = { nota_geral: number } & Record<ChaveAtributo, number | null>;
-
 /**
- * Médias do radar/carta de um jogador. Vêm prontas do banco (função `medias_do_jogador`):
- * as avaliações são privadas, ninguém lê a nota que cada pessoa deu.
+ * As notas de uma avaliação. Jogador de linha e goleiro têm cinco habilidades técnicas
+ * diferentes; comportamento e pontualidade valem pros dois. As cinco primeiras de cada
+ * lista são as que aparecem na cartinha; o radar mostra as sete.
  */
-export async function carregarMedias(userId: string): Promise<MediasAtributos> {
-  const { data, error } = await supabase.rpc("medias_do_jogador", { p_user_id: userId });
-  if (error) throw error;
-  const medias = data[0];
-  if (!medias || Number(medias.total) === 0 || medias.nota_geral === null) {
-    return { ...MEDIAS_ZERADAS };
-  }
-  const resultado = { ...MEDIAS_ZERADAS };
-  for (const chave of CHAVES_ATRIBUTOS) {
-    // atributo sem nenhuma avaliação detalhada mostra a média das notas gerais
-    resultado[chave] = paraEscalaCard(Number(medias[chave] ?? medias.nota_geral));
-  }
-  return resultado;
-}
-
-/**
- * Quantas avaliações detalhadas um atributo precisa para usar só elas.
- * Abaixo disso, o atributo mostra a média das notas gerais (avaliações rápidas).
- */
-export const MIN_DETALHADAS = 1;
-
-export const MEDIAS_ZERADAS: MediasAtributos = {
-  chute: 0,
-  drible: 0,
-  velocidade: 0,
-  toque: 0,
-  posicionamento: 0,
-  comportamento: 0,
-  pontualidade: 0,
+type Definicao = {
+  /** coluna em `evaluations` */
+  chave: string;
+  /** nome inteiro, na tela de avaliar e nas barras do cartão */
+  nome: string;
+  /** nome curto, nas pontas do radar */
+  radar: string;
+  /** três letras, na cartinha */
+  sigla: string;
 };
 
-function media(valores: number[]) {
-  return valores.reduce((a, b) => a + b, 0) / valores.length;
-}
+const EM_COMUM: Definicao[] = [
+  { chave: "comportamento", nome: "Comportamento", radar: "Postura", sigla: "COM" },
+  { chave: "pontualidade", nome: "Pontualidade", radar: "Pontual", sigla: "PON" },
+];
+
+export const ATRIBUTOS_LINHA: Definicao[] = [
+  { chave: "chute", nome: "Chute", radar: "Chute", sigla: "CHU" },
+  { chave: "drible", nome: "Drible", radar: "Drible", sigla: "DRI" },
+  { chave: "velocidade", nome: "Velocidade", radar: "Velocidade", sigla: "VEL" },
+  { chave: "toque", nome: "Toque de bola", radar: "Toque", sigla: "TOQ" },
+  { chave: "posicionamento", nome: "Posicionamento", radar: "Posição", sigla: "POS" },
+  ...EM_COMUM,
+];
+
+export const ATRIBUTOS_GOLEIRO: Definicao[] = [
+  { chave: "reflexo", nome: "Reflexo", radar: "Reflexo", sigla: "REF" },
+  { chave: "posicionamento", nome: "Posicionamento", radar: "Posição", sigla: "POS" },
+  { chave: "elasticidade", nome: "Elasticidade", radar: "Elasticidade", sigla: "ELA" },
+  { chave: "reposicao", nome: "Reposição", radar: "Reposição", sigla: "REP" },
+  { chave: "jogo_pes", nome: "Jogo com os pés", radar: "Pés", sigla: "PÉS" },
+  ...EM_COMUM,
+];
+
+/** Todas as colunas de nota que existem em `evaluations` (as de linha e as de goleiro). */
+export const COLUNAS_DE_NOTA = [
+  ...new Set([...ATRIBUTOS_LINHA, ...ATRIBUTOS_GOLEIRO].map((a) => a.chave)),
+];
+
+export const ehGoleiro = (posicao: string | null | undefined) => posicao === "GOL";
+
+export const atributosDe = (goleiro: boolean) => (goleiro ? ATRIBUTOS_GOLEIRO : ATRIBUTOS_LINHA);
+
+/** Um atributo pronto pra mostrar, já na escala 0–100 da cartinha. */
+export type AtributoExibido = Definicao & { valor: number };
+
+export const atributosZerados = (goleiro: boolean): AtributoExibido[] =>
+  atributosDe(goleiro).map((a) => ({ ...a, valor: 0 }));
 
 /**
- * Médias do radar/carta. Avaliação rápida grava só `nota_geral` (atributos nulos);
- * a detalhada grava os atributos. Cada atributo prioriza as notas detalhadas e,
- * se não houver o suficiente, cai para a média das notas gerais.
+ * Médias do radar/carta de um jogador, como goleiro ou como jogador de linha. Vêm prontas
+ * do banco (função `medias_do_jogador`): as avaliações são privadas, ninguém lê a nota que
+ * cada pessoa deu.
+ *
+ * Avaliação rápida grava só a nota geral, e um goleiro pode ter sido avaliado só como
+ * jogador de linha (ou o contrário): atributo sem nenhuma nota própria mostra a média
+ * das notas gerais.
  */
-export function mediasAtributos(linhas: LinhaAvaliacao[]): MediasAtributos {
-  if (linhas.length === 0) return { ...MEDIAS_ZERADAS };
-  const mediaGeral = media(linhas.map((l) => Number(l.nota_geral)));
-
-  const resultado = { ...MEDIAS_ZERADAS };
-  for (const chave of CHAVES_ATRIBUTOS) {
-    const detalhadas = linhas
-      .map((l) => l[chave])
-      .filter((v): v is number => v !== null && v !== undefined)
-      .map(Number);
-    const valor = detalhadas.length >= MIN_DETALHADAS ? media(detalhadas) : mediaGeral;
-    resultado[chave] = paraEscalaCard(valor);
+export async function carregarMedias(userId: string, goleiro: boolean): Promise<AtributoExibido[]> {
+  const { data, error } = await supabase.rpc("medias_do_jogador", { p_user_id: userId });
+  if (error) throw error;
+  const medias = data[0] as Record<string, number | null> | undefined;
+  if (!medias || Number(medias["total"]) === 0 || medias["nota_geral"] == null) {
+    return atributosZerados(goleiro);
   }
-  return resultado;
+  const geral = Number(medias["nota_geral"]);
+  return atributosDe(goleiro).map((a) => {
+    // "posicionamento" existe nos dois tipos, com médias separadas
+    const coluna = goleiro && a.chave === "posicionamento" ? "posicionamento_goleiro" : a.chave;
+    return { ...a, valor: paraEscalaCard(Number(medias[coluna] ?? geral)) };
+  });
 }
