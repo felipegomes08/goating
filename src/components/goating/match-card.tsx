@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { CheckCheck, Clock, Crown, Lock, MapPin, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { urlDaFotoDaTurma, urlDaMiniaturaDoEscudo } from "@/lib/foto-turma";
-import { JANELA_AVALIACAO_MS } from "@/lib/janela-avaliacao";
+import { janelaAberta } from "@/lib/janela-avaliacao";
 import { cn } from "@/lib/utils";
 
 export type PeladaFeed = {
@@ -24,6 +24,8 @@ export type PeladaFeed = {
   escudoDaTurma?: string | null;
   /** Quando a pelada foi finalizada — é daí que conta a janela de avaliação. */
   finalizada_em: string | null;
+  /** fim combinado da janela de avaliação, quando não é o prazo normal */
+  avaliacao_ate?: string | null;
   mvp: { nome_exibicao: string } | null;
   confirmados: number;
   organizador: {
@@ -40,16 +42,7 @@ export type PeladaFeed = {
 };
 
 /** true enquanto a pelada finalizada ainda está dentro da janela de avaliação. */
-export function estaPendenteAvaliacao(pelada: {
-  status?: string | undefined;
-  finalizada_em?: string | null | undefined;
-}) {
-  return (
-    pelada.status === "finalizada" &&
-    !!pelada.finalizada_em &&
-    Date.now() - new Date(pelada.finalizada_em).getTime() < JANELA_AVALIACAO_MS
-  );
-}
+export const estaPendenteAvaliacao = janelaAberta;
 
 /**
  * Quantos dos outros jogadores aprovados o usuário já avaliou. O total pode crescer depois

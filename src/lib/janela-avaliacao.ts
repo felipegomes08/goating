@@ -9,28 +9,39 @@ export const JANELA_AVALIACAO_MS = 2 * 60 * 60 * 1000;
 /** como a janela aparece nos textos */
 export const JANELA_AVALIACAO_TEXTO = "2h";
 
-/** "21:30" — a hora em que a janela de avaliação dessa pelada fecha. */
-function horaDoFechamento(finalizadaEm: string) {
-  return new Date(new Date(finalizadaEm).getTime() + JANELA_AVALIACAO_MS).toLocaleTimeString(
-    "pt-BR",
-    { hour: "2-digit", minute: "2-digit" },
-  );
+type ComJanela = {
+  status?: string | undefined;
+  finalizada_em?: string | null | undefined;
+  /** fim combinado da janela dessa pelada; vazio = o prazo normal depois de finalizada */
+  avaliacao_ate?: string | null | undefined;
+};
+
+/** Quando a janela de avaliação dessa pelada fecha (null = ainda nem foi finalizada). */
+export function fimDaJanela(pelada: ComJanela) {
+  if (pelada.avaliacao_ate) return new Date(pelada.avaliacao_ate);
+  if (!pelada.finalizada_em) return null;
+  return new Date(new Date(pelada.finalizada_em).getTime() + JANELA_AVALIACAO_MS);
+}
+
+/** true enquanto a pelada finalizada ainda aceita avaliações. */
+export function janelaAberta(pelada: ComJanela) {
+  const fim = fimDaJanela(pelada);
+  return pelada.status === "finalizada" && !!fim && Date.now() < fim.getTime();
 }
 
 /**
  * Mensagem pro organizador mandar no grupo assim que finaliza: avisa que a janela abriu,
  * até que horas vai, e leva o link direto pra tela de avaliar.
  */
-export function chamarPraAvaliar(pelada: {
-  id: string;
-  titulo: string;
-  finalizada_em: string | null;
-}) {
-  const ate = pelada.finalizada_em ? ` Fecha às ${horaDoFechamento(pelada.finalizada_em)}.` : "";
+export function chamarPraAvaliar(pelada: ComJanela & { id: string; titulo: string }) {
+  const fim = fimDaJanela(pelada);
+  const ate = fim
+    ? ` A janela fecha às ${fim.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.`
+    : "";
   return compartilhar(
     [
       `⭐ *Avaliações abertas: ${pelada.titulo}*`,
-      `A janela fica aberta por ${JANELA_AVALIACAO_TEXTO}.${ate} Dá a sua nota pra quem jogou e ajuda a escolher o MVP:`,
+      `Dá a sua nota pra quem jogou e ajuda a escolher o MVP.${ate}`,
       `${origemDoSite()}/pelada/${pelada.id}/avaliar`,
     ].join("\n"),
   );

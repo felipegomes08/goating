@@ -19,11 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { COLUNAS_DE_NOTA, atributosDe, ehGoleiro } from "@/lib/atributos";
-import {
-  JANELA_AVALIACAO_MS,
-  JANELA_AVALIACAO_TEXTO,
-  chamarPraAvaliar,
-} from "@/lib/janela-avaliacao";
+import { chamarPraAvaliar, fimDaJanela, janelaAberta } from "@/lib/janela-avaliacao";
 import { podeGerirPelada } from "@/lib/placar/dados";
 import { cn } from "@/lib/utils";
 
@@ -130,7 +126,7 @@ function Avaliar() {
     queryFn: async () => {
       const { data: pelada, error } = await supabase
         .from("matches")
-        .select("id, titulo, status, finalizada_em, crew_id, organizador_id")
+        .select("id, titulo, status, finalizada_em, avaliacao_ate, crew_id, organizador_id")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -209,12 +205,7 @@ function Avaliar() {
   if (!consulta.data) return <Aviso texto="Essa pelada não existe mais." />;
 
   const { pelada, jogadores, salvas, podeGerir } = consulta.data;
-  const janelaAberta =
-    pelada.status === "finalizada" &&
-    !!pelada.finalizada_em &&
-    Date.now() - new Date(pelada.finalizada_em).getTime() < JANELA_AVALIACAO_MS;
-
-  if (!janelaAberta) {
+  if (!janelaAberta(pelada)) {
     return <Aviso texto="A janela pra avaliar essa pelada já fechou." />;
   }
 
@@ -239,6 +230,10 @@ function Avaliar() {
   const indice = indiceEscolhido ?? primeiroPendente;
   const jogador = indice >= 0 ? jogadores[indice] : undefined;
 
+  const horaDoFim =
+    fimDaJanela(pelada)?.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) ??
+    null;
+
   function irPara(i: number) {
     setIndiceEscolhido(i);
     setDetalhadoManual(null);
@@ -257,7 +252,7 @@ function Avaliar() {
         <p className="text-sm text-muted-foreground">
           {jogadores.length === 0
             ? "Não tem outros jogadores confirmados nessa pelada."
-            : `Você avaliou ${totalEnviados} de ${jogadores.length}. Até fechar a janela de ${JANELA_AVALIACAO_TEXTO} dá para revisar suas notas.`}
+            : `Você avaliou ${totalEnviados} de ${jogadores.length}. Até a janela fechar${horaDoFim ? `, às ${horaDoFim},` : ""} dá para revisar suas notas.`}
         </p>
         <div className="flex flex-col gap-2">
           {jogadores.length > 0 && (

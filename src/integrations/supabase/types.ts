@@ -527,6 +527,7 @@ export type Database = {
       }
       matches: {
         Row: {
+          avaliacao_ate: string | null
           cidade: string
           contagem_vitoria: string
           crew_id: string | null
@@ -555,6 +556,7 @@ export type Database = {
           titulo: string
         }
         Insert: {
+          avaliacao_ate?: string | null
           cidade: string
           contagem_vitoria?: string
           crew_id?: string | null
@@ -583,6 +585,7 @@ export type Database = {
           titulo: string
         }
         Update: {
+          avaliacao_ate?: string | null
           cidade?: string
           contagem_vitoria?: string
           crew_id?: string | null

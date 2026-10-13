@@ -20,7 +20,7 @@ export function dataLocal(daquiADias = 0) {
 }
 
 const CAMPOS =
-  "id, titulo, data, horario, horario_fim, local, cidade, quantidade_vagas, tipo, status, organizador_id, mvp_id, finalizada_em, crew_id";
+  "id, titulo, data, horario, horario_fim, local, cidade, quantidade_vagas, tipo, status, organizador_id, mvp_id, finalizada_em, avaliacao_ate, crew_id";
 
 type Linha = {
   id: string;
@@ -36,6 +36,7 @@ type Linha = {
   organizador_id: string;
   mvp_id: string | null;
   finalizada_em: string | null;
+  avaliacao_ate: string | null;
   crew_id: string | null;
 };
 

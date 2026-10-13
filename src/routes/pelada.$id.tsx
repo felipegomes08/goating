@@ -37,9 +37,10 @@ import { destinosDoLocal } from "@/lib/local";
 import { TierBadge } from "@/components/goating/tier-badge";
 import { origemDoSite } from "@/lib/site";
 import {
-  JANELA_AVALIACAO_MS,
   JANELA_AVALIACAO_TEXTO,
   chamarPraAvaliar,
+  fimDaJanela as fimDaJanelaDe,
+  janelaAberta,
 } from "@/lib/janela-avaliacao";
 
 export const Route = createFileRoute("/pelada/$id")({
@@ -242,15 +243,10 @@ function DetalhePelada() {
   const destinos = destinosDoLocal(pelada);
   // finalizar só faz sentido depois que a pelada começou
   const jaComecou = new Date(`${pelada.data}T${pelada.horario}`).getTime() <= Date.now();
-  const dentroDaJanela =
-    finalizada &&
-    !!pelada.finalizada_em &&
-    Date.now() - new Date(pelada.finalizada_em).getTime() < JANELA_AVALIACAO_MS;
+  const dentroDaJanela = janelaAberta(pelada);
   const avaliados = contarAvaliados(participantes, avaliadosPorMim, userId);
   const jaAvaliei = avaliados.total > 0 && avaliados.feitos === avaliados.total;
-  const fimDaJanela = pelada.finalizada_em
-    ? new Date(new Date(pelada.finalizada_em).getTime() + JANELA_AVALIACAO_MS)
-    : null;
+  const fimDaJanela = fimDaJanelaDe(pelada);
   const fimDaJanelaTexto = fimDaJanela
     ? `${fimDaJanela.toDateString() === new Date().toDateString() ? "hoje" : "amanhã"} às ${fimDaJanela.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
     : null;
