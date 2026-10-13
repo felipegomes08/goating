@@ -172,7 +172,7 @@ export async function carregarElenco(matchId: string) {
   const { data, error } = await supabase
     .from("match_players")
     .select(
-      "member_id, time, gols, jogos, vitorias, empates, derrotas, crew_members(nome, user_id)",
+      "member_id, time, gols, jogos, vitorias, empates, derrotas, assistencias, defesas, amarelos, azuis, vermelhos, crew_members(nome, user_id)",
     )
     .eq("match_id", matchId)
     // a ordem que o organizador arrumou na tela de times
@@ -186,6 +186,11 @@ export async function carregarElenco(matchId: string) {
     vitorias: l.vitorias,
     empates: l.empates,
     derrotas: l.derrotas,
+    assistencias: l.assistencias,
+    defesas: l.defesas,
+    amarelos: l.amarelos,
+    azuis: l.azuis,
+    vermelhos: l.vermelhos,
     nome: l.crew_members?.nome ?? "Jogador",
     userId: l.crew_members?.user_id ?? null,
   }));

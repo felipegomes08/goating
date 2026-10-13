@@ -31,6 +31,9 @@ export type DadosDoMvp = {
   gols: number | null;
   jogos: number | null;
   vitorias: number | null;
+  /** assistências e defesas épicas dele na pelada (0 = não entra no cartão) */
+  assistencias?: number | undefined;
+  defesas?: number | undefined;
   /** média das notas que recebeu nessa pelada (0 a 10) */
   nota: number | null;
   avaliacoes: number;
@@ -283,17 +286,51 @@ export async function desenharCartaoMvp(dados: DadosDoMvp): Promise<HTMLCanvasEl
   });
 
   // números: em cima os da pelada (grandes), embaixo os da carreira
-  const daPelada: [string, string][] = [];
-  if (dados.gols !== null) daPelada.push([dados.gols === 1 ? "GOL" : "GOLS", String(dados.gols)]);
+  // cabem quatro quadros: a ordem de quem entra é nota, gols, defesas, assistências, vitórias
+  const candidatos: { peso: number; ordem: number; item: [string, string] }[] = [];
+  if (dados.gols !== null) {
+    candidatos.push({
+      peso: 2,
+      ordem: 1,
+      item: [dados.gols === 1 ? "GOL" : "GOLS", String(dados.gols)],
+    });
+  }
+  if (dados.assistencias) {
+    candidatos.push({
+      peso: 4,
+      ordem: 2,
+      item: [dados.assistencias === 1 ? "ASSISTÊNCIA" : "ASSISTÊNCIAS", String(dados.assistencias)],
+    });
+  }
+  if (dados.defesas) {
+    candidatos.push({
+      peso: 3,
+      ordem: 3,
+      item: [dados.defesas === 1 ? "DEFESA ÉPICA" : "DEFESAS ÉPICAS", String(dados.defesas)],
+    });
+  }
   if (dados.nota !== null) {
-    daPelada.push(["NOTA DA PARTIDA", dados.nota.toFixed(1).replace(".", ",")]);
+    candidatos.push({
+      peso: 1,
+      ordem: 4,
+      item: ["NOTA DA PARTIDA", dados.nota.toFixed(1).replace(".", ",")],
+    });
   }
   if (dados.vitorias !== null && dados.jogos) {
-    daPelada.push([
-      dados.jogos === 1 ? "VITÓRIA EM 1 JOGO" : `VITÓRIAS EM ${dados.jogos} JOGOS`,
-      String(dados.vitorias),
-    ]);
+    candidatos.push({
+      peso: 5,
+      ordem: 5,
+      item: [
+        dados.jogos === 1 ? "VITÓRIA EM 1 JOGO" : `VITÓRIAS EM ${dados.jogos} JOGOS`,
+        String(dados.vitorias),
+      ],
+    });
   }
+  const daPelada = candidatos
+    .sort((a, b) => a.peso - b.peso)
+    .slice(0, 4)
+    .sort((a, b) => a.ordem - b.ordem)
+    .map((c) => c.item);
   const daCarreira: [string, string][] = [
     ["OVERALL", dados.overall > 0 ? String(Math.round(dados.overall)) : "—"],
     [dados.mvps === 1 ? "VEZ MVP" : "VEZES MVP", `${Math.max(1, dados.mvps)}x`],
@@ -335,7 +372,7 @@ export async function desenharCartaoMvp(dados: DadosDoMvp): Promise<HTMLCanvasEl
       });
     });
   };
-  linha(daPelada, 1404, 176, 92, true);
+  linha(daPelada, 1404, 176, daPelada.length > 3 ? 78 : 92, true);
   linha(daCarreira, daPelada.length ? 1598 : 1480, 132, 54, false);
 
   // de onde é o prêmio

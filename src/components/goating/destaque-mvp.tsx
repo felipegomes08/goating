@@ -39,7 +39,7 @@ export function DestaqueDoMvp({
         pelada.temPlacar
           ? supabase
               .from("match_players")
-              .select("gols, jogos, vitorias, crew_members(user_id)")
+              .select("gols, jogos, vitorias, assistencias, defesas, crew_members(user_id)")
               .eq("match_id", matchId)
           : Promise.resolve({ data: [] }),
         pelada.crew_id
@@ -75,6 +75,8 @@ export function DestaqueDoMvp({
     gols: consulta.data.placar?.gols ?? null,
     jogos: consulta.data.placar?.jogos ?? null,
     vitorias: consulta.data.placar?.vitorias ?? null,
+    assistencias: consulta.data.placar?.assistencias ?? 0,
+    defesas: consulta.data.placar?.defesas ?? 0,
     nota: consulta.data.nota,
     avaliacoes: consulta.data.avaliacoes,
     mvps: perfil.vezes_mvp,

@@ -133,7 +133,8 @@ export function useFeed(userId: string | null, cidade: string | null) {
         ...(minhasRes.data ?? []),
         ...(cidadeRes.data ?? []).filter((p) => !minhasIds.has(p.id)),
       ] as Linha[];
-      if (linhas.length === 0) return { proximas: [], finalizadas: [], aAvaliar: 0 };
+      if (linhas.length === 0)
+        return { proximas: [], finalizadas: [], aAvaliar: 0, temPendencia: false };
 
       const ids = linhas.map((p) => p.id);
       const pessoas = [
@@ -220,7 +221,19 @@ export function useFeed(userId: string | null, cidade: string | null) {
         .sort((a, b) => Number(esperaMinhaNota(b)) - Number(esperaMinhaNota(a)) || porData(b, a))
         .slice(0, FINALIZADAS_NO_FEED);
 
-      return { proximas, finalizadas, aAvaliar: finalizadas.filter(esperaMinhaNota).length };
+      return {
+        proximas,
+        finalizadas,
+        aAvaliar: finalizadas.filter(esperaMinhaNota).length,
+        // janela aberta e ainda falta alguém pra eu avaliar (mesmo que eu já tenha começado)
+        temPendencia: finalizadas.some(
+          (p) =>
+            estaPendenteAvaliacao(p) &&
+            p.minhaSituacao === "aprovado" &&
+            p.confirmados > 1 &&
+            !p.jaAvaliei,
+        ),
+      };
     },
   });
 }

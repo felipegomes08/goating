@@ -18,7 +18,8 @@ type Aba = "proximas" | "finalizadas";
 export const Route = createFileRoute("/")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>): { aba?: Aba | undefined } => ({
-    aba: search["aba"] === "finalizadas" ? "finalizadas" : undefined,
+    aba:
+      search["aba"] === "finalizadas" || search["aba"] === "proximas" ? search["aba"] : undefined,
   }),
   head: () => ({
     meta: [
@@ -43,13 +44,14 @@ export const Route = createFileRoute("/")({
 function Feed() {
   const navigate = useNavigate();
   const { aba: abaDaUrl } = useSearch({ from: "/" });
-  const aba: Aba = abaDaUrl ?? "proximas";
   const { userId, carregando } = useSession();
   const { data: perfil, isLoading: carregandoPerfil } = usePerfil(userId);
   const [busca, setBusca] = useState("");
 
   const cidade = perfil?.cidade ?? null;
   const feed = useFeed(carregandoPerfil ? null : userId, cidade);
+  // sem aba escolhida: quem tem avaliação pendente já cai nas finalizadas, pra não esquecer
+  const aba: Aba = abaDaUrl ?? (feed.data?.temPendencia ? "finalizadas" : "proximas");
 
   const termo = busca.trim().toLowerCase();
   const daAba = (aba === "finalizadas" ? feed.data?.finalizadas : feed.data?.proximas) ?? [];
@@ -103,7 +105,8 @@ function Feed() {
             <Link
               key={a}
               to="/"
-              search={a === "finalizadas" ? { aba: a } : {}}
+              // a escolha vai pra URL nos dois casos: tocar em "Próximas" tem que valer
+              search={{ aba: a }}
               replace
               className={classeSegmento(aba === a)}
             >

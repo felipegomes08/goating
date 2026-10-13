@@ -16,6 +16,7 @@ import {
   corDoTime,
   nomeDoTime,
   tabelaDosTimes,
+  textoDoPlacar,
   type JogoFinal,
 } from "@/lib/placar/estado";
 
@@ -87,6 +88,12 @@ function ResumoDaPelada() {
     placar: [j.gols_a, j.gols_b],
     vencedor: j.vencedor,
   }));
+  const penaltisDe = (j: (typeof jogos)[number]): [number, number] | null =>
+    j.penaltis_a !== null && j.penaltis_b !== null ? [j.penaltis_a, j.penaltis_b] : null;
+  const nosPenaltis = jogos.flatMap((j) => {
+    const penaltis = penaltisDe(j);
+    return penaltis ? [{ jogo: j, penaltis }] : [];
+  });
   const tabela = tabelaDosTimes(finais);
   const campeoes = campeoesDoDia(tabela);
   const jogoUnico = jogos.length === 1 ? jogos[0] : undefined;
@@ -94,6 +101,20 @@ function ResumoDaPelada() {
     .filter((j) => j.gols > 0)
     .sort((a, b) => b.gols - a.gols || a.nome.localeCompare(b.nome));
   const maisGols = artilharia[0]?.gols ?? 0;
+  const ranking = (campo: "assistencias" | "defesas") =>
+    elenco
+      .filter((j) => j[campo] > 0)
+      .sort((a, b) => b[campo] - a[campo] || a.nome.localeCompare(b.nome))
+      .map((j) => ({ memberId: j.memberId, nome: j.nome, time: j.time, total: j[campo] }));
+  const assistencias = ranking("assistencias");
+  const defesas = ranking("defesas");
+  const comCartao = elenco.filter((j) => j.amarelos + j.azuis + j.vermelhos > 0);
+  const cartoes = {
+    amarelos: elenco.reduce((soma, j) => soma + j.amarelos, 0),
+    azuis: elenco.reduce((soma, j) => soma + j.azuis, 0),
+    vermelhos: elenco.reduce((soma, j) => soma + j.vermelhos, 0),
+  };
+  const penaltisDoUnico = jogoUnico ? penaltisDe(jogoUnico) : null;
   const dataTexto = new Date(`${pelada.data}T12:00:00`).toLocaleDateString("pt-BR", {
     weekday: "long",
     day: "2-digit",
@@ -101,7 +122,7 @@ function ResumoDaPelada() {
   });
   const manchete =
     campeoes.length === 1 && campeoes[0] !== undefined
-      ? `${nomeTime(campeoes[0])} ${jogoUnico ? "venceu" : "foi o campeão do dia"}`
+      ? `${nomeTime(campeoes[0])} ${jogoUnico ? (penaltisDoUnico ? "venceu nos pênaltis" : "venceu") : "foi o campeão do dia"}`
       : "Terminou tudo igual";
 
   const dadosDoPoster = {
@@ -114,8 +135,16 @@ function ResumoDaPelada() {
           golsA: jogoUnico.gols_a,
           timeB: nomeTime(jogoUnico.time_b),
           golsB: jogoUnico.gols_b,
+          penaltis: penaltisDoUnico,
         }
       : undefined,
+    notas: jogoUnico
+      ? undefined
+      : nosPenaltis.map(
+          ({ jogo, penaltis }) =>
+            `Jogo ${jogo.ordem} nos pênaltis: ${nomeTime(jogo.time_a)} ${penaltis[0]} × ${penaltis[1]} ${nomeTime(jogo.time_b)}`,
+        ),
+    destaques: { assistencias, defesas, cartoes },
     tabela: jogoUnico
       ? undefined
       : tabela.map((l) => ({
@@ -131,17 +160,36 @@ function ResumoDaPelada() {
     const linhas = [`⚽ ${pelada.titulo} · ${dataTexto}`, ""];
     if (jogoUnico) {
       linhas.push(
-        `${nomeTime(jogoUnico.time_a)} ${jogoUnico.gols_a} × ${jogoUnico.gols_b} ${nomeTime(jogoUnico.time_b)}`,
+        `${nomeTime(jogoUnico.time_a)} ${textoDoPlacar([jogoUnico.gols_a, jogoUnico.gols_b], penaltisDoUnico)} ${nomeTime(jogoUnico.time_b)}`,
       );
     } else {
       linhas.push(`🏆 ${manchete}`, "");
       for (const l of tabela)
         linhas.push(`${nomeTime(l.time)}: ${l.vitorias}V ${l.empates}E ${l.derrotas}D`);
+      for (const { jogo, penaltis } of nosPenaltis)
+        linhas.push(
+          `Jogo ${jogo.ordem} nos pênaltis: ${nomeTime(jogo.time_a)} ${penaltis[0]} × ${penaltis[1]} ${nomeTime(jogo.time_b)}`,
+        );
     }
     if (artilharia.length > 0) {
       linhas.push("", "*Artilharia*");
       for (const j of artilharia)
         linhas.push(`${j.gols === maisGols ? "👑" : "•"} ${j.nome}: ${j.gols}`);
+    }
+    if (assistencias.length > 0) {
+      linhas.push("", "*Assistências*");
+      for (const j of assistencias) linhas.push(`• ${j.nome}: ${j.total}`);
+    }
+    if (defesas.length > 0) {
+      linhas.push("", "*Defesas épicas*");
+      for (const j of defesas) linhas.push(`🧤 ${j.nome}: ${j.total}`);
+    }
+    if (comCartao.length > 0) {
+      linhas.push("", "*Cartões*");
+      for (const j of comCartao)
+        linhas.push(
+          `• ${j.nome}: ${"🟨".repeat(j.amarelos)}${"🟦".repeat(j.azuis)}${"🟥".repeat(j.vermelhos)}`,
+        );
     }
     const resultado = await compartilhar(linhas.join("\n"));
     if (resultado === "copiado") toast.success("Resumo copiado. Cola no grupo!");
@@ -170,6 +218,11 @@ function ResumoDaPelada() {
             </div>
           </div>
         ) : null}
+        {penaltisDoUnico && (
+          <p className="mt-2 text-center text-sm font-bold text-tier-ouro">
+            Pênaltis: {penaltisDoUnico[0]} × {penaltisDoUnico[1]}
+          </p>
+        )}
         <p className="mt-4 flex items-center justify-center gap-2 text-center text-base font-extrabold text-primary-foreground">
           <Trophy className="size-5 text-tier-ouro" /> {manchete}
         </p>
@@ -208,6 +261,62 @@ function ResumoDaPelada() {
           )}
         </section>
 
+        {(
+          [
+            ["Assistências", assistencias],
+            ["Defesas épicas", defesas],
+          ] as const
+        ).map(([titulo, lista]) =>
+          lista.length > 0 ? (
+            <section key={titulo} className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+              <h2 className="mb-1 text-sm font-bold text-foreground">{titulo}</h2>
+              <ul className="divide-y divide-border">
+                {lista.map((j) => (
+                  <li key={j.memberId} className="flex items-center gap-2 py-2 text-sm">
+                    <span className="min-w-0 flex-1 truncate font-semibold">{j.nome}</span>
+                    {j.time !== null && (
+                      <span
+                        className={cn("text-[10px] font-bold uppercase", corDoTime(j.time).texto)}
+                      >
+                        {nomeTime(j.time)}
+                      </span>
+                    )}
+                    <span className="w-8 text-right text-lg font-extrabold tabular-nums">
+                      {j.total}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null,
+        )}
+
+        {comCartao.length > 0 && (
+          <section className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+            <h2 className="mb-1 text-sm font-bold text-foreground">Cartões</h2>
+            <ul className="divide-y divide-border">
+              {comCartao.map((j) => (
+                <li key={j.memberId} className="flex items-center gap-2 py-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate font-semibold">{j.nome}</span>
+                  <span className="flex shrink-0 gap-1">
+                    {(
+                      [
+                        ["bg-yellow-400", j.amarelos],
+                        ["bg-blue-600", j.azuis],
+                        ["bg-red-600", j.vermelhos],
+                      ] as const
+                    ).flatMap(([cor, total]) =>
+                      Array.from({ length: total }, (_, i) => (
+                        <span key={`${cor}${i}`} className={cn("h-5 w-3.5 rounded-sm", cor)} />
+                      )),
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {!jogoUnico && <TabelaTimes tabela={tabela} nomeTime={nomeTime} />}
 
         {!jogoUnico && (
@@ -226,7 +335,7 @@ function ResumoDaPelada() {
                     {nomeTime(j.time_a)}
                   </span>
                   <span className="font-extrabold tabular-nums">
-                    {j.gols_a} × {j.gols_b}
+                    {textoDoPlacar([j.gols_a, j.gols_b], penaltisDe(j), true)}
                   </span>
                   <span className={cn("flex-1 truncate font-semibold", corDoTime(j.time_b).texto)}>
                     {nomeTime(j.time_b)}

@@ -11,6 +11,39 @@ export type Gol = {
   minuto: number;
 };
 
+/** Pênalti convertido na disputa que decide um jogo empatado. */
+export type Penalti = { id: string; lado: Lado; memberId: string | null };
+
+/** Disputa de pênaltis: só os convertidos, sem número fixo de cobranças. */
+export type Disputa = {
+  gols: Penalti[];
+  /** tem turma que conta gol de pênalti na artilharia, tem turma que não */
+  contaNaArtilharia: boolean;
+};
+
+/** O que dá pra marcar no ao vivo além do gol. */
+export const TIPOS_DE_LANCE = ["assistencia", "defesa", "amarelo", "azul", "vermelho"] as const;
+export type TipoDeLance = (typeof TIPOS_DE_LANCE)[number];
+
+export const NOME_DO_LANCE: Record<TipoDeLance, string> = {
+  assistencia: "Assistência",
+  defesa: "Defesa épica",
+  amarelo: "Cartão amarelo",
+  azul: "Cartão azul",
+  vermelho: "Cartão vermelho",
+};
+
+export type Lance = {
+  id: string;
+  tipo: TipoDeLance;
+  lado: Lado;
+  memberId: string;
+  tempo: number;
+  minuto: number;
+  /** assistência: o gol que ela serviu (apagou o gol, some junto) */
+  golId?: string;
+};
+
 export type Jogo = {
   id: string;
   /** índice do time de cada lado */
@@ -28,6 +61,10 @@ export type Jogo = {
   encerrado: boolean;
   /** lado vencedor; nulo = empate */
   vencedor: Lado | null;
+  /** disputa de pênaltis; com o jogo ainda aberto, quer dizer que a disputa está rolando */
+  penaltis?: Disputa | null;
+  /** assistências, defesas épicas e cartões */
+  lances?: Lance[];
 };
 
 export type EstadoPlacar = { v: 1; jogos: Jogo[] };
@@ -52,6 +89,26 @@ export const placarDoJogo = (jogo: Jogo): [number, number] => [
   jogo.gols.filter((g) => g.lado === 0).length,
   jogo.gols.filter((g) => g.lado === 1).length,
 ];
+
+/** Placar da disputa de pênaltis, ou null quando o jogo não foi pros pênaltis. */
+export const placarDosPenaltis = (jogo: Jogo): [number, number] | null =>
+  jogo.penaltis
+    ? [
+        jogo.penaltis.gols.filter((g) => g.lado === 0).length,
+        jogo.penaltis.gols.filter((g) => g.lado === 1).length,
+      ]
+    : null;
+
+/** "2 × 2" ou "2 × 2 (4 × 3 nos pênaltis)". */
+export function textoDoPlacar(
+  placar: readonly [number, number],
+  penaltis?: readonly [number | null, number | null] | null,
+  curto = false,
+) {
+  const base = `${placar[0]} × ${placar[1]}`;
+  if (!penaltis || penaltis[0] === null || penaltis[1] === null) return base;
+  return `${base} (${penaltis[0]} × ${penaltis[1]} ${curto ? "pên." : "nos pênaltis"})`;
+}
 
 export const jogoAtual = (estado: EstadoPlacar) => {
   const ultimo = estado.jogos.at(-1);
@@ -94,12 +151,14 @@ export type JogoFinal = {
   times: [number, number];
   placar: [number, number];
   vencedor: number | null;
+  penaltis?: [number, number] | null;
 };
 
 export const jogoFinal = (jogo: Jogo): JogoFinal => ({
   times: jogo.times,
   placar: placarDoJogo(jogo),
   vencedor: jogo.vencedor === null ? null : jogo.times[jogo.vencedor],
+  penaltis: placarDosPenaltis(jogo),
 });
 
 /** Classificação do dia: vitórias, depois saldo, depois gols feitos. */
@@ -148,7 +207,20 @@ export type LinhaJogador = {
   vitorias: number;
   empates: number;
   derrotas: number;
+  assistencias: number;
+  defesas: number;
+  amarelos: number;
+  azuis: number;
+  vermelhos: number;
 };
+
+const TOTAL_DO_LANCE = {
+  assistencia: "assistencias",
+  defesa: "defesas",
+  amarelo: "amarelos",
+  azul: "azuis",
+  vermelho: "vermelhos",
+} as const satisfies Record<TipoDeLance, keyof LinhaJogador>;
 
 /**
  * Saldo de cada jogador no dia.
@@ -169,6 +241,11 @@ export function saldoDosJogadores(estado: EstadoPlacar, contagem: Contagem): Lin
         vitorias: 0,
         empates: 0,
         derrotas: 0,
+        assistencias: 0,
+        defesas: 0,
+        amarelos: 0,
+        azuis: 0,
+        vermelhos: 0,
         porTime: new Map(),
       };
       linhas.set(memberId, l);
@@ -189,6 +266,14 @@ export function saldoDosJogadores(estado: EstadoPlacar, contagem: Contagem): Lin
     }
     for (const gol of jogo.gols) {
       if (gol.memberId && linhas.has(gol.memberId)) linha(gol.memberId).gols++;
+    }
+    if (jogo.penaltis?.contaNaArtilharia) {
+      for (const gol of jogo.penaltis.gols) {
+        if (gol.memberId && linhas.has(gol.memberId)) linha(gol.memberId).gols++;
+      }
+    }
+    for (const lance of jogo.lances ?? []) {
+      if (linhas.has(lance.memberId)) linha(lance.memberId)[TOTAL_DO_LANCE[lance.tipo]]++;
     }
   }
 
@@ -218,9 +303,15 @@ export function montarPayload(estado: EstadoPlacar, contagem: Contagem) {
       vitorias: l.vitorias,
       empates: l.empates,
       derrotas: l.derrotas,
+      assistencias: l.assistencias,
+      defesas: l.defesas,
+      amarelos: l.amarelos,
+      azuis: l.azuis,
+      vermelhos: l.vermelhos,
     })),
     jogos: encerrados.map((jogo, i) => {
       const [golsA, golsB] = placarDoJogo(jogo);
+      const penaltis = placarDosPenaltis(jogo);
       return {
         ordem: i + 1,
         time_a: jogo.times[0],
@@ -229,14 +320,35 @@ export function montarPayload(estado: EstadoPlacar, contagem: Contagem) {
         gols_b: golsB,
         vencedor: jogo.vencedor === null ? null : jogo.times[jogo.vencedor],
         duracao_seg: Math.round(jogo.duracaoMs / 1000),
+        penaltis_a: penaltis?.[0] ?? null,
+        penaltis_b: penaltis?.[1] ?? null,
+        penaltis_na_artilharia: jogo.penaltis?.contaNaArtilharia ?? true,
         escalacao: ([0, 1] as const).flatMap((lado) =>
           jogo.lados[lado].map((memberId) => ({ member_id: memberId, time: jogo.times[lado] })),
         ),
-        gols: jogo.gols.map((g) => ({
-          member_id: g.memberId,
-          time: jogo.times[g.lado],
-          tempo: g.tempo,
-          minuto: g.minuto,
+        gols: [
+          ...jogo.gols.map((g) => ({
+            member_id: g.memberId,
+            time: jogo.times[g.lado],
+            tempo: g.tempo,
+            minuto: g.minuto,
+            penalti: false,
+          })),
+          // os da disputa ficam marcados: não entram no placar do jogo
+          ...(jogo.penaltis?.gols ?? []).map((g) => ({
+            member_id: g.memberId,
+            time: jogo.times[g.lado],
+            tempo: jogo.tempo,
+            minuto: 0,
+            penalti: true,
+          })),
+        ],
+        lances: (jogo.lances ?? []).map((l) => ({
+          member_id: l.memberId,
+          time: jogo.times[l.lado],
+          tipo: l.tipo,
+          tempo: l.tempo,
+          minuto: l.minuto,
         })),
       };
     }),

@@ -261,7 +261,10 @@ function TimesDaPelada() {
 
   /** Coloca no elenco do dia quem já é da turma (pelo nome) e cria quem ainda não é. */
   async function adicionarNomes(lista: { nome: string; time: number | null }[]) {
-    const conhecidos = [...membros];
+    // quem está na turma vem antes de quem já saiu: com dois nomes iguais, vale o ativo
+    const conhecidos = [...membros].sort(
+      (a, b) => Number(!!a.removido_em) - Number(!!b.removido_em),
+    );
     const paraCriar: { nome: string; time: number | null }[] = [];
     const entradas: { membro: Membro; time: number | null }[] = [];
     for (const item of lista) {
@@ -614,6 +617,9 @@ function TimesDaPelada() {
       {renomeando && (
         <FolhaNome
           nomeAtual={renomeando.nome}
+          nomesEmUso={membros
+            .filter((m) => m.id !== renomeando.memberId && !m.removido_em)
+            .map((m) => m.nome)}
           onSalvar={(nome) => renomear(renomeando.memberId, nome)}
           onFechar={() => setRenomeando(null)}
         />

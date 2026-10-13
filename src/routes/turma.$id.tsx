@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   Link2,
   LogOut,
+  Merge,
   Pencil,
   Plus,
   Settings,
@@ -27,6 +28,7 @@ import { AvaliacoesDaTurma, type ResumoDaTurma } from "@/components/goating/aval
 import { ConfigTurma } from "@/components/goating/config-turma";
 import { usePedidosDaTurma } from "@/components/goating/pedidos-da-turma";
 import { FolhaNome } from "@/components/goating/folha-nome";
+import { chaveNome } from "@/lib/placar/lista";
 import {
   COLUNAS_RANKING,
   TabelaRanking,
@@ -93,6 +95,7 @@ function PaginaDaTurma() {
     | { tipo: "excluir" }
     | { tipo: "config" }
     | { tipo: "vincular"; memberId: string; nome: string }
+    | { tipo: "juntar"; memberId: string; nome: string; com: { id: string; nome: string } | null }
     | { tipo: "remover"; memberId: string; nome: string; jaJogou: boolean }
     | null
   >(null);
@@ -306,6 +309,11 @@ function PaginaDaTurma() {
   async function adicionarNome() {
     const nome = nomeNovo.trim();
     if (!nome) return;
+    const repetido = dados.membros.find((m) => chaveNome(m.nome) === chaveNome(nome));
+    if (repetido) {
+      toast.error(`Já existe ${repetido.nome} na turma. Diferencie o nome (sobrenome, apelido).`);
+      return;
+    }
     const ok = await executar(
       () => supabase.from("crew_members").insert({ crew_id: id, nome }),
       `${nome} entrou na turma.`,
@@ -319,6 +327,13 @@ function PaginaDaTurma() {
       () => supabase.rpc("vincular_membro", { p_member_id: memberId, p_user_id: perfil.id }),
       `Histórico ligado à conta de ${perfil.nome_exibicao}.`,
       "Não deu pra vincular.",
+    );
+
+  const juntar = (origem: { id: string; nome: string }, destino: { id: string; nome: string }) =>
+    executar(
+      () => supabase.rpc("juntar_membros", { p_origem: origem.id, p_destino: destino.id }),
+      `Histórico de ${origem.nome} passou pra ${destino.nome}.`,
+      "Não deu pra juntar os dois.",
     );
 
   const renomear = (memberId: string, nome: string) =>
@@ -364,12 +379,26 @@ function PaginaDaTurma() {
       `🏆 *${dados.nome}*`,
       `Ranking de ${rotuloPeriodo}, por ${colunaOrdenada?.nome ?? "gols"}`,
       "",
-      ...linhas
-        .slice(0, 15)
-        .flatMap((l, i) => [
-          `${medalhas[i] ?? `${i + 1}.`} *${l.nome}*`,
-          `   ${l.jogos} ${l.jogos === 1 ? "jogo" : "jogos"} · ${l.vitorias} ${l.vitorias === 1 ? "vitória" : "vitórias"} · ${l.gols} ${l.gols === 1 ? "gol" : "gols"} · ${formatarMedia(l.media)} por jogo · ${l.aproveitamento}%`,
-        ]),
+      ...linhas.slice(0, 15).flatMap((l, i) => [
+        `${medalhas[i] ?? `${i + 1}.`} *${l.nome}*`,
+        `   ${l.jogos} ${l.jogos === 1 ? "jogo" : "jogos"} · ${l.vitorias} ${l.vitorias === 1 ? "vitória" : "vitórias"} · ${l.gols} ${l.gols === 1 ? "gol" : "gols"} · ${formatarMedia(l.media)} por jogo · ${l.aproveitamento}%`,
+        // os outros lances só aparecem pra quem tem algum
+        ...(l.assistencias + l.defesas + l.amarelos + l.azuis + l.vermelhos > 0
+          ? [
+              `   ${[
+                l.assistencias ? `${l.assistencias} assist.` : "",
+                l.defesas
+                  ? `${l.defesas} ${l.defesas === 1 ? "defesa épica" : "defesas épicas"}`
+                  : "",
+                l.amarelos ? `🟨 ${l.amarelos}` : "",
+                l.azuis ? `🟦 ${l.azuis}` : "",
+                l.vermelhos ? `🟥 ${l.vermelhos}` : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")}`,
+            ]
+          : []),
+      ]),
     ].join("\n");
     const resultado = await compartilhar(texto);
     if (resultado === "copiado") toast.success("Ranking copiado. Cola no grupo!");
@@ -388,6 +417,7 @@ function PaginaDaTurma() {
             jogos: l.jogos,
             vitorias: l.vitorias,
             gols: l.gols,
+            assistencias: l.assistencias,
             media: formatarMedia(l.media),
             aproveitamento: l.aproveitamento,
           })),
@@ -683,6 +713,19 @@ function PaginaDaTurma() {
                         Vincular conta
                       </button>
                     )}
+                    {souGestor && !m.user_id && dados.membros.length > 1 && (
+                      <button
+                        type="button"
+                        aria-label={`Juntar ${m.nome} com outro jogador`}
+                        title="Juntar com outro jogador"
+                        onClick={() =>
+                          setFolha({ tipo: "juntar", memberId: m.id, nome: m.nome, com: null })
+                        }
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground"
+                      >
+                        <Merge className="size-4" />
+                      </button>
+                    )}
                     {souGestor &&
                       m.user_id !== userId &&
                       m.user_id !== dados.dono_id &&
@@ -744,6 +787,7 @@ function PaginaDaTurma() {
       {renomeando && (
         <FolhaNome
           nomeAtual={renomeando.nome}
+          nomesEmUso={dados.membros.filter((m) => m.id !== renomeando.memberId).map((m) => m.nome)}
           onSalvar={(nome) => renomear(renomeando.memberId, nome)}
           onFechar={() => setRenomeando(null)}
         />
@@ -786,6 +830,59 @@ function PaginaDaTurma() {
           />
         </Folha>
       )}
+
+      {folha?.tipo === "juntar" &&
+        (folha.com ? (
+          <Folha
+            titulo={`Juntar ${folha.nome} com ${folha.com.nome}?`}
+            onFechar={() => setFolha(null)}
+          >
+            <p className="text-sm text-muted-foreground">
+              As peladas, os gols e as vitórias de <strong>{folha.nome}</strong> passam pra{" "}
+              <strong>{folha.com.nome}</strong>, e o cadastro de {folha.nome} some da turma. Use só
+              quando os dois são a mesma pessoa. Não dá pra desfazer.
+            </p>
+            <Button
+              className="w-full"
+              disabled={ocupado}
+              onClick={() => {
+                if (folha.com) void juntar({ id: folha.memberId, nome: folha.nome }, folha.com);
+              }}
+            >
+              Juntar os dois
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setFolha({ ...folha, com: null })}
+            >
+              Escolher outro
+            </Button>
+          </Folha>
+        ) : (
+          <Folha titulo={`${folha.nome} é a mesma pessoa que...`} onFechar={() => setFolha(null)}>
+            <p className="text-sm text-muted-foreground">
+              Pra cadastro duplicado: toque em quem fica com o histórico de {folha.nome}.
+            </p>
+            <div className="max-h-[50dvh] divide-y divide-border overflow-auto rounded-2xl border border-border">
+              {dados.membros
+                .filter((m) => m.id !== folha.memberId)
+                .map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setFolha({ ...folha, com: { id: m.id, nome: m.nome } })}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left active:bg-secondary/60"
+                  >
+                    <span className="truncate text-sm font-semibold text-foreground">{m.nome}</span>
+                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                      {m.user_id ? "Com conta" : "Sem conta"}
+                    </span>
+                  </button>
+                ))}
+            </div>
+          </Folha>
+        ))}
 
       {folha?.tipo === "remover" && (
         <Folha titulo={`Tirar ${folha.nome} da turma?`} onFechar={() => setFolha(null)}>

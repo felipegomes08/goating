@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Flag, Pause, Play, RotateCcw, Users } from "lucide-react";
+import { ArrowLeft, Flag, Pause, Play, Plus, RotateCcw, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -9,6 +9,7 @@ import { useSession } from "@/hooks/use-session";
 import { useVoltar } from "@/hooks/use-voltar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   liberarAudio,
@@ -21,6 +22,8 @@ import {
 import { TabelaTimes } from "@/components/goating/tabela-times";
 import { carregarElenco, podeGerirPelada, type LinhaElenco } from "@/lib/placar/dados";
 import {
+  NOME_DO_LANCE,
+  TIPOS_DE_LANCE,
   corDoTime,
   decorridoMs,
   ehEstadoPlacar,
@@ -32,6 +35,7 @@ import {
   montarPayload,
   nomeDoTime,
   placarDoJogo,
+  placarDosPenaltis,
   saldoDosJogadores,
   sugerirProximo,
   tabelaDosTimes,
@@ -39,7 +43,17 @@ import {
   type EstadoPlacar,
   type Jogo,
   type Lado,
+  type TipoDeLance,
 } from "@/lib/placar/estado";
+
+/** Cor de cada lance nas marcas e na lista (classes completas pro Tailwind enxergar). */
+const COR_DO_LANCE: Record<TipoDeLance, string> = {
+  assistencia: "bg-emerald-500",
+  defesa: "bg-sky-500",
+  amarelo: "bg-yellow-400",
+  azul: "bg-blue-600",
+  vermelho: "bg-red-600",
+};
 
 export const Route = createFileRoute("/pelada/$id_/placar")({
   ssr: false,
@@ -97,9 +111,13 @@ function PlacarDaPelada() {
     | { tipo: "autor"; golId: string }
     | { tipo: "reforco"; lado: Lado }
     | { tipo: "finalizar" }
+    | { tipo: "lance"; lado: Lado; memberId: string }
+    | { tipo: "fim-dos-penaltis" }
     | null
   >(null);
   const [salvando, setSalvando] = useState(false);
+  // gol que acabou de sair: a faixa pergunta de quem foi a assistência
+  const [golRecente, setGolRecente] = useState<{ golId: string; lado: Lado } | null>(null);
   const ultimoToque = useRefDeToque();
 
   const dados = consulta.data;
@@ -167,6 +185,13 @@ function PlacarDaPelada() {
   }, [atual, rodando, agora, limiteMs]);
 
   useEffect(() => () => pararAlarme(), []);
+
+  // a pergunta da assistência some sozinha: ninguém é obrigado a responder
+  useEffect(() => {
+    if (!golRecente) return;
+    const espera = setTimeout(() => setGolRecente(null), 20_000);
+    return () => clearTimeout(espera);
+  }, [golRecente]);
 
   if (carregando || consulta.isLoading || (dados && !estado)) {
     return (
@@ -307,12 +332,114 @@ function PlacarDaPelada() {
       duration: 9000,
       action: { label: "Desfazer", onClick: () => apagarGol(golId) },
     });
+    // gol contra / sem autor não tem assistência
+    setGolRecente(memberId ? { golId, lado } : null);
     if (pelada.gols_limite && novoPlacar[lado] >= pelada.gols_limite)
       setFolha({ tipo: "encerrar" });
   }
 
   function apagarGol(golId: string) {
-    mudarAtual((j) => ({ ...j, gols: j.gols.filter((g) => g.id !== golId) }));
+    // a assistência daquele gol vai embora junto
+    mudarAtual((j) => ({
+      ...j,
+      gols: j.gols.filter((g) => g.id !== golId),
+      lances: (j.lances ?? []).filter((l) => l.golId !== golId),
+    }));
+    setGolRecente((g) => (g?.golId === golId ? null : g));
+  }
+
+  /** Assistência, defesa épica ou cartão. `golId` liga a assistência ao gol que ela serviu. */
+  function marcarLance(tipo: TipoDeLance, lado: Lado, memberId: string, golId?: string) {
+    if (!atual) return;
+    const lanceId = crypto.randomUUID();
+    mudarAtual((j) => ({
+      ...j,
+      lances: [
+        ...(j.lances ?? []),
+        {
+          id: lanceId,
+          tipo,
+          lado,
+          memberId,
+          tempo: j.tempo,
+          minuto: Math.floor(decorridoMs(j) / 60_000) + 1,
+          ...(golId ? { golId } : {}),
+        },
+      ],
+    }));
+    setFolha(null);
+    setGolRecente(null);
+    toast(`${NOME_DO_LANCE[tipo]}: ${nomeJogador(memberId)}`, {
+      duration: 6000,
+      action: { label: "Desfazer", onClick: () => apagarLance(lanceId) },
+    });
+  }
+
+  function apagarLance(lanceId: string) {
+    mudarAtual((j) => ({ ...j, lances: (j.lances ?? []).filter((l) => l.id !== lanceId) }));
+  }
+
+  // ───────────── Disputa de pênaltis ─────────────
+  function irProsPenaltis() {
+    silenciar();
+    setGolRecente(null);
+    // o relógio para: o tempo normal acabou
+    mudarAtual((j) => ({
+      ...j,
+      duracaoMs: j.duracaoMs + decorridoMs(j),
+      acumuladoMs: 0,
+      iniciadoEm: null,
+      penaltis: { gols: [], contaNaArtilharia: true },
+    }));
+    setFolha(null);
+    window.scrollTo({ top: 0 });
+  }
+
+  function marcarPenalti(lado: Lado, memberId: string | null) {
+    if (!atual?.penaltis || !ultimoToque()) return;
+    const penaltiId = crypto.randomUUID();
+    const [a, b] = placarDosPenaltis(atual) ?? [0, 0];
+    const novo: [number, number] = lado === 0 ? [a + 1, b] : [a, b + 1];
+    mudarAtual((j) =>
+      j.penaltis
+        ? {
+            ...j,
+            penaltis: {
+              ...j.penaltis,
+              gols: [...j.penaltis.gols, { id: penaltiId, lado, memberId }],
+            },
+          }
+        : j,
+    );
+    vibrar(80);
+    toast(`Pênalti de ${nomeJogador(memberId)}`, {
+      description: `${nomeTime(atual.times[0])} ${novo[0]} × ${novo[1]} ${nomeTime(atual.times[1])}`,
+      duration: 6000,
+      action: { label: "Desfazer", onClick: () => apagarPenalti(penaltiId) },
+    });
+  }
+
+  function apagarPenalti(penaltiId: string) {
+    mudarAtual((j) =>
+      j.penaltis
+        ? {
+            ...j,
+            penaltis: { ...j.penaltis, gols: j.penaltis.gols.filter((g) => g.id !== penaltiId) },
+          }
+        : j,
+    );
+  }
+
+  function contarPenaltisNaArtilharia(conta: boolean) {
+    mudarAtual((j) =>
+      j.penaltis ? { ...j, penaltis: { ...j.penaltis, contaNaArtilharia: conta } } : j,
+    );
+  }
+
+  /** Desiste da disputa e volta pro jogo, como se não tivesse ido pros pênaltis. */
+  function cancelarPenaltis() {
+    mudarAtual((j) => ({ ...j, penaltis: null }));
+    setFolha(null);
   }
 
   function trocarAutor(golId: string, lado: Lado, memberId: string | null) {
@@ -492,6 +619,7 @@ function PlacarDaPelada() {
               <ul className="divide-y divide-border">
                 {encerrados.map((j, i) => {
                   const [a, b] = placarDoJogo(j);
+                  const penaltis = placarDosPenaltis(j);
                   return (
                     <li key={j.id} className="flex items-center gap-2 py-2 text-sm">
                       <span className="w-5 text-xs font-bold text-muted-foreground">{i + 1}</span>
@@ -511,8 +639,14 @@ function PlacarDaPelada() {
                       >
                         {nomeTime(j.times[1])}
                       </span>
-                      <span className="w-12 truncate text-right text-[10px] font-bold text-muted-foreground">
-                        {j.vencedor === null ? "empate" : a === b ? "pênaltis" : ""}
+                      <span className="w-16 truncate text-right text-[10px] font-bold text-muted-foreground">
+                        {penaltis
+                          ? `${penaltis[0]} × ${penaltis[1]} pên.`
+                          : j.vencedor === null
+                            ? "empate"
+                            : a === b
+                              ? "desempate"
+                              : ""}
                       </span>
                     </li>
                   );
@@ -575,19 +709,268 @@ function PlacarDaPelada() {
     );
   }
 
+  const foraDoJogo = elenco.filter(
+    (j) => !atual.lados[0].includes(j.memberId) && !atual.lados[1].includes(j.memberId),
+  );
+  const folhaReforco = folha?.tipo === "reforco" && (
+    <Folha
+      titulo={`Quem entrou no ${nomeTime(atual.times[folha.lado])}?`}
+      onFechar={() => setFolha(null)}
+    >
+      {foraDoJogo.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Todo mundo do elenco já está nesse jogo. Chegou gente nova? Adiciona em “Editar times”.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-1.5">
+          {foraDoJogo.map((j: LinhaElenco) => (
+            <button
+              key={j.memberId}
+              type="button"
+              onClick={() => reforcar(folha.lado, j.memberId)}
+              className="rounded-xl border border-border bg-background px-3 py-2.5 text-left text-sm font-semibold"
+            >
+              {j.nome}
+              {j.time !== null && (
+                <span className="block text-[10px] font-medium text-muted-foreground">
+                  {nomeTime(j.time)}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </Folha>
+  );
+
+  // ───────────── Disputa de pênaltis ─────────────
+  if (atual.penaltis) {
+    const [jogoA, jogoB] = placarDoJogo(atual);
+    const [penA, penB] = placarDosPenaltis(atual) ?? [0, 0];
+    const disputa = atual.penaltis;
+    return (
+      <div className="app-shell flex min-h-dvh flex-col">
+        {cabecalho}
+        <div className="space-y-4 p-4">
+          <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between gap-2">
+              <span className="rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-bold text-primary-foreground uppercase">
+                Jogo {estado.jogos.length} · Pênaltis
+              </span>
+              {/* o placar do jogo fica pequeno, só de referência */}
+              <span className="truncate text-[11px] font-semibold text-muted-foreground">
+                Tempo normal: {nomeTime(atual.times[0])} {jogoA} × {jogoB}{" "}
+                {nomeTime(atual.times[1])}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
+              {([0, 1] as const).map((lado) => (
+                <div
+                  key={lado}
+                  className={cn(corDoTime(atual.times[lado]).texto, lado === 1 && "order-3")}
+                >
+                  <p className="truncate text-sm font-extrabold uppercase">
+                    {nomeTime(atual.times[lado])}
+                  </p>
+                  <p className="text-7xl leading-none font-black tabular-nums">
+                    {lado === 0 ? penA : penB}
+                  </p>
+                </div>
+              ))}
+              <span className="order-2 text-3xl font-bold text-muted-foreground">×</span>
+            </div>
+
+            <label className="flex items-center justify-between gap-3 rounded-xl bg-secondary/60 px-3 py-2.5">
+              <span className="text-sm font-semibold text-foreground">
+                Contar esses gols na artilharia
+              </span>
+              <Switch
+                checked={disputa.contaNaArtilharia}
+                onCheckedChange={contarPenaltisNaArtilharia}
+              />
+            </label>
+
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={cancelarPenaltis}>
+                Voltar pro jogo
+              </Button>
+              <Button className="flex-[2]" onClick={() => setFolha({ tipo: "fim-dos-penaltis" })}>
+                Encerrar pênaltis
+              </Button>
+            </div>
+          </section>
+
+          <section>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Toque em quem bateu e fez. Não tem número certo de cobranças: encerra quando quiser.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {([0, 1] as const).map((lado) => {
+                const cor = corDoTime(atual.times[lado]);
+                return (
+                  <div key={lado} className="min-w-0 space-y-2">
+                    <p
+                      className={cn(
+                        "truncate border-b-4 pb-1 text-sm font-extrabold uppercase",
+                        cor.texto,
+                        cor.borda,
+                      )}
+                    >
+                      {nomeTime(atual.times[lado])}
+                    </p>
+                    {atual.lados[lado].map((memberId) => {
+                      const feitos = disputa.gols.filter(
+                        (g) => g.lado === lado && g.memberId === memberId,
+                      ).length;
+                      return (
+                        <button
+                          key={memberId}
+                          type="button"
+                          onClick={() => marcarPenalti(lado, memberId)}
+                          className={cn(
+                            "flex min-h-14 w-full items-center justify-between gap-1 rounded-xl border-2 px-3 py-3 text-left font-semibold text-foreground active:scale-[0.97]",
+                            cor.fundo,
+                            cor.borda,
+                          )}
+                        >
+                          <span className="min-w-0 break-words">{nomeJogador(memberId)}</span>
+                          {feitos > 0 && (
+                            <span
+                              className={cn(
+                                "min-w-7 shrink-0 rounded-full px-1.5 text-center text-lg font-black text-white tabular-nums",
+                                cor.solido,
+                              )}
+                            >
+                              {feitos}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => marcarPenalti(lado, null)}
+                      className={cn(
+                        "w-full rounded-xl border border-dashed py-2.5 text-xs font-bold",
+                        cor.borda,
+                        cor.texto,
+                      )}
+                    >
+                      + Pênalti sem autor
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFolha({ tipo: "reforco", lado })}
+                      className="w-full rounded-xl border border-border py-2 text-xs font-semibold text-muted-foreground"
+                    >
+                      + Entrou alguém
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {disputa.gols.length > 0 && (
+            <section className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+              <h2 className="mb-1 text-sm font-bold text-foreground">Pênaltis convertidos</h2>
+              <ul className="divide-y divide-border">
+                {[...disputa.gols].reverse().map((g, i) => (
+                  <li key={g.id} className="flex items-center gap-2 py-2 text-sm">
+                    <span className="w-6 text-xs font-bold text-muted-foreground tabular-nums">
+                      {disputa.gols.length - i}
+                    </span>
+                    <span
+                      className={cn(
+                        "size-2.5 shrink-0 rounded-full",
+                        corDoTime(atual.times[g.lado]).solido,
+                      )}
+                    />
+                    <span className="min-w-0 flex-1 truncate font-semibold">
+                      {nomeJogador(g.memberId)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => apagarPenalti(g.id)}
+                      className="rounded-lg border border-border px-2 py-1 text-xs font-semibold"
+                    >
+                      Apagar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        {folha?.tipo === "fim-dos-penaltis" && (
+          <Folha
+            titulo={`Pênaltis: ${nomeTime(atual.times[0])} ${penA} × ${penB} ${nomeTime(atual.times[1])}`}
+            onFechar={() => setFolha(null)}
+          >
+            {penA === penB ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  A disputa está empatada. Dá pra continuar batendo, ou decidir aqui quem levou.
+                </p>
+                <Button className="w-full" onClick={() => setFolha(null)}>
+                  Continuar batendo
+                </Button>
+                {([0, 1] as const).map((lado) => (
+                  <Button
+                    key={lado}
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => encerrarJogo(lado)}
+                  >
+                    {nomeTime(atual.times[lado])} venceu
+                  </Button>
+                ))}
+                <Button variant="outline" className="w-full" onClick={() => encerrarJogo(null)}>
+                  Ficou no empate
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button className="w-full" onClick={() => encerrarJogo(penA > penB ? 0 : 1)}>
+                  Encerrar · {nomeTime(atual.times[penA > penB ? 0 : 1])} venceu nos pênaltis
+                </Button>
+                <Button variant="ghost" className="w-full" onClick={() => setFolha(null)}>
+                  Ainda tem cobrança
+                </Button>
+              </>
+            )}
+          </Folha>
+        )}
+
+        {folhaReforco}
+      </div>
+    );
+  }
+
   // ───────────── Bola rolando ─────────────
   const ms = decorridoMs(atual, agora);
   const estourou = ms >= limiteMs;
   const [golsA, golsB] = placarDoJogo(atual);
   const ultimoTempo = atual.tempo >= pelada.tempos;
-  const foraDoJogo = elenco.filter(
-    (j) => !atual.lados[0].includes(j.memberId) && !atual.lados[1].includes(j.memberId),
+  const lances = atual.lances ?? [];
+  // o gol que acabou de sair, se ainda existe e ninguém marcou a assistência dele
+  const golDaFaixa =
+    golRecente && !lances.some((l) => l.golId === golRecente.golId)
+      ? atual.gols.find((g) => g.id === golRecente.golId && g.memberId)
+      : undefined;
+  // gols e lances numa lista só, do mais novo pro mais antigo
+  const historico = [...atual.gols.map((g) => ({ ...g, tipo: "gol" as const })), ...lances].sort(
+    (a, b) => b.tempo - a.tempo || b.minuto - a.minuto,
   );
   const golEmEdicao =
     folha?.tipo === "autor" ? atual.gols.find((g) => g.id === folha.golId) : undefined;
 
   return (
-    <div className={cn("app-shell flex min-h-dvh flex-col", alarme && "pb-28")}>
+    <div
+      className={cn("app-shell flex min-h-dvh flex-col", alarme ? "pb-28" : golDaFaixa && "pb-44")}
+    >
       {cabecalho}
       <div className="space-y-4 p-4">
         <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
@@ -661,7 +1044,9 @@ function PlacarDaPelada() {
         </section>
 
         <section>
-          <p className="mb-2 text-xs text-muted-foreground">Toque no nome de quem fez o gol.</p>
+          <p className="mb-2 text-xs text-muted-foreground">
+            Toque no nome de quem fez o gol. O + marca assistência, defesa épica e cartão.
+          </p>
           <div className="grid grid-cols-2 gap-3">
             {([0, 1] as const).map((lado) => {
               const cor = corDoTime(atual.times[lado]);
@@ -680,29 +1065,71 @@ function PlacarDaPelada() {
                     const gols = atual.gols.filter(
                       (g) => g.lado === lado && g.memberId === memberId,
                     ).length;
+                    const dele = lances.filter((l) => l.memberId === memberId);
                     return (
-                      <button
+                      <div
                         key={memberId}
-                        type="button"
-                        onClick={() => marcarGol(lado, memberId)}
                         className={cn(
-                          "flex min-h-14 w-full items-center justify-between gap-1 rounded-xl border-2 px-3 py-3 text-left font-semibold text-foreground active:scale-[0.97]",
+                          "flex min-h-14 w-full items-stretch rounded-xl border-2 font-semibold text-foreground",
                           cor.fundo,
                           cor.borda,
                         )}
                       >
-                        <span className="min-w-0 break-words">{nomeJogador(memberId)}</span>
-                        {gols > 0 && (
-                          <span
-                            className={cn(
-                              "min-w-7 shrink-0 rounded-full px-1.5 text-center text-lg font-black text-white tabular-nums",
-                              cor.solido,
+                        <button
+                          type="button"
+                          onClick={() => marcarGol(lado, memberId)}
+                          className="flex min-w-0 flex-1 items-center justify-between gap-1 py-2.5 pr-1 pl-3 text-left active:scale-[0.97]"
+                        >
+                          <span className="min-w-0">
+                            <span className="block break-words">{nomeJogador(memberId)}</span>
+                            {dele.length > 0 && (
+                              <span className="mt-1 flex flex-wrap items-center gap-1">
+                                {TIPOS_DE_LANCE.map((tipo) => {
+                                  const vezes = dele.filter((l) => l.tipo === tipo).length;
+                                  return vezes > 0 ? (
+                                    <span
+                                      key={tipo}
+                                      title={NOME_DO_LANCE[tipo]}
+                                      className={cn(
+                                        "rounded px-1 text-[10px] leading-4 font-black text-white",
+                                        COR_DO_LANCE[tipo],
+                                        tipo === "amarelo" && "text-black",
+                                      )}
+                                    >
+                                      {tipo === "assistencia" ? "A" : tipo === "defesa" ? "D" : ""}
+                                      {vezes > 1 || tipo === "assistencia" || tipo === "defesa"
+                                        ? vezes
+                                        : "\u00a0"}
+                                    </span>
+                                  ) : null;
+                                })}
+                              </span>
                             )}
-                          >
-                            {gols}
                           </span>
-                        )}
-                      </button>
+                          {gols > 0 && (
+                            <span
+                              className={cn(
+                                "min-w-7 shrink-0 rounded-full px-1.5 text-center text-lg font-black text-white tabular-nums",
+                                cor.solido,
+                              )}
+                            >
+                              {gols}
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Outro lance de ${nomeJogador(memberId)}`}
+                          onClick={() => setFolha({ tipo: "lance", lado, memberId })}
+                          className={cn(
+                            "flex w-10 shrink-0 items-center justify-center rounded-r-[10px] border-l-2 active:opacity-60",
+                            cor.borda,
+                            cor.texto,
+                          )}
+                        >
+                          <Plus className="size-5" />
+                        </button>
+                      </div>
                     );
                   })}
                   <button
@@ -729,11 +1156,11 @@ function PlacarDaPelada() {
           </div>
         </section>
 
-        {atual.gols.length > 0 && (
+        {historico.length > 0 && (
           <section className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
-            <h2 className="mb-1 text-sm font-bold text-foreground">Gols</h2>
+            <h2 className="mb-1 text-sm font-bold text-foreground">Lances</h2>
             <ul className="divide-y divide-border">
-              {[...atual.gols].reverse().map((g) => (
+              {historico.map((g) => (
                 <li key={g.id} className="flex items-center gap-2 py-2 text-sm">
                   <span className="w-10 font-extrabold tabular-nums">
                     {g.minuto}'
@@ -747,19 +1174,27 @@ function PlacarDaPelada() {
                       corDoTime(atual.times[g.lado]).solido,
                     )}
                   />
-                  <span className="min-w-0 flex-1 truncate font-semibold">
-                    {nomeJogador(g.memberId)}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold">{nomeJogador(g.memberId)}</span>
+                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      {g.tipo !== "gol" && (
+                        <span className={cn("size-2 rounded-sm", COR_DO_LANCE[g.tipo])} />
+                      )}
+                      {g.tipo === "gol" ? "Gol" : NOME_DO_LANCE[g.tipo]}
+                    </span>
                   </span>
+                  {g.tipo === "gol" && (
+                    <button
+                      type="button"
+                      onClick={() => setFolha({ tipo: "autor", golId: g.id })}
+                      className="rounded-lg border border-border px-2 py-1 text-xs font-semibold"
+                    >
+                      Trocar
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setFolha({ tipo: "autor", golId: g.id })}
-                    className="rounded-lg border border-border px-2 py-1 text-xs font-semibold"
-                  >
-                    Trocar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => apagarGol(g.id)}
+                    onClick={() => (g.tipo === "gol" ? apagarGol(g.id) : apagarLance(g.id))}
                     className="rounded-lg border border-border px-2 py-1 text-xs font-semibold"
                   >
                     Apagar
@@ -770,6 +1205,43 @@ function PlacarDaPelada() {
           </section>
         )}
       </div>
+
+      {/* de quem foi a assistência do gol que acabou de sair; dá pra ignorar */}
+      {golDaFaixa && !alarme && !folha && (
+        <div className="fixed inset-x-0 bottom-0 z-30 flex justify-center p-3">
+          <div className="w-full max-w-[456px] space-y-2 rounded-2xl bg-primary p-3 shadow-[var(--shadow-float)]">
+            <div className="flex items-center justify-between gap-2">
+              <p className="min-w-0 truncate text-sm font-bold text-primary-foreground">
+                Assistência no gol de {nomeJogador(golDaFaixa.memberId)}?
+              </p>
+              <button
+                type="button"
+                aria-label="Sem assistência"
+                onClick={() => setGolRecente(null)}
+                className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 text-primary-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="flex max-h-24 flex-wrap gap-1.5 overflow-auto">
+              {atual.lados[golDaFaixa.lado]
+                .filter((m) => m !== golDaFaixa.memberId)
+                .map((memberId) => (
+                  <button
+                    key={memberId}
+                    type="button"
+                    onClick={() =>
+                      marcarLance("assistencia", golDaFaixa.lado, memberId, golDaFaixa.id)
+                    }
+                    className="rounded-full bg-primary-foreground px-3 py-1.5 text-xs font-bold text-primary active:opacity-70"
+                  >
+                    {nomeJogador(memberId)}
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {alarme && (
         <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center p-4">
@@ -796,6 +1268,9 @@ function PlacarDaPelada() {
                   {nomeTime(atual.times[lado])} venceu
                 </Button>
               ))}
+              <Button variant="secondary" className="w-full" onClick={irProsPenaltis}>
+                Ir pros pênaltis
+              </Button>
               <Button variant="outline" className="w-full" onClick={() => encerrarJogo(null)}>
                 Ficou no empate
               </Button>
@@ -858,37 +1333,32 @@ function PlacarDaPelada() {
         </Folha>
       )}
 
-      {folha?.tipo === "reforco" && (
-        <Folha
-          titulo={`Quem entrou no ${nomeTime(atual.times[folha.lado])}?`}
-          onFechar={() => setFolha(null)}
-        >
-          {foraDoJogo.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Todo mundo do elenco já está nesse jogo. Chegou gente nova? Adiciona em “Editar
-              times”.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-1.5">
-              {foraDoJogo.map((j: LinhaElenco) => (
-                <button
-                  key={j.memberId}
-                  type="button"
-                  onClick={() => reforcar(folha.lado, j.memberId)}
-                  className="rounded-xl border border-border bg-background px-3 py-2.5 text-left text-sm font-semibold"
-                >
-                  {j.nome}
-                  {j.time !== null && (
-                    <span className="block text-[10px] font-medium text-muted-foreground">
-                      {nomeTime(j.time)}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+      {folha?.tipo === "lance" && (
+        <Folha titulo={nomeJogador(folha.memberId)} onFechar={() => setFolha(null)}>
+          <p className="text-sm text-muted-foreground">
+            O que foi? Gol é só tocar no nome dele, direto na lista.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {TIPOS_DE_LANCE.map((tipo) => (
+              <button
+                key={tipo}
+                type="button"
+                onClick={() => marcarLance(tipo, folha.lado, folha.memberId)}
+                className={cn(
+                  "flex min-h-14 items-center gap-2.5 rounded-xl border-2 border-border bg-background px-3 text-left text-sm font-bold text-foreground active:scale-[0.97]",
+                  // as duas jogadas em cima, os três cartões embaixo
+                  tipo === "vermelho" && "col-span-2",
+                )}
+              >
+                <span className={cn("size-5 shrink-0 rounded", COR_DO_LANCE[tipo])} />
+                {NOME_DO_LANCE[tipo]}
+              </button>
+            ))}
+          </div>
         </Folha>
       )}
+
+      {folhaReforco}
     </div>
   );
 }

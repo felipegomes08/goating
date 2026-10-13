@@ -9,10 +9,29 @@ export type DadosDoPoster = {
   data: string;
   manchete: string;
   /** jogo único: placar grande no meio */
-  placar?: { timeA: string; golsA: number; timeB: string; golsB: number } | undefined;
+  placar?:
+    | {
+        timeA: string;
+        golsA: number;
+        timeB: string;
+        golsB: number;
+        /** placar da disputa de pênaltis, quando teve */
+        penaltis?: [number, number] | null | undefined;
+      }
+    | undefined;
   /** vários jogos: classificação dos times no dia */
   tabela?: { nome: string; vitorias: number; empates: number; derrotas: number }[] | undefined;
   artilharia: { nome: string; gols: number }[];
+  /** linhas soltas abaixo da tabela (ex.: jogo decidido nos pênaltis) */
+  notas?: string[] | undefined;
+  /** os outros lances do dia: quem mais deu assistência, defesas épicas e cartões */
+  destaques?:
+    | {
+        assistencias: { nome: string; total: number }[];
+        defesas: { nome: string; total: number }[];
+        cartoes: { amarelos: number; azuis: number; vermelhos: number };
+      }
+    | undefined;
   /** foto da galera (câmera ou galeria); entra grande, logo abaixo do título */
   foto?: Blob | null | undefined;
 };
@@ -183,7 +202,17 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
     [600, 800, 900].map((peso) => document.fonts.load(fonte(peso, 40)).catch(() => undefined)),
   );
 
-  const altura = dados.foto ? ALTURA_COM_FOTO : ALTURA;
+  // pênaltis, notas e os outros lances entram a mais: o pôster cresce pra artilharia não sumir
+  const d = dados.destaques;
+  const temCartao = !!d && d.cartoes.amarelos + d.cartoes.azuis + d.cartoes.vermelhos > 0;
+  const numDestaques =
+    (d?.assistencias.length ? 1 : 0) + (d?.defesas.length ? 1 : 0) + (temCartao ? 1 : 0);
+  const alturaDosDestaques = numDestaques ? numDestaques * 54 + 34 : 0;
+  const altura =
+    (dados.foto ? ALTURA_COM_FOTO : ALTURA) +
+    alturaDosDestaques +
+    (dados.placar?.penaltis ? 84 : 0) +
+    (dados.notas?.length ? dados.notas.length * 44 + 16 : 0);
   const canvas = document.createElement("canvas");
   canvas.width = LARGURA;
   canvas.height = altura;
@@ -256,6 +285,27 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
       alinhar: "center",
     });
     y += 400;
+    const penaltis = dados.placar.penaltis;
+    if (penaltis) {
+      // a disputa numa faixa logo abaixo do placar do jogo
+      const texto = `PÊNALTIS   ${penaltis[0]} × ${penaltis[1]}`;
+      ctx.font = fonte(900, 44);
+      const larguraFaixa = ctx.measureText(texto).width + 80;
+      ctx.fillStyle = "rgba(233,188,75,0.16)";
+      retanguloArredondado(ctx, meio - larguraFaixa / 2, y - 26, larguraFaixa, 76, 38);
+      ctx.fill();
+      ctx.strokeStyle = OURO;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      escrever(ctx, texto, meio, y + 28, {
+        peso: 900,
+        tamanho: 44,
+        cor: OURO,
+        largura: util,
+        alinhar: "center",
+      });
+      y += 84;
+    }
   } else if (dados.tabela?.length) {
     y += 20;
     const linhas = dados.tabela.slice(0, 4);
@@ -287,6 +337,18 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
     y += linhas.length * 92 + 20;
   }
 
+  for (const nota of dados.notas ?? []) {
+    escrever(ctx, nota, meio, y + 20, {
+      peso: 600,
+      tamanho: 28,
+      cor: OURO,
+      largura: util,
+      alinhar: "center",
+    });
+    y += 44;
+  }
+  if (dados.notas?.length) y += 16;
+
   // manchete numa pílula
   ctx.font = fonte(800, 38);
   const larguraPilula = Math.min(util, ctx.measureText(dados.manchete).width + 96);
@@ -302,10 +364,76 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
   });
   y += 150;
 
-  // artilharia: o que couber até o rodapé
+  // os outros lances ficam num bloco fixo acima do rodapé; a artilharia ocupa o que sobrar
+  const nomes = (lista: { nome: string; total: number }[]) =>
+    lista
+      .slice(0, 3)
+      .map((j) => `${j.nome} ${j.total}`)
+      .join("  ·  ");
+  const linhasDeDestaque: { rotulo: string; texto?: string; cartoes?: [string, number][] }[] = [];
+  if (d?.assistencias.length) {
+    linhasDeDestaque.push({ rotulo: "ASSISTÊNCIAS", texto: nomes(d.assistencias) });
+  }
+  if (d?.defesas.length) {
+    linhasDeDestaque.push({ rotulo: "DEFESAS ÉPICAS", texto: nomes(d.defesas) });
+  }
+  if (d && temCartao) {
+    linhasDeDestaque.push({
+      rotulo: "CARTÕES",
+      cartoes: (
+        [
+          ["#FACC15", d.cartoes.amarelos],
+          ["#2563EB", d.cartoes.azuis],
+          ["#DC2626", d.cartoes.vermelhos],
+        ] as [string, number][]
+      ).filter(([, total]) => total > 0),
+    });
+  }
+  const topoDosDestaques = altura - 120 - alturaDosDestaques;
+  linhasDeDestaque.forEach((linha, i) => {
+    const base = topoDosDestaques + 62 + i * 54;
+    if (i === 0) {
+      ctx.fillStyle = "rgba(255,255,255,0.12)";
+      ctx.fillRect(MARGEM, topoDosDestaques + 10, util, 2);
+    }
+    escrever(ctx, linha.rotulo, MARGEM, base, {
+      peso: 800,
+      tamanho: 26,
+      cor: APAGADO,
+      largura: 300,
+    });
+    if (linha.texto) {
+      escrever(ctx, linha.texto, LARGURA - MARGEM, base, {
+        peso: 800,
+        tamanho: 32,
+        cor: BRANCO,
+        largura: util - 320,
+        alinhar: "right",
+        minimo: 20,
+      });
+    }
+    let x = LARGURA - MARGEM;
+    for (const [cor, total] of [...(linha.cartoes ?? [])].reverse()) {
+      escrever(ctx, String(total), x, base, {
+        peso: 900,
+        tamanho: 34,
+        cor: BRANCO,
+        largura: 60,
+        alinhar: "right",
+      });
+      ctx.font = fonte(900, 34);
+      x -= ctx.measureText(String(total)).width + 14;
+      ctx.fillStyle = cor;
+      retanguloArredondado(ctx, x - 26, base - 34, 26, 38, 6);
+      ctx.fill();
+      x -= 26 + 34;
+    }
+  });
+
+  // artilharia: o que couber até os destaques (ou até o rodapé)
   const artilheiros = dados.artilharia.slice(
     0,
-    Math.max(0, Math.floor((altura - 120 - (y + 30)) / 82)),
+    Math.max(0, Math.floor((altura - 120 - alturaDosDestaques - (y + 30)) / 82)),
   );
   if (artilheiros.length > 0) {
     escrever(ctx, "ARTILHARIA", MARGEM, y, { peso: 800, tamanho: 28, cor: APAGADO, largura: util });
@@ -357,6 +485,7 @@ export type LinhaDoRanking = {
   jogos: number;
   vitorias: number;
   gols: number;
+  assistencias: number;
   /** já formatada: "1,2" */
   media: string;
   aproveitamento: number;
@@ -365,12 +494,12 @@ export type LinhaDoRanking = {
 export type DadosDoRanking = {
   turma: string;
   periodo: string;
-  /** índice da coluna que ordena a tabela (0 = J ... 4 = %) */
+  /** índice da coluna que ordena a tabela (0 = J ... 5 = %) */
   colunaOrdenada: number;
   linhas: LinhaDoRanking[];
 };
 
-const COLUNAS_RANKING = ["J", "V", "G", "M", "%"];
+const COLUNAS_RANKING = ["J", "V", "G", "A", "M", "%"];
 const MAX_LINHAS_RANKING = 15;
 
 /** Tabela do ranking da turma como imagem: altura acompanha a quantidade de jogadores. */
@@ -412,7 +541,7 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
   escrever(ctx, dados.periodo, MARGEM, 272, { peso: 600, tamanho: 30, cor: MENTA, largura: util });
 
   // colunas de número, da direita pra esquerda
-  const LARGURA_COLUNA = 104;
+  const LARGURA_COLUNA = 92;
   const xColuna = (i: number) =>
     LARGURA - MARGEM - 24 - (COLUNAS_RANKING.length - 1 - i) * LARGURA_COLUNA;
   const xNome = MARGEM + 96;
@@ -459,24 +588,29 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
       largura: larguraNome,
       minimo: 30,
     });
-    [String(l.jogos), String(l.vitorias), String(l.gols), l.media, `${l.aproveitamento}`].forEach(
-      (valor, c) => {
-        const ordenada = c === dados.colunaOrdenada;
-        escrever(ctx, valor, xColuna(c), base, {
-          peso: ordenada ? 900 : 600,
-          tamanho: ordenada ? 38 : 34,
-          cor: ordenada ? (i === 0 ? OURO : MENTA) : BRANCO,
-          largura: LARGURA_COLUNA - 8,
-          alinhar: "right",
-        });
-      },
-    );
+    [
+      String(l.jogos),
+      String(l.vitorias),
+      String(l.gols),
+      String(l.assistencias),
+      l.media,
+      `${l.aproveitamento}`,
+    ].forEach((valor, c) => {
+      const ordenada = c === dados.colunaOrdenada;
+      escrever(ctx, valor, xColuna(c), base, {
+        peso: ordenada ? 900 : 600,
+        tamanho: ordenada ? 38 : 34,
+        cor: ordenada ? (i === 0 ? OURO : MENTA) : BRANCO,
+        largura: LARGURA_COLUNA - 8,
+        alinhar: "right",
+      });
+    });
   });
 
   const rodape = TOPO_TABELA + linhas.length * ALTURA_LINHA + 50;
   escrever(
     ctx,
-    "J jogos  ·  V vitórias  ·  G gols  ·  M gols por jogo  ·  % aproveitamento",
+    "J jogos  ·  V vitórias  ·  G gols  ·  A assistências  ·  M gols por jogo  ·  % aproveitamento",
     LARGURA / 2,
     rodape,
     { peso: 600, tamanho: 24, cor: APAGADO, largura: util, alinhar: "center" },

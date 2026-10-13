@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { chaveNome } from "@/lib/placar/lista";
 
 /** Folha pra corrigir o nome de um jogador (lista colada veio com erro, apelido mudou...). */
 export function FolhaNome({
   nomeAtual,
+  nomesEmUso = [],
   onSalvar,
   onFechar,
 }: {
   nomeAtual: string;
+  /** nomes dos outros jogadores da turma: dois com o mesmo nome viram confusão no ranking */
+  nomesEmUso?: string[];
   /** devolve true quando salvou; a folha fecha sozinha */
   onSalvar: (nome: string) => Promise<boolean>;
   onFechar: () => void;
@@ -16,7 +20,9 @@ export function FolhaNome({
   const [nome, setNome] = useState(nomeAtual);
   const [salvando, setSalvando] = useState(false);
   const limpo = nome.replace(/\s+/g, " ").trim();
-  const pronto = limpo.length > 0 && limpo !== nomeAtual && !salvando;
+  // "Alvaro" e "álvaro" contam como o mesmo nome
+  const repetido = nomesEmUso.find((n) => chaveNome(n) === chaveNome(limpo));
+  const pronto = limpo.length > 0 && limpo !== nomeAtual && !repetido && !salvando;
 
   async function salvar() {
     if (!pronto) return;
@@ -49,6 +55,12 @@ export function FolhaNome({
           }}
           aria-label="Nome do jogador"
         />
+        {repetido && (
+          <p className="text-xs font-medium text-destructive">
+            Já existe {repetido} na turma. Se for outra pessoa, diferencie o nome (sobrenome,
+            apelido). Se for a mesma, use o botão Juntar na lista de jogadores da turma.
+          </p>
+        )}
         <p className="text-xs text-muted-foreground">
           Muda o nome na turma inteira: times, placar e ranking. Os gols e vitórias continuam com o
           jogador.

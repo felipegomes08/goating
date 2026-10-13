@@ -9,18 +9,21 @@ export type LinhaRanking = {
   jogos: number;
   vitorias: number;
   gols: number;
+  assistencias: number;
   /** gols por jogo */
   media: number;
   /** 0 a 100 */
   aproveitamento: number;
 };
 
-export type ColunaRanking = "jogos" | "vitorias" | "gols" | "media" | "aproveitamento";
+export type ColunaRanking =
+  "jogos" | "vitorias" | "gols" | "assistencias" | "media" | "aproveitamento";
 
 export const COLUNAS_RANKING: { id: ColunaRanking; sigla: string; nome: string }[] = [
   { id: "jogos", sigla: "J", nome: "jogos" },
   { id: "vitorias", sigla: "V", nome: "vitórias" },
   { id: "gols", sigla: "G", nome: "gols" },
+  { id: "assistencias", sigla: "A", nome: "assistências" },
   { id: "media", sigla: "M", nome: "gols por jogo" },
   { id: "aproveitamento", sigla: "%", nome: "aproveitamento" },
 ];
@@ -49,7 +52,7 @@ export function TabelaRanking({
           <col className="w-8" />
           <col />
           {COLUNAS_RANKING.map((c) => (
-            <col key={c.id} className={c.id === "media" ? "w-11" : "w-9"} />
+            <col key={c.id} className={c.id === "media" ? "w-10" : "w-8"} />
           ))}
         </colgroup>
         <thead>

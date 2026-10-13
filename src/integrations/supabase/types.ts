@@ -319,6 +319,9 @@ export type Database = {
           duracao_seg: number
           gols_a: number
           gols_b: number
+          penaltis_a: number | null
+          penaltis_b: number | null
+          penaltis_na_artilharia: boolean
           id: string
           match_id: string
           ordem: number
@@ -330,6 +333,9 @@ export type Database = {
           duracao_seg?: number
           gols_a?: number
           gols_b?: number
+          penaltis_a?: number | null
+          penaltis_b?: number | null
+          penaltis_na_artilharia?: boolean
           id?: string
           match_id: string
           ordem: number
@@ -341,6 +347,9 @@ export type Database = {
           duracao_seg?: number
           gols_a?: number
           gols_b?: number
+          penaltis_a?: number | null
+          penaltis_b?: number | null
+          penaltis_na_artilharia?: boolean
           id?: string
           match_id?: string
           ordem?: number
@@ -364,6 +373,7 @@ export type Database = {
           id: string
           member_id: string | null
           minuto: number
+          penalti: boolean
           tempo: number
           time: number
         }
@@ -372,6 +382,7 @@ export type Database = {
           id?: string
           member_id?: string | null
           minuto?: number
+          penalti?: boolean
           tempo?: number
           time: number
         }
@@ -380,6 +391,7 @@ export type Database = {
           id?: string
           member_id?: string | null
           minuto?: number
+          penalti?: boolean
           tempo?: number
           time?: number
         }
@@ -473,7 +485,12 @@ export type Database = {
       }
       match_players: {
         Row: {
+          amarelos: number
+          assistencias: number
+          azuis: number
+          defesas: number
           derrotas: number
+          vermelhos: number
           empates: number
           gols: number
           id: string
@@ -485,7 +502,12 @@ export type Database = {
           vitorias: number
         }
         Insert: {
+          amarelos?: number
+          assistencias?: number
+          azuis?: number
+          defesas?: number
           derrotas?: number
+          vermelhos?: number
           empates?: number
           gols?: number
           id?: string
@@ -497,7 +519,12 @@ export type Database = {
           vitorias?: number
         }
         Update: {
+          amarelos?: number
+          assistencias?: number
+          azuis?: number
+          defesas?: number
           derrotas?: number
+          vermelhos?: number
           empates?: number
           gols?: number
           id?: string
@@ -729,7 +756,12 @@ export type Database = {
       crew_stats: {
         Args: { p_ate?: string; p_crew_id: string; p_desde?: string }
         Returns: {
+          amarelos: number
+          assistencias: number
+          azuis: number
+          defesas: number
           derrotas: number
+          vermelhos: number
           empates: number
           foto_url: string
           gols: number
@@ -886,6 +918,10 @@ export type Database = {
           mvp_id: string
           nota: number
         }[]
+      }
+      juntar_membros: {
+        Args: { p_destino: string; p_origem: string }
+        Returns: string
       }
       medias_do_jogador: {
         Args: { p_user_id: string }
