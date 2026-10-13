@@ -31,9 +31,13 @@ export function ProgressoTier({
   const cor = proximo?.destaque ?? tier?.destaque ?? "var(--mint)";
 
   const xpBase = tier?.xpMinimo ?? 0;
-  const progresso = proximo
-    ? Math.min(100, Math.max(0, ((xp - xpBase) / (proximo.xpMinimo - xpBase)) * 100))
-    : 100;
+  // o primeiro tier não pede XP: o caminho até ele são as avaliações recebidas
+  const porAvaliacoes = !!proximo && proximo.xpMinimo === 0;
+  const progresso = !proximo
+    ? 100
+    : porAvaliacoes
+      ? Math.min(100, (avaliacoes / MIN_AVALIACOES) * 100)
+      : Math.min(100, Math.max(0, ((xp - xpBase) / (proximo.xpMinimo - xpBase)) * 100));
   const xpFaltando = proximo ? Math.max(0, proximo.xpMinimo - xp) : 0;
   const peladasFaltando = Math.ceil(xpFaltando / XP_POR_PELADA_MEDIA);
 
@@ -58,14 +62,18 @@ export function ProgressoTier({
               },
             ]
           : []),
-        {
-          texto: `${proximo.xpMinimo.toLocaleString("pt-BR")} XP`,
-          detalhe:
-            xpFaltando > 0
-              ? `faltam ${xpFaltando.toLocaleString("pt-BR")} (~${peladasFaltando} ${peladasFaltando === 1 ? "pelada" : "peladas"})`
-              : "feito",
-          ok: xpFaltando === 0,
-        },
+        ...(porAvaliacoes
+          ? []
+          : [
+              {
+                texto: `${proximo.xpMinimo.toLocaleString("pt-BR")} XP`,
+                detalhe:
+                  xpFaltando > 0
+                    ? `faltam ${xpFaltando.toLocaleString("pt-BR")} (~${peladasFaltando} ${peladasFaltando === 1 ? "pelada" : "peladas"})`
+                    : "feito",
+                ok: xpFaltando === 0,
+              },
+            ]),
       ]
     : [];
 
@@ -138,7 +146,9 @@ export function ProgressoTier({
                 Rumo ao <span style={{ color: proximo.destaque }}>{proximo.nome}</span>
               </p>
               <p className="text-xs font-semibold text-muted-foreground tabular-nums">
-                {xp.toLocaleString("pt-BR")} / {proximo.xpMinimo.toLocaleString("pt-BR")} XP
+                {porAvaliacoes
+                  ? `${Math.min(avaliacoes, MIN_AVALIACOES)} / ${MIN_AVALIACOES} avaliações`
+                  : `${xp.toLocaleString("pt-BR")} / ${proximo.xpMinimo.toLocaleString("pt-BR")} XP`}
               </p>
             </div>
             <div className="relative h-3 overflow-hidden rounded-full bg-muted">

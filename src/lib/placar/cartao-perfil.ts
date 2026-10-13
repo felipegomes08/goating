@@ -17,6 +17,7 @@ import {
   retanguloArredondado,
 } from "@/lib/placar/poster";
 import {
+  MIN_AVALIACOES,
   TIERS,
   type CaixaCarta,
   type TierConfig,
@@ -594,14 +595,21 @@ export async function desenharCartao(dados: DadosDoCartao): Promise<HTMLCanvasEl
       cor: corSeguinte.texto,
       largura: util / 2,
     });
-    escrever(ctx, `${milhar(dados.xp)} / ${milhar(seguinte.xpMinimo)} XP`, LARGURA - MARGEM, y, {
+    // o primeiro tier não pede XP: o que falta são avaliações
+    const porAvaliacoes = seguinte.xpMinimo === 0;
+    const quanto = porAvaliacoes
+      ? `${Math.min(dados.avaliacoes, MIN_AVALIACOES)} / ${MIN_AVALIACOES} avaliações`
+      : `${milhar(dados.xp)} / ${milhar(seguinte.xpMinimo)} XP`;
+    escrever(ctx, quanto, LARGURA - MARGEM, y, {
       peso: 600,
       tamanho: 26,
       cor: APAGADO,
       largura: util / 2,
       alinhar: "right",
     });
-    const progresso = Math.min(1, dados.xp / seguinte.xpMinimo);
+    const progresso = porAvaliacoes
+      ? Math.min(1, dados.avaliacoes / MIN_AVALIACOES)
+      : Math.min(1, dados.xp / seguinte.xpMinimo);
     ctx.fillStyle = "rgba(255,255,255,0.1)";
     retanguloArredondado(ctx, MARGEM, y + 22, util, 20, 10);
     ctx.fill();

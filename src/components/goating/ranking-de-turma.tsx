@@ -29,7 +29,7 @@ export function RankingDeTurma({
 }) {
   const turmas = useMinhasTurmas(userId);
   const [periodo, setPeriodo] = useState<Periodo>("mes");
-  const [ordem, setOrdem] = useState<ColunaRanking>("gols");
+  const [ordem, setOrdem] = useState<ColunaRanking>("vitorias");
 
   const escolhida =
     (turmas.data ?? []).find((t) => t.crew_id === turmaId) ?? turmas.data?.[0] ?? null;
@@ -37,8 +37,9 @@ export function RankingDeTurma({
   const linhas = [...(ranking.data ?? [])].sort(
     (a, b) =>
       b[ordem] - a[ordem] ||
-      b.gols - a.gols ||
+      // desempate: vitórias, depois gols
       b.vitorias - a.vitorias ||
+      b.gols - a.gols ||
       a.nome.localeCompare(b.nome),
   );
 

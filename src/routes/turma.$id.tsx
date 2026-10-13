@@ -82,7 +82,7 @@ function PaginaDaTurma() {
   const voltar = useVoltar(() => void navigate({ to: "/turmas" }));
   const aba = abaDaUrl ?? "ranking";
   const [periodo, setPeriodo] = useState<Periodo>("mes");
-  const [ordem, setOrdem] = useState<ColunaRanking>("gols");
+  const [ordem, setOrdem] = useState<ColunaRanking>("vitorias");
   const [gerandoImagem, setGerandoImagem] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [renomeando, setRenomeando] = useState<{ memberId: string; nome: string } | null>(null);
@@ -365,8 +365,9 @@ function PaginaDaTurma() {
   const linhas = [...(ranking.data ?? [])].sort(
     (a, b) =>
       b[ordem] - a[ordem] ||
-      b.gols - a.gols ||
+      // desempate: vitórias, depois gols
       b.vitorias - a.vitorias ||
+      b.gols - a.gols ||
       a.nome.localeCompare(b.nome),
   );
   const rotuloPeriodo = rotuloDoPeriodo(periodo);

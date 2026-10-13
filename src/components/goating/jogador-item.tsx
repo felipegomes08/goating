@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { User, UserMinus, UserPlus } from "lucide-react";
 import { useAvatarUrl } from "@/hooks/use-avatar";
 import { cn } from "@/lib/utils";
-import { overallLiberado, tierPorNome } from "@/lib/tiers";
+import { TIERS, overallLiberado, tierPorNome } from "@/lib/tiers";
 import { TierBadge } from "@/components/goating/tier-badge";
 
 export type JogadorResumo = {
@@ -38,6 +38,8 @@ export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocup
   const liberado = overallLiberado(jogador.avaliacoes_recebidas);
   const overall = liberado ? Math.round(Number(jogador.overall)) : null;
   const tier = liberado ? tierPorNome(jogador.tier_reconhecido) : null;
+  // quem ainda não chegou no primeiro tier usa a cartinha de bronze, igual à carta do perfil
+  const cartinha = tier ?? TIERS[0] ?? null;
 
   // o que dá pra saber do jogador num relance: onde joga, quanto joga, quantas vezes foi o melhor
   const detalhes = [
@@ -93,20 +95,20 @@ export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocup
 
         {/* a cartinha do tier com o overall dentro; sem nota liberada, um traço */}
         <span className="flex w-12 shrink-0 flex-col items-center">
-          {tier && overall !== null ? (
+          {cartinha && overall !== null ? (
             <>
-              <TierBadge tier={tier} overall={overall} size={42} />
+              <TierBadge tier={cartinha} overall={overall} size={42} />
               <span className="mt-0.5 text-[9px] font-extrabold text-muted-foreground uppercase">
-                {tier.nome}
+                {tier?.nome ?? "overall"}
               </span>
             </>
           ) : (
             <>
               <span className="flex size-[42px] items-center justify-center rounded-xl bg-secondary text-lg font-black text-muted-foreground tabular-nums">
-                {overall ?? "—"}
+                —
               </span>
               <span className="mt-0.5 text-[9px] font-bold text-muted-foreground uppercase">
-                {overall === null ? "sem nota" : "overall"}
+                sem nota
               </span>
             </>
           )}

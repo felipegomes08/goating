@@ -35,7 +35,8 @@ export type TierConfig = {
 };
 
 /**
- * xpMinimo calibrado pra manter o mesmo tempo médio de progressão que existia
+ * O Bronze chega com as 3 avaliações que liberam o overall (não pede XP).
+ * Do Prata pra cima: xpMinimo calibrado pra manter o mesmo tempo médio de progressão que existia
  * com o critério antigo (peladas jogadas), assumindo ~38xp por pelada média
  * (10xp fixo + ~3 avaliações recebidas com nota ~7 + chance de MVP):
  * peladas mínimas antigas × 38, arredondado.
@@ -44,7 +45,7 @@ export const TIERS: TierConfig[] = [
   {
     nome: "Bronze",
     overallMinimo: 0,
-    xpMinimo: 200,
+    xpMinimo: 0,
     ordem: 1,
     textClass: "text-tier-bronze",
     cor: "var(--tier-bronze)",
