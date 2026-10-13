@@ -158,7 +158,7 @@ export function AvaliacoesDaTurma({
         chave={["comentarios-turma", crewId]}
         tipo="comentario_turma"
         titulo="O que falam da turma"
-        subtitulo="Comentários de quem jogou nela, com o nome de quem escreveu."
+        subtitulo="Comentários anônimos de quem jogou nela."
         carregar={async () => {
           const { data, error } = await supabase.rpc("comentarios_da_turma", {
             p_crew_id: crewId,
@@ -230,7 +230,7 @@ export function AvaliacoesDaTurma({
                 placeholder="Como é jogar nessa turma?"
               />
               <p className="mt-1.5 flex justify-between gap-3 text-xs text-muted-foreground">
-                <span>Aparece na página da turma com o seu nome. As notas ficam anônimas.</span>
+                <span>Aparece na página da turma sem o seu nome. É tudo anônimo.</span>
                 <span className="shrink-0 tabular-nums">{texto.length}/200</span>
               </p>
             </div>

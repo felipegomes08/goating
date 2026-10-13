@@ -52,7 +52,7 @@ export type DadosDoCartao = {
 const ALTURA = 1920;
 
 // Canvas não lê as variáveis de cor do tema: cor do texto na carta e cor do brilho, por tier.
-const CORES: Record<TierNome, { texto: string; brilho: string }> = {
+export const CORES: Record<TierNome, { texto: string; brilho: string }> = {
   Bronze: { texto: "#CB8B55", brilho: "#C0703A" },
   Prata: { texto: "#CDD2DA", brilho: "#9FB3CC" },
   Ouro: { texto: "#F2C94C", brilho: "#E9B530" },
@@ -64,13 +64,13 @@ const CORES: Record<TierNome, { texto: string; brilho: string }> = {
 const milhar = (n: number) => n.toLocaleString("pt-BR");
 
 /** "#RRGGBB" + opacidade -> rgba() */
-function comAlfa(hex: string, alfa: number) {
+export function comAlfa(hex: string, alfa: number) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${alfa})`;
 }
 
 /** Sorteio que dá sempre o mesmo resultado: as faíscas não mudam de lugar a cada prévia. */
-function sorteador(semente: number) {
+export function sorteador(semente: number) {
   let s = semente;
   return () => {
     s = (s * 1664525 + 1013904223) % 4294967296;
@@ -78,7 +78,7 @@ function sorteador(semente: number) {
   };
 }
 
-function faisca(ctx: Ctx, x: number, y: number, r: number) {
+export function faisca(ctx: Ctx, x: number, y: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x, y - r);
   ctx.quadraticCurveTo(x, y, x + r, y);

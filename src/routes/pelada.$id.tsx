@@ -27,7 +27,8 @@ import { useAvatarUrl } from "@/hooks/use-avatar";
 import { usePerfil, useSession } from "@/hooks/use-session";
 import { useVoltar } from "@/hooks/use-voltar";
 import { Button } from "@/components/ui/button";
-import { avaliouTodos } from "@/components/goating/match-card";
+import { contarAvaliados, rotuloDoQueFalta } from "@/components/goating/match-card";
+import { DestaqueDoMvp } from "@/components/goating/destaque-mvp";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { podeGerirPelada } from "@/lib/placar/dados";
@@ -35,6 +36,11 @@ import { tierPorNome } from "@/lib/tiers";
 import { destinosDoLocal } from "@/lib/local";
 import { TierBadge } from "@/components/goating/tier-badge";
 import { origemDoSite } from "@/lib/site";
+import {
+  JANELA_AVALIACAO_MS,
+  JANELA_AVALIACAO_TEXTO,
+  chamarPraAvaliar,
+} from "@/lib/janela-avaliacao";
 
 export const Route = createFileRoute("/pelada/$id")({
   ssr: false,
@@ -236,16 +242,14 @@ function DetalhePelada() {
   const destinos = destinosDoLocal(pelada);
   // finalizar só faz sentido depois que a pelada começou
   const jaComecou = new Date(`${pelada.data}T${pelada.horario}`).getTime() <= Date.now();
-  const mvpNome = pelada.mvp_id
-    ? (participantes.find((p) => p.user_id === pelada.mvp_id)?.nome ?? null)
-    : null;
   const dentroDaJanela =
     finalizada &&
     !!pelada.finalizada_em &&
-    Date.now() - new Date(pelada.finalizada_em).getTime() < 24 * 60 * 60 * 1000;
-  const jaAvaliei = avaliouTodos(participantes, avaliadosPorMim, userId);
+    Date.now() - new Date(pelada.finalizada_em).getTime() < JANELA_AVALIACAO_MS;
+  const avaliados = contarAvaliados(participantes, avaliadosPorMim, userId);
+  const jaAvaliei = avaliados.total > 0 && avaliados.feitos === avaliados.total;
   const fimDaJanela = pelada.finalizada_em
-    ? new Date(new Date(pelada.finalizada_em).getTime() + 24 * 60 * 60 * 1000)
+    ? new Date(new Date(pelada.finalizada_em).getTime() + JANELA_AVALIACAO_MS)
     : null;
   const fimDaJanelaTexto = fimDaJanela
     ? `${fimDaJanela.toDateString() === new Date().toDateString() ? "hoje" : "amanhã"} às ${fimDaJanela.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
@@ -337,7 +341,9 @@ function DetalhePelada() {
       );
       return;
     }
-    toast.success("Pelada finalizada! Agora todo mundo pode avaliar por 24h.");
+    toast.success(
+      `Pelada finalizada! Agora todo mundo pode avaliar por ${JANELA_AVALIACAO_TEXTO}.`,
+    );
     await atualizar();
   }
 
@@ -405,12 +411,26 @@ function DetalhePelada() {
           )}
         </div>
 
-        {finalizada && mvpNome && (
-          <div className="flex items-center gap-2 rounded-2xl border border-tier-ouro/40 bg-tier-ouro/10 px-4 py-3">
-            <Crown className="size-4 text-tier-ouro" />
-            <p className="text-sm font-semibold text-foreground">MVP da partida: {mvpNome}</p>
+        {/* o MVP só existe depois que a janela de avaliação fecha: antes disso ele mudaria a cada nota */}
+        {finalizada && dentroDaJanela && aprovados.length > 1 ? (
+          <div className="flex items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3">
+            <Crown className="size-4 shrink-0 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              O MVP sai {fimDaJanelaTexto ?? "em breve"}, quando fecharem as avaliações.
+            </p>
           </div>
-        )}
+        ) : finalizada && pelada.mvp_id ? (
+          <DestaqueDoMvp
+            matchId={id}
+            mvpId={pelada.mvp_id}
+            pelada={{
+              titulo: pelada.titulo,
+              data: pelada.data,
+              crew_id: pelada.crew_id,
+              temPlacar,
+            }}
+          />
+        ) : null}
 
         {temPlacar && (
           <Button
@@ -494,7 +514,7 @@ function DetalhePelada() {
             )}
             {aprovados.map((p) => {
               const tier = tierPorNome(p.tier_reconhecido);
-              const ehMvp = pelada.mvp_id === p.user_id;
+              const ehMvp = !dentroDaJanela && pelada.mvp_id === p.user_id;
               return (
                 <div
                   key={p.id}
@@ -526,13 +546,7 @@ function DetalhePelada() {
                     )}
                   </div>
                   {ehMvp && (
-                    <span
-                      title={
-                        finalizada && !dentroDaJanela
-                          ? "Craque da partida"
-                          : "Craque da partida (provisório, até fechar as avaliações)"
-                      }
-                    >
+                    <span title="MVP da partida">
                       <Crown className="size-4 text-tier-ouro" />
                     </span>
                   )}
@@ -595,6 +609,18 @@ function DetalhePelada() {
             </Link>
           </Button>
         )}
+        {finalizada && dentroDaJanela && podeGerir && aprovados.length > 1 && (
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={async () => {
+              const resultado = await chamarPraAvaliar(pelada);
+              if (resultado === "copiado") toast.success("Mensagem copiada. Cola no grupo!");
+            }}
+          >
+            <Share2 className="mr-2 size-4" /> Chamar a galera pra avaliar
+          </Button>
+        )}
         {finalizada ? (
           dentroDaJanela && eu?.status === "aprovado" && souConvidado ? (
             <p className="text-center text-xs text-muted-foreground">
@@ -610,23 +636,45 @@ function DetalhePelada() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() => navigate({ to: "/pelada/$id/avaliar", params: { id } })}
+                onClick={() =>
+                  navigate({ to: "/pelada/$id/avaliar", params: { id }, search: { de: "pelada" } })
+                }
               >
                 Revisar minhas notas
+              </Button>
+            </>
+          ) : dentroDaJanela &&
+            eu?.status === "aprovado" &&
+            aprovados.length > 1 &&
+            avaliados.feitos > 0 ? (
+            <>
+              <p className="flex items-center justify-center gap-1.5 text-center text-xs font-medium text-primary">
+                <CheckCheck className="size-4" />
+                Você avaliou {avaliados.feitos} de {avaliados.total}
+                {fimDaJanelaTexto ? ` · dá pra avaliar até ${fimDaJanelaTexto}` : ""}
+              </p>
+              <Button
+                className="w-full"
+                onClick={() =>
+                  navigate({ to: "/pelada/$id/avaliar", params: { id }, search: { de: "pelada" } })
+                }
+              >
+                <Star className="mr-2 size-4" />{" "}
+                {rotuloDoQueFalta(avaliados.total - avaliados.feitos)}
               </Button>
             </>
           ) : dentroDaJanela && eu?.status === "aprovado" && aprovados.length > 1 ? (
             <Button
               className="w-full"
-              onClick={() => navigate({ to: "/pelada/$id/avaliar", params: { id } })}
+              onClick={() =>
+                navigate({ to: "/pelada/$id/avaliar", params: { id }, search: { de: "pelada" } })
+              }
             >
               <Star className="mr-2 size-4" /> Avaliar jogadores
             </Button>
           ) : (
             <p className="text-center text-xs text-muted-foreground">
-              {dentroDaJanela
-                ? "Só quem jogou pode avaliar."
-                : "A janela de 24h para avaliações já fechou."}
+              {dentroDaJanela ? "Só quem jogou pode avaliar." : "A janela de avaliações já fechou."}
             </p>
           )
         ) : podeGerir ? (

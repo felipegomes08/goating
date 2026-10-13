@@ -6,21 +6,26 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { gerarCartao, type DadosDoCartao } from "@/lib/placar/cartao-perfil";
 import { compartilharImagem } from "@/lib/placar/poster";
 
-/** Folha de compartilhar o cartão do perfil: mostra a imagem pronta e manda pro grupo. */
+/**
+ * Folha de compartilhar um cartão: mostra a imagem pronta e manda pro grupo.
+ * Recebe os dados do cartão do perfil, ou `gerar` pra qualquer outro cartão (o do MVP).
+ */
 export function FolhaCartao({
   dados,
+  gerar,
   titulo = "Seu cartão",
   nomeDoArquivo,
   onFechar,
-}: {
-  dados: DadosDoCartao;
+}: (
+  { dados: DadosDoCartao; gerar?: undefined } | { dados?: undefined; gerar: () => Promise<Blob> }
+) & {
   titulo?: string;
   nomeDoArquivo: string;
   onFechar: () => void;
 }) {
-  // o perfil não muda com a folha aberta; guardar a primeira versão evita
+  // os dados não mudam com a folha aberta; guardar a primeira versão evita
   // redesenhar o cartão a cada renderização da tela de trás
-  const [base] = useState(dados);
+  const [base] = useState(() => gerar ?? (() => gerarCartao(dados)));
   const [previa, setPrevia] = useState<{ blob: Blob; url: string } | null>(null);
   const [falhou, setFalhou] = useState(false);
 
@@ -29,7 +34,7 @@ export function FolhaCartao({
   useEffect(() => {
     let vivo = true;
     let url: string | null = null;
-    gerarCartao(base)
+    base()
       .then((blob) => {
         if (!vivo) return;
         url = URL.createObjectURL(blob);

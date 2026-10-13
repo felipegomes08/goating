@@ -111,10 +111,11 @@ function Privacidade() {
               pedido e o seu perfil.
             </li>
             <li>
-              Os comentários das avaliações são públicos pra quem está logado e levam o nome de quem
-              escreveu. Eles aparecem no perfil de quem foi avaliado, ou na página da turma
-              avaliada. Quem escreveu pode apagar o seu, e qualquer pessoa pode denunciar um
-              comentário; a denúncia é anônima.
+              Os comentários das avaliações são públicos pra quem está logado, mas anônimos: os
+              outros usuários não veem quem escreveu, nem de qual pelada veio. Eles aparecem no
+              perfil de quem foi avaliado, ou na página da turma avaliada. O Goating guarda quem
+              escreveu, pra poder tratar denúncias. Quem escreveu pode apagar o seu, e qualquer
+              pessoa pode denunciar um comentário; a denúncia também é anônima.
             </li>
             <li>
               O escudo e a capa de uma turma são imagens públicas: quem tiver o endereço da imagem

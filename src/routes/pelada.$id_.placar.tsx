@@ -561,7 +561,7 @@ function PlacarDaPelada() {
           <Folha titulo="Finalizar a pelada?" onFechar={() => setFolha(null)}>
             <p className="text-sm text-muted-foreground">
               Salva {encerrados.length} {encerrados.length === 1 ? "jogo" : "jogos"} nas
-              estatísticas da turma e abre as avaliações por 24h.
+              estatísticas da turma e abre as avaliações por 2h.
             </p>
             <Button className="w-full" disabled={salvando} onClick={finalizarPelada}>
               {salvando ? "Salvando…" : "Finalizar e ver o resumo"}

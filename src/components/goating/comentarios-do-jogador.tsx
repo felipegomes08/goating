@@ -1,22 +1,16 @@
 import { useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Flag, MessageSquareText, Trash2, User } from "lucide-react";
+import { Flag, MessageSquareText, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAvatarUrl } from "@/hooks/use-avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 type Comentario = {
   id: string;
-  autor_id: string;
-  autor_nome: string;
-  autor_foto: string | null;
   comentario: string;
+  /** só o mês: o banco arredonda, pra data não entregar quem escreveu */
   criado_em: string;
-  /** só nos comentários de jogador: de qual pelada veio */
-  pelada?: string;
   meu: boolean;
   denunciei: boolean;
   oculto: boolean;
@@ -29,9 +23,9 @@ const mensagem = (erro: { message: string }, reserva: string) =>
   /[áéíóúãõç]/i.test(erro.message) ? erro.message : reserva;
 
 /**
- * Lista de comentários assinados (de um jogador ou de uma turma). Quem escreveu pode
- * apagar o seu; qualquer outro pode denunciar. Com 3 denúncias o comentário some pros
- * outros, e quem escreveu passa a ver o aviso.
+ * Lista de comentários anônimos (de um jogador ou de uma turma): ninguém vê quem escreveu.
+ * Quem escreveu reconhece o seu e pode apagar; qualquer outro pode denunciar. Com 3
+ * denúncias o comentário some pros outros, e quem escreveu passa a ver o aviso.
  */
 export function ListaDeComentarios({
   chave,
@@ -109,24 +103,15 @@ export function ListaDeComentarios({
           {comentarios.map((c) => (
             <li key={c.id} className="py-3">
               <div className="flex items-center gap-2">
-                <FotoDoAutor foto={c.autor_foto} />
-                <div className="min-w-0 flex-1">
-                  <Link
-                    to="/jogador/$id"
-                    params={{ id: c.autor_id }}
-                    className="block truncate text-sm font-bold text-foreground"
-                  >
-                    {c.meu ? "Você" : c.autor_nome}
-                  </Link>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {c.pelada ? `${c.pelada} · ` : ""}
-                    {new Date(c.criado_em).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
+                <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground">
+                  {c.meu && <span className="font-bold text-foreground">Você escreveu · </span>}
+                  {new Date(c.criado_em).toLocaleDateString("pt-BR", {
+                    month: "short",
+                    year: "numeric",
+                    // o mês vem fechado em UTC; no fuso do Brasil cairia no mês anterior
+                    timeZone: "UTC",
+                  })}
+                </p>
                 {c.meu ? (
                   <button
                     type="button"
@@ -144,7 +129,7 @@ export function ListaDeComentarios({
                 ) : (
                   <button
                     type="button"
-                    aria-label={`Denunciar o comentário de ${c.autor_nome}`}
+                    aria-label="Denunciar esse comentário"
                     onClick={() => setDenunciando(c)}
                     className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground"
                   >
@@ -152,7 +137,7 @@ export function ListaDeComentarios({
                   </button>
                 )}
               </div>
-              <p className="mt-1.5 text-sm break-words whitespace-pre-line text-foreground">
+              <p className="mt-0.5 text-sm break-words whitespace-pre-line text-foreground">
                 {c.comentario}
               </p>
               {c.oculto && (
@@ -215,17 +200,14 @@ export function ListaDeComentarios({
   );
 }
 
-/**
- * O que escreveram sobre um jogador nas avaliações pós-pelada. Cada comentário é
- * assinado; as notas de quem comentou não aparecem.
- */
+/** O que escreveram sobre um jogador nas avaliações pós-pelada, sem dizer quem escreveu. */
 export function ComentariosDoJogador({ userId, proprio }: { userId: string; proprio: boolean }) {
   return (
     <ListaDeComentarios
       chave={["comentarios", userId]}
       tipo="comentario_jogador"
       titulo={proprio ? "O que falam de você" : "O que falam desse jogador"}
-      subtitulo="Comentários de quem jogou junto, deixados na avaliação pós-pelada."
+      subtitulo="Comentários anônimos de quem jogou junto, deixados na avaliação pós-pelada."
       carregar={async () => {
         const { data, error } = await supabase.rpc("comentarios_do_jogador", {
           p_user_id: userId,
@@ -235,19 +217,5 @@ export function ComentariosDoJogador({ userId, proprio }: { userId: string; prop
       }}
       apagar={(id) => supabase.rpc("apagar_meu_comentario", { p_evaluation_id: id })}
     />
-  );
-}
-
-/** O caminho da foto é de um bucket privado: sem URL assinada a imagem aparece quebrada. */
-function FotoDoAutor({ foto }: { foto: string | null }) {
-  const url = useAvatarUrl(foto);
-  return (
-    <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
-      {url ? (
-        <img src={url} alt="" className="size-full object-cover" />
-      ) : (
-        <User className="size-4 text-muted-foreground" />
-      )}
-    </span>
   );
 }

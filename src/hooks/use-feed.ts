@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  avaliouTodos,
+  contarAvaliados,
   estaPendenteAvaliacao,
   type PeladaFeed,
 } from "@/components/goating/match-card";
@@ -172,6 +172,11 @@ export function useFeed(userId: string | null, cidade: string | null) {
         const meu = doJogo.find((x) => x.user_id === userId);
         const org = (perfis ?? []).find((x) => x.id === p.organizador_id);
         const mvp = p.mvp_id ? (perfis ?? []).find((x) => x.id === p.mvp_id) : null;
+        const avaliados = contarAvaliados(
+          doJogo,
+          (avaliacoes ?? []).filter((a) => a.match_id === p.id).map((a) => a.avaliado_id),
+          userId!,
+        );
         return {
           ...p,
           turma: (turmas ?? []).find((t) => t.id === p.crew_id)?.nome ?? null,
@@ -186,11 +191,8 @@ export function useFeed(userId: string | null, cidade: string | null) {
               }
             : null,
           mvp: mvp ? { nome_exibicao: mvp.nome_exibicao } : null,
-          jaAvaliei: avaliouTodos(
-            doJogo,
-            (avaliacoes ?? []).filter((a) => a.match_id === p.id).map((a) => a.avaliado_id),
-            userId!,
-          ),
+          jaAvaliei: avaliados.total > 0 && avaliados.feitos === avaliados.total,
+          avaliados,
           minhaSituacao:
             meu?.status === "aprovado"
               ? "aprovado"
@@ -210,7 +212,8 @@ export function useFeed(userId: string | null, cidade: string | null) {
         estaPendenteAvaliacao(p) &&
         p.minhaSituacao === "aprovado" &&
         p.confirmados > 1 &&
-        !p.jaAvaliei;
+        // quem já avaliou alguém não volta pro topo nem pro contador se entrar gente depois
+        p.avaliados.feitos === 0;
       const finalizadas = todas
         .filter((p) => p.status === "finalizada" && minhasIds.has(p.id))
         .sort((a, b) => Number(esperaMinhaNota(b)) - Number(esperaMinhaNota(a)) || porData(b, a))

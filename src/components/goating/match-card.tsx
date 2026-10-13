@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { CheckCheck, Clock, Crown, Lock, MapPin, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { urlDaFotoDaTurma, urlDaMiniaturaDoEscudo } from "@/lib/foto-turma";
+import { JANELA_AVALIACAO_MS } from "@/lib/janela-avaliacao";
 import { cn } from "@/lib/utils";
 
 export type PeladaFeed = {
@@ -21,7 +22,7 @@ export type PeladaFeed = {
   turma: string | null;
   /** caminho do escudo da turma no armazenamento, quando ela tem um */
   escudoDaTurma?: string | null;
-  /** Quando a pelada foi finalizada — define a janela de 24h de avaliação. */
+  /** Quando a pelada foi finalizada — é daí que conta a janela de avaliação. */
   finalizada_em: string | null;
   mvp: { nome_exibicao: string } | null;
   confirmados: number;
@@ -34,11 +35,11 @@ export type PeladaFeed = {
   minhaSituacao: "nenhuma" | "pendente" | "aprovado";
   /** true quando eu já avaliei todos os outros jogadores (a avaliação some do "pendente"). */
   jaAvaliei: boolean;
+  /** quantos dos outros jogadores eu já avaliei, e quantos são */
+  avaliados: { feitos: number; total: number };
 };
 
-export const JANELA_AVALIACAO_MS = 24 * 60 * 60 * 1000;
-
-/** true enquanto a pelada finalizada ainda está dentro das 24h de avaliação. */
+/** true enquanto a pelada finalizada ainda está dentro da janela de avaliação. */
 export function estaPendenteAvaliacao(pelada: {
   status?: string | undefined;
   finalizada_em?: string | null | undefined;
@@ -50,16 +51,23 @@ export function estaPendenteAvaliacao(pelada: {
   );
 }
 
-/** true quando o usuário já avaliou todos os outros jogadores aprovados da pelada. */
-export function avaliouTodos(
+/**
+ * Quantos dos outros jogadores aprovados o usuário já avaliou. O total pode crescer depois
+ * que a pessoa avaliou: quem vincula a conta mais tarde passa a contar como presente.
+ */
+export function contarAvaliados(
   participantes: { user_id: string; status: string }[],
   avaliadosPorMim: Iterable<string>,
   userId: string,
 ) {
   const feitos = new Set(avaliadosPorMim);
   const outros = participantes.filter((p) => p.status === "aprovado" && p.user_id !== userId);
-  return outros.length > 0 && outros.every((p) => feitos.has(p.user_id));
+  return { feitos: outros.filter((p) => feitos.has(p.user_id)).length, total: outros.length };
 }
+
+/** "Avaliar o que falta" / "Avaliar os 2 que faltam" */
+export const rotuloDoQueFalta = (faltam: number) =>
+  faltam === 1 ? "Avaliar o que falta" : `Avaliar os ${faltam} que faltam`;
 
 const SEMANA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
 const MESES = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
@@ -87,8 +95,10 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
   const proporcao = Math.min(1, pelada.confirmados / pelada.quantidade_vagas);
   const podeAvaliar =
     pendenteAvaliacao && pelada.minhaSituacao === "aprovado" && pelada.confirmados > 1;
-  // Dourado só quando tem avaliação minha de fato pendente.
-  const avaliacaoPendente = podeAvaliar && !pelada.jaAvaliei;
+  // Dourado só enquanto eu não avaliei ninguém. Quem já avaliou e ganhou gente nova pra
+  // avaliar (conta vinculada depois) vê quantos faltam, sem parecer que não fez nada.
+  const avaliacaoPendente = podeAvaliar && pelada.avaliados.feitos === 0;
+  const avaliacaoParcial = podeAvaliar && !avaliacaoPendente && !pelada.jaAvaliei;
   const jaAvaliada = podeAvaliar && pelada.jaAvaliei;
   const data = partesDaData(pelada.data);
   const horario = pelada.horario_fim
@@ -100,25 +110,35 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
     ? { texto: "AVALIAR", icone: Star, classe: "bg-tier-ouro/15 text-tier-ouro" }
     : jaAvaliada
       ? { texto: "AVALIADA", icone: CheckCheck, classe: "bg-mint-soft text-primary" }
-      : emAndamento
-        ? { texto: "ROLANDO", icone: null, classe: "bg-destructive/10 text-destructive" }
-        : finalizada
-          ? null
-          : pelada.souOrganizador
-            ? { texto: "ORGANIZADOR", icone: null, classe: "bg-primary text-primary-foreground" }
-            : pelada.minhaSituacao === "aprovado"
-              ? { texto: "VOCÊ VAI", icone: CheckCheck, classe: "bg-mint text-mint-foreground" }
-              : pelada.minhaSituacao === "pendente"
-                ? { texto: "AGUARDANDO", icone: null, classe: "bg-secondary text-muted-foreground" }
-                : lotado
-                  ? { texto: "LOTADA", icone: null, classe: "bg-destructive/10 text-destructive" }
-                  : aberta
-                    ? null
-                    : {
-                        texto: "FECHADA",
-                        icone: Lock,
-                        classe: "bg-secondary text-muted-foreground",
-                      };
+      : avaliacaoParcial
+        ? {
+            texto: `AVALIOU ${pelada.avaliados.feitos} DE ${pelada.avaliados.total}`,
+            icone: CheckCheck,
+            classe: "bg-mint-soft text-primary",
+          }
+        : emAndamento
+          ? { texto: "ROLANDO", icone: null, classe: "bg-destructive/10 text-destructive" }
+          : finalizada
+            ? null
+            : pelada.souOrganizador
+              ? { texto: "ORGANIZADOR", icone: null, classe: "bg-primary text-primary-foreground" }
+              : pelada.minhaSituacao === "aprovado"
+                ? { texto: "VOCÊ VAI", icone: CheckCheck, classe: "bg-mint text-mint-foreground" }
+                : pelada.minhaSituacao === "pendente"
+                  ? {
+                      texto: "AGUARDANDO",
+                      icone: null,
+                      classe: "bg-secondary text-muted-foreground",
+                    }
+                  : lotado
+                    ? { texto: "LOTADA", icone: null, classe: "bg-destructive/10 text-destructive" }
+                    : aberta
+                      ? null
+                      : {
+                          texto: "FECHADA",
+                          icone: Lock,
+                          classe: "bg-secondary text-muted-foreground",
+                        };
 
   return (
     <article
@@ -200,7 +220,7 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
               )}
             </span>
           </p>
-          {finalizada && pelada.mvp && (
+          {finalizada && !pendenteAvaliacao && pelada.mvp && (
             <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-foreground">
               <Crown className="size-3.5 shrink-0 text-tier-ouro" />
               <span className="truncate">MVP: {pelada.mvp.nome_exibicao}</span>
@@ -233,6 +253,14 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
             <Link to="/pelada/$id/avaliar" params={{ id: pelada.id }}>
               <Star className="mr-1.5 size-4" />
               Avaliar jogadores
+            </Link>
+          </Button>
+        </div>
+      ) : avaliacaoParcial ? (
+        <div className="px-4 pb-4">
+          <Button asChild variant="outline" className="w-full">
+            <Link to="/pelada/$id/avaliar" params={{ id: pelada.id }}>
+              {rotuloDoQueFalta(pelada.avaliados.total - pelada.avaliados.feitos)}
             </Link>
           </Button>
         </div>

@@ -541,6 +541,7 @@ export type Database = {
           local: string
           local_link: string | null
           minutos_tempo: number
+          mvp_fechado_em: string | null
           mvp_id: string | null
           nomes_times: string[] | null
           num_times: number
@@ -568,6 +569,7 @@ export type Database = {
           local: string
           local_link?: string | null
           minutos_tempo?: number
+          mvp_fechado_em?: string | null
           mvp_id?: string | null
           nomes_times?: string[] | null
           num_times?: number
@@ -595,6 +597,7 @@ export type Database = {
           local?: string
           local_link?: string | null
           minutos_tempo?: number
+          mvp_fechado_em?: string | null
           mvp_id?: string | null
           nomes_times?: string[] | null
           num_times?: number
@@ -757,7 +760,7 @@ export type Database = {
         Args: { p_crew_id: string }
         Returns: {
           autor_foto: string | null
-          autor_id: string
+          autor_id: string | null
           autor_nome: string
           comentario: string
           criado_em: string
@@ -858,7 +861,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: {
           autor_foto: string | null
-          autor_id: string
+          autor_id: string | null
           autor_nome: string
           comentario: string
           criado_em: string
@@ -866,12 +869,20 @@ export type Database = {
           id: string
           meu: boolean
           oculto: boolean
-          pelada: string
+          pelada: string | null
         }[]
       }
       denunciar_comentario: {
         Args: { p_alvo_id: string; p_motivo?: string; p_tipo: string }
         Returns: undefined
+      }
+      mvp_da_partida: {
+        Args: { p_match_id: string }
+        Returns: {
+          avaliacoes: number
+          mvp_id: string
+          nota: number
+        }[]
       }
       medias_do_jogador: {
         Args: { p_user_id: string }

@@ -1,7 +1,14 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  useParams,
+  useRouter,
+  useSearch,
+} from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, ChevronDown, ChevronLeft, Star } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronLeft, Share2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAvatarUrl } from "@/hooks/use-avatar";
@@ -12,10 +19,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { COLUNAS_DE_NOTA, atributosDe, ehGoleiro } from "@/lib/atributos";
+import {
+  JANELA_AVALIACAO_MS,
+  JANELA_AVALIACAO_TEXTO,
+  chamarPraAvaliar,
+} from "@/lib/janela-avaliacao";
+import { podeGerirPelada } from "@/lib/placar/dados";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pelada/$id_/avaliar")({
   ssr: false,
+  // "de=pelada": veio da tela da pelada, então voltar pra ela é só dar um passo atrás
+  validateSearch: (search: Record<string, unknown>): { de?: "pelada" | undefined } => ({
+    de: search["de"] === "pelada" ? "pelada" : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Avaliar jogadores · Goating" },
@@ -85,8 +102,10 @@ function iniciais(nome: string) {
 
 function Avaliar() {
   const { id } = useParams({ from: "/pelada/$id_/avaliar" });
+  const { de } = useSearch({ from: "/pelada/$id_/avaliar" });
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   // null = ainda não navegou; começa no primeiro jogador pendente.
@@ -95,7 +114,7 @@ function Avaliar() {
   const [rascunhos, setRascunhos] = useState<Record<string, Atributos>>({});
   // "Jogou no gol hoje" quando quem avalia mexe na chave; sem mexer vale o perfil do jogador.
   const [goleiroManual, setGoleiroManual] = useState<Record<string, boolean>>({});
-  // Comentário digitado pra cada jogador (opcional; aparece assinado no perfil dele).
+  // Comentário digitado pra cada jogador (opcional; aparece no perfil dele, sem o meu nome).
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
   // Jogadores avaliados nesta sessão (somados aos que já vieram do banco).
   const [enviadosAgora, setEnviadosAgora] = useState<Set<string>>(new Set());
@@ -111,7 +130,7 @@ function Avaliar() {
     queryFn: async () => {
       const { data: pelada, error } = await supabase
         .from("matches")
-        .select("id, titulo, status, finalizada_em, crew_id")
+        .select("id, titulo, status, finalizada_em, crew_id, organizador_id")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -171,7 +190,7 @@ function Avaliar() {
         // Ordem estável: a lista não muda enquanto a pessoa navega.
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
-      return { pelada, jogadores, salvas };
+      return { pelada, jogadores, salvas, podeGerir: await podeGerirPelada(pelada, userId!) };
     },
   });
 
@@ -189,14 +208,29 @@ function Avaliar() {
   }
   if (!consulta.data) return <Aviso texto="Essa pelada não existe mais." />;
 
-  const { pelada, jogadores, salvas } = consulta.data;
+  const { pelada, jogadores, salvas, podeGerir } = consulta.data;
   const janelaAberta =
     pelada.status === "finalizada" &&
     !!pelada.finalizada_em &&
-    Date.now() - new Date(pelada.finalizada_em).getTime() < 24 * 60 * 60 * 1000;
+    Date.now() - new Date(pelada.finalizada_em).getTime() < JANELA_AVALIACAO_MS;
 
   if (!janelaAberta) {
-    return <Aviso texto="A janela de 24 horas para avaliar essa pelada já fechou." />;
+    return <Aviso texto="A janela pra avaliar essa pelada já fechou." />;
+  }
+
+  /**
+   * Volta pra tela da pelada sem empilhar: se foi de lá que a pessoa veio, é um passo atrás;
+   * se veio de outro lugar (feed, link do grupo), a pelada entra no lugar desta tela.
+   * Empilhando, o "voltar" da pelada trazia de novo pra cá, e ficava em círculo.
+   */
+  function voltarPraPelada() {
+    if (de === "pelada" && router.history.canGoBack()) router.history.back();
+    else void navigate({ to: "/pelada/$id", params: { id }, replace: true });
+  }
+
+  async function chamarAGalera() {
+    const resultado = await chamarPraAvaliar(pelada);
+    if (resultado === "copiado") toast.success("Mensagem copiada. Cola no grupo!");
   }
 
   const jaEnviado = (uid: string) => uid in salvas || enviadosAgora.has(uid);
@@ -223,7 +257,7 @@ function Avaliar() {
         <p className="text-sm text-muted-foreground">
           {jogadores.length === 0
             ? "Não tem outros jogadores confirmados nessa pelada."
-            : `Você avaliou ${totalEnviados} de ${jogadores.length}. Até fechar a janela de 24h dá para revisar suas notas.`}
+            : `Você avaliou ${totalEnviados} de ${jogadores.length}. Até fechar a janela de ${JANELA_AVALIACAO_TEXTO} dá para revisar suas notas.`}
         </p>
         <div className="flex flex-col gap-2">
           {jogadores.length > 0 && (
@@ -238,11 +272,12 @@ function Avaliar() {
               </Link>
             </Button>
           )}
-          <Button asChild>
-            <Link to="/pelada/$id" params={{ id }}>
-              Voltar para a pelada
-            </Link>
-          </Button>
+          {podeGerir && (
+            <Button variant="outline" onClick={() => void chamarAGalera()}>
+              <Share2 className="mr-2 size-4" /> Chamar a galera pra avaliar
+            </Button>
+          )}
+          <Button onClick={voltarPraPelada}>Voltar para a pelada</Button>
         </div>
       </div>
     );
@@ -340,15 +375,21 @@ function Avaliar() {
     <div className="app-shell flex min-h-dvh flex-col">
       <header className="bg-primary px-4 pt-4 pb-5">
         <div className="flex items-center gap-3">
-          <button
-            aria-label="Voltar"
-            onClick={() => navigate({ to: "/pelada/$id", params: { id } })}
-          >
+          <button aria-label="Voltar" onClick={voltarPraPelada}>
             <ArrowLeft className="size-5 text-primary-foreground" />
           </button>
-          <span className="text-xs font-semibold tracking-wide text-mint uppercase">
+          <span className="flex-1 text-xs font-semibold tracking-wide text-mint uppercase">
             Avaliação pós-pelada
           </span>
+          {podeGerir && (
+            <button
+              type="button"
+              onClick={() => void chamarAGalera()}
+              className="flex items-center gap-1.5 rounded-full bg-primary-foreground/15 px-3 py-1.5 text-xs font-bold text-primary-foreground"
+            >
+              <Share2 className="size-3.5" /> Chamar a galera
+            </button>
+          )}
         </div>
         <h1 className="mt-3 text-xl font-extrabold text-primary-foreground">{pelada.titulo}</h1>
         <p className="mt-1 text-sm text-mint">
@@ -482,8 +523,7 @@ function Avaliar() {
           />
           <p className="mt-1.5 flex justify-between gap-3 text-xs text-muted-foreground">
             <span>
-              Aparece no perfil de {jogador.nome.split(" ")[0]} com o seu nome. As notas continuam
-              anônimas.
+              Aparece no perfil de {jogador.nome.split(" ")[0]} sem o seu nome. É tudo anônimo.
             </span>
             <span className="shrink-0 tabular-nums">{comentario.length}/200</span>
           </p>
