@@ -19,7 +19,7 @@ import { RankingDeTurmasDaCidade } from "@/components/goating/ranking-de-turmas-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MIN_AVALIACOES, avaliacoesFaltando } from "@/lib/tiers";
+import { MIN_AVALIACOES, avaliacoesFaltando, tierPorNome } from "@/lib/tiers";
 
 type Aba = "cidade" | "seguindo" | "geral" | "turma";
 
@@ -47,7 +47,7 @@ export const Route = createFileRoute("/ranking")({
       {
         name: "description",
         content:
-          "Veja o ranking dos jogadores por overall na sua cidade, entre quem você segue ou geral, ou busque por nome.",
+          "Veja o ranking dos jogadores por cartinha e XP na sua cidade, entre quem você segue ou geral, ou busque por nome.",
       },
       { property: "og:title", content: "Ranking Goating" },
       { property: "og:description", content: "Quem manda no futebol amador da sua cidade." },
@@ -60,6 +60,21 @@ export const Route = createFileRoute("/ranking")({
 
 const CAMPOS =
   "id, nome_exibicao, handle, cidade, foto_url, overall, peladas_jogadas, xp, tier_reconhecido, avaliacoes_recebidas, posicao_preferida, vezes_mvp";
+
+/**
+ * Ordem do ranking: primeiro a cartinha (o tier que aparece na tela), depois XP, depois
+ * overall. O tier já exige XP e overall mínimos, então um Lendário nunca fica abaixo de um
+ * Bronze — o que acontecia ordenando só por overall, e ainda poderia acontecer ordenando só
+ * por XP (muito XP com overall baixo continua Bronze).
+ * O banco devolve os 100 de mais XP e a ordem final é feita aqui, porque o tier é texto.
+ */
+function ordenarRanking(jogadores: JogadorResumo[]) {
+  const ordemDoTier = (j: JogadorResumo) => tierPorNome(j.tier_reconhecido)?.ordem ?? 0;
+  return [...jogadores].sort(
+    (a, b) =>
+      ordemDoTier(b) - ordemDoTier(a) || b.xp - a.xp || Number(b.overall) - Number(a.overall),
+  );
+}
 
 function Ranking() {
   const navigate = useNavigate();
@@ -112,10 +127,10 @@ function Ranking() {
           .neq("id", userId!)
           .eq("eh_convidado", false)
           .or(`nome_exibicao.ilike.%${termoLimpo}%,handle.ilike.%${termoLimpo}%`)
-          .order("overall", { ascending: false })
+          .order("xp", { ascending: false })
           .limit(30);
         if (error) throw error;
-        return (data ?? []) as JogadorResumo[];
+        return ordenarRanking((data ?? []) as JogadorResumo[]);
       }
 
       if (aba === "seguindo") {
@@ -131,21 +146,21 @@ function Ranking() {
           .select(CAMPOS)
           .in("id", ids)
           .gte("avaliacoes_recebidas", MIN_AVALIACOES)
-          .order("overall", { ascending: false })
           .order("xp", { ascending: false })
+          .order("overall", { ascending: false })
           .limit(100);
         if (erroPerfis) throw erroPerfis;
-        return (data ?? []) as JogadorResumo[];
+        return ordenarRanking((data ?? []) as JogadorResumo[]);
       }
 
       let q = supabase.from("profiles").select(CAMPOS).gte("avaliacoes_recebidas", MIN_AVALIACOES);
       if (aba === "cidade" && cidade) q = q.eq("cidade", cidade);
       const { data, error } = await q
-        .order("overall", { ascending: false })
         .order("xp", { ascending: false })
+        .order("overall", { ascending: false })
         .limit(100);
       if (error) throw error;
-      return (data ?? []) as JogadorResumo[];
+      return ordenarRanking((data ?? []) as JogadorResumo[]);
     },
   });
 
