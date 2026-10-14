@@ -4,6 +4,7 @@ import { useAvatarUrl } from "@/hooks/use-avatar";
 import { cn } from "@/lib/utils";
 import { TIERS, overallLiberado, tierPorNome } from "@/lib/tiers";
 import { TierBadge } from "@/components/goating/tier-badge";
+import { PosicaoBadge } from "@/components/goating/posicao-badge";
 
 export type JogadorResumo = {
   id: string;
@@ -41,9 +42,9 @@ export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocup
   // quem ainda não chegou no primeiro tier usa a cartinha de bronze, igual à carta do perfil
   const cartinha = tier ?? TIERS[0] ?? null;
 
-  // o que dá pra saber do jogador num relance: onde joga, quanto joga, quantas vezes foi o melhor
+  // o que dá pra saber do jogador num relance: quanto joga, quantas vezes foi o melhor
+  // (onde joga vai no selo ao lado do nome)
   const detalhes = [
-    jogador.posicao_preferida,
     `${jogador.peladas_jogadas} ${jogador.peladas_jogadas === 1 ? "pelada" : "peladas"}`,
     jogador.vezes_mvp ? `${jogador.vezes_mvp} MVP` : null,
   ].filter(Boolean);
@@ -80,8 +81,11 @@ export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocup
         </span>
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-extrabold text-foreground">
-            {jogador.nome_exibicao}
+          <span className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-sm font-extrabold text-foreground">
+              {jogador.nome_exibicao}
+            </span>
+            <PosicaoBadge posicao={jogador.posicao_preferida} />
           </span>
           <span className="block truncate text-xs text-muted-foreground">
             {[jogador.handle ? `@${jogador.handle}` : null, jogador.cidade]
