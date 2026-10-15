@@ -954,6 +954,10 @@ export type Database = {
         Returns: string
       }
       tier_ordem: { Args: { _nome: string }; Returns: number }
+      tirar_da_pelada: {
+        Args: { p_match_id: string; p_user_id: string }
+        Returns: undefined
+      }
       vincular_membro: {
         Args: { p_member_id: string; p_user_id: string }
         Returns: string

@@ -248,11 +248,10 @@ function TimesDaPelada() {
     const removido = jogadores.find((j) => j.memberId === memberId);
     setJogadores((lista) => lista.filter((j) => j.memberId !== memberId));
     if (selecionado === memberId) setSelecionado(null);
-    const { error } = await supabase
-      .from("match_players")
-      .delete()
-      .eq("match_id", id)
-      .eq("member_id", memberId);
+    // quem tem conta sai da lista de confirmados também; senão voltaria sozinho pro elenco
+    const { error } = removido?.userId
+      ? await supabase.rpc("tirar_da_pelada", { p_match_id: id, p_user_id: removido.userId })
+      : await supabase.from("match_players").delete().eq("match_id", id).eq("member_id", memberId);
     if (error) {
       toast.error("Não deu pra tirar esse jogador.");
       if (removido) setJogadores((lista) => [...lista, removido]);

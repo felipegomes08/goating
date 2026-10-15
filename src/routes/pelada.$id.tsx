@@ -121,6 +121,7 @@ function DetalhePelada() {
   const voltar = useVoltar(() => void navigate({ to: "/", replace: true }));
   const [ocupado, setOcupado] = useState(false);
   const [confirmandoApagar, setConfirmandoApagar] = useState(false);
+  const [tirando, setTirando] = useState<{ userId: string; nome: string } | null>(null);
   const [escolhendoRota, setEscolhendoRota] = useState(false);
 
   const consulta = useQuery({
@@ -296,6 +297,22 @@ function DetalhePelada() {
       toast.error("Não deu pra atualizar esse jogador.");
       return;
     }
+    await atualizar();
+  }
+
+  /** Tira da pelada quem confirmou e depois avisou que não vai (presença e elenco). */
+  async function tirarDaPelada(userId: string) {
+    setOcupado(true);
+    const { error } = await supabase.rpc("tirar_da_pelada", { p_match_id: id, p_user_id: userId });
+    setOcupado(false);
+    if (error) {
+      toast.error(
+        /[áéíóúãõç]/i.test(error.message) ? error.message : "Não deu pra tirar esse jogador.",
+      );
+      return;
+    }
+    toast.success("Saiu da pelada.");
+    setTirando(null);
     await atualizar();
   }
 
@@ -546,6 +563,17 @@ function DetalhePelada() {
                       <Crown className="size-4 text-tier-ouro" />
                     </span>
                   )}
+                  {podeGerir && !finalizada && p.user_id !== pelada.organizador_id && (
+                    <button
+                      type="button"
+                      aria-label={`Tirar ${p.nome} da pelada`}
+                      disabled={ocupado}
+                      onClick={() => setTirando({ userId: p.user_id, nome: p.nome })}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  )}
                 </div>
               );
             })}
@@ -778,6 +806,45 @@ function DetalhePelada() {
             )}
             <Button variant="ghost" className="w-full" onClick={() => setEscolhendoRota(false)}>
               Fechar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {tirando && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/55"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !ocupado) setTirando(null);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-label="Tirar da pelada"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+          >
+            <h2 className="text-lg font-extrabold text-foreground">
+              Tirar {tirando.nome} da pelada?
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Sai da lista de confirmados e dos times de hoje. Continua na turma, e pode confirmar
+              de novo se mudar de ideia.
+            </p>
+            <Button
+              variant="destructive"
+              className="w-full"
+              disabled={ocupado}
+              onClick={() => void tirarDaPelada(tirando.userId)}
+            >
+              {ocupado ? "Tirando…" : "Tirar da pelada"}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={ocupado}
+              onClick={() => setTirando(null)}
+            >
+              Cancelar
             </Button>
           </div>
         </div>

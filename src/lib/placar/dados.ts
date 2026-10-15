@@ -142,12 +142,16 @@ export async function prepararTimes(matchId: string, userId: string) {
     membros = [...membros, ...criados];
   }
 
+  // Quem confirmou pelo app entra no elenco do dia sozinho, mesmo que a lista já tenha
+  // começado (gente confirma depois que o organizador colou a lista do grupo). Quem
+  // avisou que não vai sai pelo "tirar da pelada", que tira a presença junto.
   const membrosConfirmados = membros.filter((m) => m.user_id && confirmados.includes(m.user_id));
-  if (elenco.length === 0 && membrosConfirmados.length > 0) {
-    const linhas = membrosConfirmados.map((m) => ({ match_id: matchId, member_id: m.id }));
+  const faltando = membrosConfirmados.filter((m) => !elenco.some((l) => l.member_id === m.id));
+  if (faltando.length > 0) {
+    const linhas = faltando.map((m) => ({ match_id: matchId, member_id: m.id }));
     const { error: erroElenco } = await supabase.from("match_players").insert(linhas);
     if (erroElenco) throw erroElenco;
-    elenco = linhas.map((l) => ({ member_id: l.member_id, time: null }));
+    elenco = [...elenco, ...linhas.map((l) => ({ member_id: l.member_id, time: null }))];
   }
 
   const jogadores = elenco.flatMap((linha) => {
