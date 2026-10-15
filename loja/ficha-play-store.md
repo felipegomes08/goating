@@ -51,25 +51,32 @@ TIMES EQUILIBRADOS EM SEGUNDOS
 
 PLACAR AO VIVO
 • Cronômetro com alarme e vibração no fim do tempo.
-• Marque quem fez cada gol com um toque.
+• Marque quem fez cada gol com um toque, e logo em seguida quem deu a assistência.
+• Registre defesa épica e cartão amarelo, azul e vermelho.
+• Jogo empatado? Decida nos pênaltis, com placar próprio. Você escolhe se os gols contam na artilharia.
 • Jogo único ou rachão com vários times: quem ganha fica.
 • A tela não apaga enquanto a bola rola.
 
 A RESENHA DEPOIS DO JOGO
-• Pôster do resultado pronto para mandar no grupo, com a foto do time.
+• Pôster do resultado pronto para mandar no grupo, com a foto do time, o placar dos pênaltis, as assistências, as defesas épicas e os cartões.
 • Artilharia do dia e classificação dos times.
-• Ranking da turma por mês, por ano ou de todos os tempos: jogos, vitórias, gols e aproveitamento.
+• Ranking da turma por mês, por ano ou de todos os tempos: jogos, vitórias, gols, assistências e aproveitamento.
+
+MVP DA PARTIDA
+• Depois do jogo, quem jogou dá nota pra quem jogou. Quando a avaliação fecha, sai o MVP.
+• O MVP ganha um cartão de destaque, com foto, nota da partida, gols e assistências, pronto para compartilhar.
 
 SUA CARTINHA DE JOGADOR
-• Depois de cada pelada, quem jogou avalia quem jogou. As notas são anônimas.
-• Chute, drible, velocidade, toque, posicionamento: seus atributos aparecem na sua carta.
-• Suba de nível, do Bronze ao GOAT, jogando e sendo bem avaliado.
+• As notas são anônimas, e dá para deixar um comentário, também anônimo, no perfil de quem jogou.
+• Chute, drible, velocidade, toque, posicionamento: seus atributos aparecem na sua carta. Goleiro é avaliado como goleiro: reflexo, elasticidade, reposição e jogo com os pés.
+• Com 3 avaliações você já ganha a carta Bronze. Daí pra frente, suba até o GOAT jogando e sendo bem avaliado.
 • Compartilhe sua carta e mostre quem manda na pelada.
 
 SUA TURMA, DO SEU JEITO
 • Crie a turma do seu futebol, com escudo e foto de capa.
 • Escolha administradores para ajudar a organizar.
 • Jogador sem conta também entra na lista e no ranking; quando ele criar a conta, o histórico vai junto.
+• Avalie a turma e encontre as melhores turmas da sua cidade no ranking de turmas.
 
 O Goating é gratuito e não tem anúncios.
 ```
@@ -80,12 +87,15 @@ Tiradas no celular, em pé. Sugestão de ordem e do texto que acompanha cada uma
 
 1. **Feed com a próxima pelada**: "Sua pelada da semana, sempre à mão"
 2. **Sorteio dos times**: "Times equilibrados em segundos"
-3. **Placar com cronômetro**: "Placar ao vivo, com alarme no fim do tempo"
+3. **Placar ao vivo com os lances**: "Gol, assistência, defesa épica e cartão num toque"
 4. **Pôster do resultado**: "O resultado pronto pra mandar no grupo"
-5. **Ranking da turma**: "Quem é o artilheiro da turma?"
-6. **Perfil com a cartinha**: "Sua carta de jogador evolui a cada pelada"
-7. **Página da turma com capa e escudo**: "A turma com a cara do seu futebol"
-8. **Detalhe da pelada com o mapa**: "Toque no local e saia com a rota"
+5. **Cartão do MVP**: "O craque da pelada ganha o cartão dele"
+6. **Ranking da turma**: "Quem é o artilheiro da turma?"
+7. **Perfil com a cartinha**: "Sua carta de jogador evolui a cada pelada"
+8. **Página da turma com capa e escudo**: "A turma com a cara do seu futebol"
+
+A loja aceita no máximo 8. Se preferir mostrar a disputa de pênaltis ("Empatou? Decide nos
+pênaltis"), ela entra no lugar da página da turma.
 
 Além das capturas, a loja pede:
 - **Ícone de 512 x 512**: sai de `assets/icon-only.png`.
@@ -96,7 +106,7 @@ Além das capturas, a loja pede:
 Respostas esperadas:
 - Violência, sexo, linguagem imprópria, drogas, jogos de azar: **não**.
 - O app permite interação entre usuários: **sim** (perfis visíveis, seguir jogadores, avaliações).
-- Usuários compartilham conteúdo que outros veem: **sim** (nome, foto de perfil, bio, escudo e capa da turma).
+- Usuários compartilham conteúdo que outros veem: **sim** (nome, foto de perfil, bio, escudo e capa da turma, comentários anônimos nas avaliações). Comentário pode ser denunciado, e com 3 denúncias some sozinho.
 - Compartilha a localização do usuário com outros: **não**.
 - Compras dentro do app: **não**.
 
@@ -121,7 +131,7 @@ Resultado provável: Livre ou 10+, por causa da interação entre usuários.
 | Nome | Sim | Sim | Funcionamento do app |
 | Identificador do usuário (nick) | Sim | Sim | Funcionamento do app |
 | Fotos (perfil, escudo e capa da turma) | Sim | Não | Funcionamento do app |
-| Outros conteúdos do usuário (bio, avaliações, peladas, gols) | Sim | Não | Funcionamento do app |
+| Outros conteúdos do usuário (bio, avaliações, comentários anônimos, peladas, gols e lances) | Sim | Não | Funcionamento do app |
 | Interações no app | Não | | |
 | Localização | Não | | O "Onde estou" usa a posição só no aparelho, para centralizar o mapa |
 | Contatos, mensagens, áudio, arquivos | Não | | |

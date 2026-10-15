@@ -9,6 +9,11 @@ const config: CapacitorConfig = {
   webDir: "dist/client",
   // verde do Goating enquanto o app carrega, em vez de um clarão branco
   backgroundColor: "#0F3D2E",
+  ios: {
+    // no iPhone o conteúdo começa abaixo do entalhe e acaba acima da barra de gestos,
+    // e o espaço em volta fica com o verde do Goating
+    contentInset: "always",
+  },
   plugins: {
     // tela de abertura: verde do Goating, some sozinha assim que o app carrega
     SplashScreen: {

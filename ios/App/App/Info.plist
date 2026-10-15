@@ -5,7 +5,7 @@
   <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>pt-BR</string>
 	<key>CFBundleDisplayName</key>
         <string>Goating</string>
 	<key>CFBundleExecutable</key>
@@ -24,6 +24,18 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- o app só usa a criptografia padrão do iOS (HTTPS): dispensa a declaração de exportação -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- textos que o iPhone mostra ao pedir permissão; sem eles a Apple recusa o app -->
+	<key>NSCameraUsageDescription</key>
+	<string>O Goating usa a câmera pra tirar a sua foto de perfil, a foto da turma e a foto da galera no pôster da pelada.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O Goating usa as suas fotos pra você escolher a foto de perfil, o escudo e a capa da turma e a foto do pôster da pelada.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O Goating salva nas suas fotos os cartões e pôsteres que você escolher guardar.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O Goating usa a sua localização só quando você toca em "Onde estou", pra centralizar o mapa ao marcar o campo da pelada.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -49,13 +61,12 @@
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
+	<!-- as telas foram feitas em pé: no iPhone o app não gira -->
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>

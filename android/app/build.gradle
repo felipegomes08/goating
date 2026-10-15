@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+// Chave de assinatura da versão de loja. O arquivo keystore.properties fica só no
+// notebook (fora do git) e diz onde está a chave e as senhas dela. Sem ele, a versão
+// de loja sai sem assinatura e a de teste continua funcionando normal.
+def chaveProps = new Properties()
+def chaveArquivo = rootProject.file('keystore.properties')
+if (chaveArquivo.exists()) {
+    chaveArquivo.withInputStream { chaveProps.load(it) }
+}
+
 android {
     namespace = "br.com.goating.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +25,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (chaveArquivo.exists()) {
+                storeFile file(chaveProps['storeFile'])
+                storePassword chaveProps['storePassword']
+                keyAlias chaveProps['keyAlias']
+                keyPassword chaveProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (chaveArquivo.exists()) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
