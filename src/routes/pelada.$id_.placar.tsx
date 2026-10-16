@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Flag, Pause, Play, Plus, RotateCcw, Users, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowLeftRight,
+  Flag,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  RotateCcw,
+  Users,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -20,10 +31,13 @@ import {
   vibrar,
 } from "@/lib/placar/alarme";
 import { TabelaTimes } from "@/components/goating/tabela-times";
+import { EntradaDeJogador } from "@/components/goating/entrada-de-jogador";
 import { carregarElenco, podeGerirPelada, type LinhaElenco } from "@/lib/placar/dados";
 import {
   NOME_DO_LANCE,
   TIPOS_DE_LANCE,
+  ajustarVencedor,
+  colocarNoLado,
   corDoTime,
   decorridoMs,
   ehEstadoPlacar,
@@ -39,6 +53,7 @@ import {
   saldoDosJogadores,
   sugerirProximo,
   tabelaDosTimes,
+  tirarDoJogo,
   type Contagem,
   type EstadoPlacar,
   type Jogo,
@@ -111,10 +126,13 @@ function PlacarDaPelada() {
     | { tipo: "autor"; golId: string }
     | { tipo: "reforco"; lado: Lado }
     | { tipo: "finalizar" }
-    | { tipo: "lance"; lado: Lado; memberId: string }
+    | { tipo: "lance"; lado: Lado; memberId: string; trocando?: boolean }
     | { tipo: "fim-dos-penaltis" }
+    | { tipo: "editar-jogo"; jogoId: string }
     | null
   >(null);
+  // quem entrou no elenco com o jogo rolando (a consulta do elenco é carregada uma vez só)
+  const [elencoLocal, setElencoLocal] = useState<LinhaElenco[] | null>(null);
   const [salvando, setSalvando] = useState(false);
   // gol que acabou de sair: a faixa pergunta de quem foi a assistência
   const [golRecente, setGolRecente] = useState<{ golId: string; lado: Lado } | null>(null);
@@ -220,7 +238,8 @@ function PlacarDaPelada() {
     );
   }
 
-  const { pelada, elenco } = dados;
+  const { pelada } = dados;
+  const elenco = elencoLocal ?? dados.elenco;
   const numTimes = pelada.num_times;
   const jaComecou = new Date(`${pelada.data}T${pelada.horario}`).getTime() <= Date.now();
   const nomeTime = (time: number) => nomeDoTime(pelada.nomes_times, time);
@@ -451,15 +470,48 @@ function PlacarDaPelada() {
   }
 
   function reforcar(lado: Lado, memberId: string) {
-    mudarAtual((j) => {
-      const lados: [string[], string[]] = [
-        j.lados[0].filter((m) => m !== memberId),
-        j.lados[1].filter((m) => m !== memberId),
-      ];
-      lados[lado] = [...lados[lado], memberId];
-      return { ...j, lados };
-    });
+    mudarAtual((j) => colocarNoLado(j, memberId, lado));
     setFolha(null);
+  }
+
+  /** Quem entrou e não estava no elenco do dia passa a estar (a tela de times já gravou). */
+  function incluirNoElenco(linha: LinhaElenco) {
+    setElencoLocal((atualizado) => {
+      const lista = atualizado ?? elenco;
+      return lista.some((j) => j.memberId === linha.memberId) ? lista : [...lista, linha];
+    });
+  }
+
+  /**
+   * Passa o jogador pro outro lado do jogo que está rolando. "Daqui pra frente" muda também o
+   * time dele no elenco do dia, e os próximos jogos já começam com ele no time novo.
+   */
+  async function passarProOutroLado(memberId: string, lado: Lado, daquiPraFrente: boolean) {
+    if (!atual) return;
+    const outro: Lado = lado === 0 ? 1 : 0;
+    const timeNovo = atual.times[outro];
+    reforcar(outro, memberId);
+    toast(`${nomeJogador(memberId)} foi pro ${nomeTime(timeNovo)}`, {
+      description: daquiPraFrente ? "Daqui pra frente." : "Só neste jogo.",
+    });
+    if (!daquiPraFrente) return;
+    setElencoLocal((atualizado) =>
+      (atualizado ?? elenco).map((j) => (j.memberId === memberId ? { ...j, time: timeNovo } : j)),
+    );
+    const { error } = await supabase
+      .from("match_players")
+      .update({ time: timeNovo })
+      .eq("match_id", id)
+      .eq("member_id", memberId);
+    if (error)
+      toast.error("Mudou neste jogo, mas não deu pra salvar o time novo. Confere a internet.");
+  }
+
+  /** Mexe num jogo já encerrado (lista "Jogos de hoje" ou "Corrigir placar"). */
+  function mudarJogo(jogoId: string, fn: (jogo: Jogo) => Jogo) {
+    setEstado((e) =>
+      e ? { ...e, jogos: e.jogos.map((j) => (j.id === jogoId ? ajustarVencedor(fn(j)) : j)) } : e,
+    );
   }
 
   function encerrarJogo(vencedor: Lado | null) {
@@ -648,6 +700,14 @@ function PlacarDaPelada() {
                               ? "desempate"
                               : ""}
                       </span>
+                      <button
+                        type="button"
+                        aria-label={`Editar o jogo ${i + 1}`}
+                        onClick={() => setFolha({ tipo: "editar-jogo", jogoId: j.id })}
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground"
+                      >
+                        <Pencil className="size-3.5" />
+                      </button>
                     </li>
                   );
                 })}
@@ -691,6 +751,30 @@ function PlacarDaPelada() {
           </div>
         )}
 
+        {folha?.tipo === "editar-jogo" &&
+          (() => {
+            const jogo = estado.jogos.find((j) => j.id === folha.jogoId);
+            if (!jogo) return null;
+            return (
+              <Folha
+                titulo={`Jogo ${estado.jogos.indexOf(jogo) + 1}: ${nomeTime(jogo.times[0])} ${placarDoJogo(jogo)[0]} × ${placarDoJogo(jogo)[1]} ${nomeTime(jogo.times[1])}`}
+                onFechar={() => setFolha(null)}
+              >
+                <EditorDeJogo
+                  jogo={jogo}
+                  matchId={id}
+                  crewId={pelada.crew_id}
+                  elenco={elenco}
+                  nomeTime={nomeTime}
+                  nomeJogador={nomeJogador}
+                  onMudar={(fn) => mudarJogo(jogo.id, fn)}
+                  onIncluirNoElenco={incluirNoElenco}
+                  onPronto={() => setFolha(null)}
+                />
+              </Folha>
+            );
+          })()}
+
         {folha?.tipo === "finalizar" && (
           <Folha titulo="Finalizar a pelada?" onFechar={() => setFolha(null)}>
             <p className="text-sm text-muted-foreground">
@@ -709,37 +793,23 @@ function PlacarDaPelada() {
     );
   }
 
-  const foraDoJogo = elenco.filter(
-    (j) => !atual.lados[0].includes(j.memberId) && !atual.lados[1].includes(j.memberId),
-  );
   const folhaReforco = folha?.tipo === "reforco" && (
     <Folha
       titulo={`Quem entrou no ${nomeTime(atual.times[folha.lado])}?`}
       onFechar={() => setFolha(null)}
     >
-      {foraDoJogo.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Todo mundo do elenco já está nesse jogo. Chegou gente nova? Adiciona em “Editar times”.
-        </p>
-      ) : (
-        <div className="grid grid-cols-2 gap-1.5">
-          {foraDoJogo.map((j: LinhaElenco) => (
-            <button
-              key={j.memberId}
-              type="button"
-              onClick={() => reforcar(folha.lado, j.memberId)}
-              className="rounded-xl border border-border bg-background px-3 py-2.5 text-left text-sm font-semibold"
-            >
-              {j.nome}
-              {j.time !== null && (
-                <span className="block text-[10px] font-medium text-muted-foreground">
-                  {nomeTime(j.time)}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
+      <EntradaDeJogador
+        matchId={id}
+        crewId={pelada.crew_id}
+        time={atual.times[folha.lado]}
+        elenco={elenco}
+        ocupados={[...atual.lados[0], ...atual.lados[1]]}
+        nomeTime={nomeTime}
+        onEntrou={(linha) => {
+          incluirNoElenco(linha);
+          reforcar(folha.lado, linha.memberId);
+        }}
+      />
     </Folha>
   );
 
@@ -1333,10 +1403,45 @@ function PlacarDaPelada() {
         </Folha>
       )}
 
-      {folha?.tipo === "lance" && (
-        <Folha titulo={nomeJogador(folha.memberId)} onFechar={() => setFolha(null)}>
+      {folha?.tipo === "lance" && folha.trocando && (
+        <Folha
+          titulo={`${nomeJogador(folha.memberId)} pro ${nomeTime(atual.times[folha.lado === 0 ? 1 : 0])}`}
+          onFechar={() => setFolha(null)}
+        >
           <p className="text-sm text-muted-foreground">
-            O que foi? Gol é só tocar no nome dele, direto na lista.
+            Os gols que ele já fez continuam valendo pro time em que saíram: o placar não muda.
+          </p>
+          <Button
+            className="w-full"
+            onClick={() => void passarProOutroLado(folha.memberId, folha.lado, false)}
+          >
+            Só neste jogo
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => void passarProOutroLado(folha.memberId, folha.lado, true)}
+          >
+            Daqui pra frente
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            “Daqui pra frente” também muda o time dele nos próximos jogos de hoje.
+          </p>
+        </Folha>
+      )}
+
+      {folha?.tipo === "lance" && !folha.trocando && (
+        <Folha titulo={nomeJogador(folha.memberId)} onFechar={() => setFolha(null)}>
+          <button
+            type="button"
+            onClick={() => setFolha({ ...folha, trocando: true })}
+            className="flex min-h-12 w-full items-center gap-2.5 rounded-xl border-2 border-border bg-background px-3 text-left text-sm font-bold text-foreground active:scale-[0.97]"
+          >
+            <ArrowLeftRight className="size-5 shrink-0 text-muted-foreground" />
+            Passar pro {nomeTime(atual.times[folha.lado === 0 ? 1 : 0])}
+          </button>
+          <p className="text-sm text-muted-foreground">
+            Ou marque um lance. Gol é só tocar no nome dele, direto na lista.
           </p>
           <div className="grid grid-cols-2 gap-2">
             {TIPOS_DE_LANCE.map((tipo) => (
@@ -1360,6 +1465,234 @@ function PlacarDaPelada() {
 
       {folhaReforco}
     </div>
+  );
+}
+
+/**
+ * Mexe num jogo que já acabou: passar alguém pro outro lado, tirar do jogo, colocar quem
+ * faltou (o goleiro que esqueceram de cadastrar), trocar o autor de um gol ou apagar um lance.
+ */
+function EditorDeJogo({
+  jogo,
+  matchId,
+  crewId,
+  elenco,
+  nomeTime,
+  nomeJogador,
+  onMudar,
+  onIncluirNoElenco,
+  onPronto,
+}: {
+  jogo: Jogo;
+  matchId: string;
+  crewId: string | null;
+  elenco: LinhaElenco[];
+  nomeTime: (time: number) => string;
+  nomeJogador: (memberId: string | null) => string;
+  onMudar: (fn: (jogo: Jogo) => Jogo) => void;
+  onIncluirNoElenco: (linha: LinhaElenco) => void;
+  onPronto: () => void;
+}) {
+  const [modo, setModo] = useState<
+    { tipo: "adicionar"; lado: Lado } | { tipo: "autor"; golId: string } | null
+  >(null);
+  const lances = jogo.lances ?? [];
+  const historico = [...jogo.gols.map((g) => ({ ...g, tipo: "gol" as const })), ...lances].sort(
+    (a, b) => a.tempo - b.tempo || a.minuto - b.minuto,
+  );
+
+  if (modo?.tipo === "adicionar") {
+    return (
+      <>
+        <p className="text-sm text-muted-foreground">
+          Quem jogou no {nomeTime(jogo.times[modo.lado])} e não foi marcado?
+        </p>
+        <EntradaDeJogador
+          matchId={matchId}
+          crewId={crewId}
+          time={jogo.times[modo.lado]}
+          elenco={elenco}
+          ocupados={[...jogo.lados[0], ...jogo.lados[1]]}
+          nomeTime={nomeTime}
+          onEntrou={(linha) => {
+            onIncluirNoElenco(linha);
+            onMudar((j) => colocarNoLado(j, linha.memberId, modo.lado));
+            setModo(null);
+          }}
+        />
+        <Button variant="outline" className="w-full" onClick={() => setModo(null)}>
+          Voltar
+        </Button>
+      </>
+    );
+  }
+
+  const golEmEdicao =
+    modo?.tipo === "autor" ? jogo.gols.find((g) => g.id === modo.golId) : undefined;
+  if (golEmEdicao) {
+    return (
+      <>
+        <p className="text-sm text-muted-foreground">Quem fez o gol dos {golEmEdicao.minuto}'?</p>
+        <div className="grid grid-cols-2 gap-3">
+          {([0, 1] as const).map((lado) => {
+            const cor = corDoTime(jogo.times[lado]);
+            return (
+              <div key={lado} className="min-w-0 space-y-1.5">
+                <p className={cn("truncate text-xs font-extrabold uppercase", cor.texto)}>
+                  {nomeTime(jogo.times[lado])}
+                </p>
+                {[...jogo.lados[lado], null].map((memberId) => (
+                  <button
+                    key={memberId ?? "sem"}
+                    type="button"
+                    onClick={() => {
+                      onMudar((j) => ({
+                        ...j,
+                        gols: j.gols.map((g) =>
+                          g.id === golEmEdicao.id ? { ...g, lado, memberId } : g,
+                        ),
+                      }));
+                      setModo(null);
+                    }}
+                    className={cn(
+                      "w-full rounded-xl border-2 px-3 py-2.5 text-left text-sm font-semibold",
+                      cor.borda,
+                      golEmEdicao.lado === lado && golEmEdicao.memberId === memberId
+                        ? cn(cor.solido, "text-white")
+                        : cn(cor.fundo, "text-foreground"),
+                    )}
+                  >
+                    {memberId ? nomeJogador(memberId) : "Sem autor / contra"}
+                  </button>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+        <Button variant="outline" className="w-full" onClick={() => setModo(null)}>
+          Voltar
+        </Button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        {([0, 1] as const).map((lado) => {
+          const cor = corDoTime(jogo.times[lado]);
+          return (
+            <div key={lado} className="min-w-0 space-y-1.5">
+              <p
+                className={cn(
+                  "truncate border-b-4 pb-1 text-xs font-extrabold uppercase",
+                  cor.texto,
+                  cor.borda,
+                )}
+              >
+                {nomeTime(jogo.times[lado])}
+              </p>
+              {jogo.lados[lado].map((memberId) => (
+                <div
+                  key={memberId}
+                  className={cn(
+                    "flex items-center gap-1 rounded-xl border-2 pl-2.5",
+                    cor.fundo,
+                    cor.borda,
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate py-2 text-sm font-semibold text-foreground">
+                    {nomeJogador(memberId)}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Passar ${nomeJogador(memberId)} pro outro time`}
+                    onClick={() => onMudar((j) => colocarNoLado(j, memberId, lado === 0 ? 1 : 0))}
+                    className="flex size-8 shrink-0 items-center justify-center text-muted-foreground"
+                  >
+                    <ArrowLeftRight className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Tirar ${nomeJogador(memberId)} deste jogo`}
+                    onClick={() => onMudar((j) => tirarDoJogo(j, memberId))}
+                    className="flex size-8 shrink-0 items-center justify-center text-muted-foreground"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setModo({ tipo: "adicionar", lado })}
+                className={cn(
+                  "w-full rounded-xl border border-dashed py-2 text-xs font-bold",
+                  cor.borda,
+                  cor.texto,
+                )}
+              >
+                + Adicionar jogador
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {historico.length > 0 && (
+        <div>
+          <p className="mb-1 text-xs font-bold text-muted-foreground uppercase">Lances</p>
+          <ul className="divide-y divide-border">
+            {historico.map((g) => (
+              <li key={g.id} className="flex items-center gap-2 py-2 text-sm">
+                <span className="w-9 text-xs font-extrabold tabular-nums">{g.minuto}'</span>
+                <span
+                  className={cn(
+                    "size-2.5 shrink-0 rounded-full",
+                    corDoTime(jogo.times[g.lado]).solido,
+                  )}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{nomeJogador(g.memberId)}</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {g.tipo === "gol" ? "Gol" : NOME_DO_LANCE[g.tipo]}
+                  </span>
+                </span>
+                {g.tipo === "gol" && (
+                  <button
+                    type="button"
+                    onClick={() => setModo({ tipo: "autor", golId: g.id })}
+                    className="rounded-lg border border-border px-2 py-1 text-xs font-semibold"
+                  >
+                    Trocar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    onMudar((j) =>
+                      g.tipo === "gol"
+                        ? {
+                            ...j,
+                            gols: j.gols.filter((x) => x.id !== g.id),
+                            lances: (j.lances ?? []).filter((l) => l.golId !== g.id),
+                          }
+                        : { ...j, lances: (j.lances ?? []).filter((l) => l.id !== g.id) },
+                    )
+                  }
+                  className="rounded-lg border border-border px-2 py-1 text-xs font-semibold"
+                >
+                  Apagar
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <Button className="w-full" onClick={onPronto}>
+        Pronto
+      </Button>
+    </>
   );
 }
 

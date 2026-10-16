@@ -110,6 +110,36 @@ export function textoDoPlacar(
   return `${base} (${penaltis[0]} × ${penaltis[1]} ${curto ? "pên." : "nos pênaltis"})`;
 }
 
+/**
+ * Põe o jogador num lado do jogo (tirando do outro, se estava lá). Os gols dele não mudam:
+ * cada gol guarda o lado em que saiu, então o placar continua o mesmo.
+ */
+export function colocarNoLado(jogo: Jogo, memberId: string, lado: Lado): Jogo {
+  const lados: [string[], string[]] = [
+    jogo.lados[0].filter((m) => m !== memberId),
+    jogo.lados[1].filter((m) => m !== memberId),
+  ];
+  lados[lado] = [...lados[lado], memberId];
+  return { ...jogo, lados };
+}
+
+/** Tira o jogador do jogo (marcou por engano). Gols e lances dele ficam. */
+export const tirarDoJogo = (jogo: Jogo, memberId: string): Jogo => ({
+  ...jogo,
+  lados: [jogo.lados[0].filter((m) => m !== memberId), jogo.lados[1].filter((m) => m !== memberId)],
+});
+
+/**
+ * Depois de mexer nos gols de um jogo encerrado: se o placar passou a ter um vencedor, ele
+ * vale. Empate continua como estava (empate, ou o vencedor escolhido na mão / nos pênaltis).
+ */
+export function ajustarVencedor(jogo: Jogo): Jogo {
+  if (!jogo.encerrado) return jogo;
+  const [a, b] = placarDoJogo(jogo);
+  if (a === b) return jogo;
+  return { ...jogo, vencedor: a > b ? 0 : 1 };
+}
+
 export const jogoAtual = (estado: EstadoPlacar) => {
   const ultimo = estado.jogos.at(-1);
   return ultimo && !ultimo.encerrado ? ultimo : null;
