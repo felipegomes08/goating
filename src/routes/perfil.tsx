@@ -5,6 +5,7 @@ import { Camera, LogOut, Pencil, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
+import { useNumerosDoJogador } from "@/hooks/use-numeros-do-jogador";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import { ComentariosDoJogador } from "@/components/goating/comentarios-do-jogador";
@@ -52,6 +53,7 @@ function Perfil() {
   const queryClient = useQueryClient();
   const { userId, carregando } = useSession();
   const { data: perfil, isLoading } = usePerfil(userId);
+  const numeros = useNumerosDoJogador(userId);
 
   const [nome, setNome] = useState("");
   const [cidade, setCidade] = useState("");
@@ -268,6 +270,9 @@ function Perfil() {
     mvps: perfil.vezes_mvp,
     xp: perfil.xp,
     avaliacoes: perfil.avaliacoes_recebidas,
+    gols: numeros.data?.gols,
+    assistencias: numeros.data?.assistencias,
+    defesas: numeros.data?.defesas,
     fotoUrl,
   };
 
@@ -344,6 +349,23 @@ function Perfil() {
               className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]"
             >
               <p className="text-xl font-extrabold text-foreground">{valor}</p>
+              <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* o que ele fez em todas as peladas, de todas as turmas */}
+        <section className="grid grid-cols-3 gap-2">
+          {[
+            ["Gols", numeros.data?.gols],
+            ["Assistências", numeros.data?.assistencias],
+            ["Defesas épicas", numeros.data?.defesas],
+          ].map(([label, valor]) => (
+            <div
+              key={String(label)}
+              className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]"
+            >
+              <p className="text-xl font-extrabold text-foreground tabular-nums">{valor ?? "–"}</p>
               <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
             </div>
           ))}

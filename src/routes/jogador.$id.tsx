@@ -5,6 +5,7 @@ import { ArrowLeft, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useNumerosDoJogador } from "@/hooks/use-numeros-do-jogador";
 import { useVoltar } from "@/hooks/use-voltar";
 import { useAvatarUrl } from "@/hooks/use-avatar";
 import { BottomNav } from "@/components/goating/bottom-nav";
@@ -40,6 +41,7 @@ export const Route = createFileRoute("/jogador/$id")({
 
 function JogadorPublico() {
   const { id } = useParams({ from: "/jogador/$id" });
+  const numeros = useNumerosDoJogador(id);
   const navigate = useNavigate();
   const voltar = useVoltar(() => void navigate({ to: "/ranking", search: { aba: "cidade" } }));
   const queryClient = useQueryClient();
@@ -230,6 +232,23 @@ function JogadorPublico() {
               className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]"
             >
               <p className="text-xl font-extrabold text-foreground">{valor}</p>
+              <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+            </div>
+          ))}
+        </section>
+
+        {/* o que ele fez em todas as peladas, de todas as turmas */}
+        <section className="grid grid-cols-3 gap-2">
+          {[
+            ["Gols", numeros.data?.gols],
+            ["Assistências", numeros.data?.assistencias],
+            ["Defesas épicas", numeros.data?.defesas],
+          ].map(([label, valor]) => (
+            <div
+              key={String(label)}
+              className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]"
+            >
+              <p className="text-xl font-extrabold text-foreground tabular-nums">{valor ?? "–"}</p>
               <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
             </div>
           ))}

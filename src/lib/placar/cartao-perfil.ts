@@ -41,6 +41,10 @@ export type DadosDoCartao = {
   mvps: number;
   xp: number;
   avaliacoes: number;
+  /** números da carreira inteira; sem eles o cartão mostra só a linha de cima */
+  gols?: number | undefined;
+  assistencias?: number | undefined;
+  defesas?: number | undefined;
   /** endereço da foto já assinado (pode ser null) */
   fotoUrl: string | null;
   /**
@@ -396,7 +400,9 @@ export async function desenharCartao(dados: DadosDoCartao): Promise<HTMLCanvasEl
   const cores = CORES[visual.nome];
 
   const conquista = dados.conquista;
-  const larguraCarta = conquista ? 690 : 660;
+  // com os números da carreira, a carta encolhe um pouco pra caber a segunda linha de quadros
+  const comCarreira = !conquista && dados.gols !== undefined;
+  const larguraCarta = conquista ? 690 : comCarreira ? 600 : 660;
   const topoCarta = conquista ? 392 : 168;
 
   palco(ctx, cores.brilho, topoCarta + 440);
@@ -450,7 +456,7 @@ export async function desenharCartao(dados: DadosDoCartao): Promise<HTMLCanvasEl
     topoCarta,
     larguraCarta,
   );
-  let y = topoCarta + alturaCarta + 78;
+  let y = topoCarta + alturaCarta + (comCarreira ? 62 : 78);
 
   // tier: selo + nome, com um filete de cada lado
   const selo = tier ? await carregarImagem(tier.icone) : null;
@@ -494,40 +500,56 @@ export async function desenharCartao(dados: DadosDoCartao): Promise<HTMLCanvasEl
   }
   y += 86;
 
-  // números da carreira
-  const numeros: [string, string, boolean][] = [
-    ["PELADAS", milhar(dados.peladas), false],
-    ["MVP", milhar(dados.mvps), true],
-    ["XP", milhar(dados.xp), false],
-    ["AVALIAÇÕES", milhar(dados.avaliacoes), false],
-  ];
+  // números da carreira: uma linha de quadros, ou duas quando tem gols, assistências e defesas
   const vao = 16;
-  const larguraQuadro = (util - vao * 3) / 4;
-  numeros.forEach(([rotulo, valor, destaque], i) => {
-    const qx = MARGEM + i * (larguraQuadro + vao);
-    ctx.fillStyle = destaque ? comAlfa(cores.brilho, 0.16) : "rgba(255,255,255,0.06)";
-    retanguloArredondado(ctx, qx, y, larguraQuadro, 132, 24);
-    ctx.fill();
-    ctx.strokeStyle = destaque ? comAlfa(cores.brilho, 0.7) : "rgba(255,255,255,0.1)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    escrever(ctx, valor, qx + larguraQuadro / 2, y + 72, {
-      peso: 900,
-      tamanho: 54,
-      cor: destaque ? cores.texto : BRANCO,
-      largura: larguraQuadro - 28,
-      alinhar: "center",
+  const linhaDeQuadros = (numeros: [string, string, boolean][], altura: number) => {
+    const larguraQuadro = (util - vao * (numeros.length - 1)) / numeros.length;
+    numeros.forEach(([rotulo, valor, destaque], i) => {
+      const qx = MARGEM + i * (larguraQuadro + vao);
+      ctx.fillStyle = destaque ? comAlfa(cores.brilho, 0.16) : "rgba(255,255,255,0.06)";
+      retanguloArredondado(ctx, qx, y, larguraQuadro, altura, 24);
+      ctx.fill();
+      ctx.strokeStyle = destaque ? comAlfa(cores.brilho, 0.7) : "rgba(255,255,255,0.1)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      escrever(ctx, valor, qx + larguraQuadro / 2, y + altura * 0.55, {
+        peso: 900,
+        tamanho: altura > 120 ? 54 : 46,
+        cor: destaque ? cores.texto : BRANCO,
+        largura: larguraQuadro - 28,
+        alinhar: "center",
+      });
+      escrever(ctx, rotulo, qx + larguraQuadro / 2, y + altura - 24, {
+        peso: 600,
+        tamanho: 20,
+        cor: APAGADO,
+        largura: larguraQuadro - 20,
+        alinhar: "center",
+        minimo: 14,
+      });
     });
-    escrever(ctx, rotulo, qx + larguraQuadro / 2, y + 108, {
-      peso: 600,
-      tamanho: 20,
-      cor: APAGADO,
-      largura: larguraQuadro - 20,
-      alinhar: "center",
-      minimo: 14,
-    });
-  });
-  y += 132 + 22;
+    y += altura + (comCarreira ? 14 : 22);
+  };
+  linhaDeQuadros(
+    [
+      ["PELADAS", milhar(dados.peladas), false],
+      ["MVP", milhar(dados.mvps), true],
+      ["XP", milhar(dados.xp), false],
+      ["AVALIAÇÕES", milhar(dados.avaliacoes), false],
+    ],
+    comCarreira ? 112 : 132,
+  );
+  if (comCarreira) {
+    linhaDeQuadros(
+      [
+        ["GOLS", milhar(dados.gols ?? 0), true],
+        ["ASSISTÊNCIAS", milhar(dados.assistencias ?? 0), false],
+        ["DEFESAS ÉPICAS", milhar(dados.defesas ?? 0), false],
+      ],
+      112,
+    );
+    y += 8;
+  }
 
   if (conquista) y += 30;
   else {
