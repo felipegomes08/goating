@@ -461,10 +461,11 @@ function PlacarDaPelada() {
     setFolha(null);
   }
 
-  function trocarAutor(golId: string, lado: Lado, memberId: string | null) {
+  /** Troca só quem fez o gol: o gol continua do time que marcou, e o placar não muda. */
+  function trocarAutor(golId: string, _lado: Lado, memberId: string | null) {
     mudarAtual((j) => ({
       ...j,
-      gols: j.gols.map((g) => (g.id === golId ? { ...g, lado, memberId } : g)),
+      gols: j.gols.map((g) => (g.id === golId ? { ...g, memberId } : g)),
     }));
     setFolha(null);
   }
@@ -569,6 +570,9 @@ function PlacarDaPelada() {
     await navigate({ to: "/pelada/$id/resumo", params: { id }, replace: true });
   }
 
+  // pelada já finalizada: a tela serve só pra corrigir os jogos que aconteceram
+  const corrigindo = pelada.status === "finalizada";
+
   const cabecalho = (
     <header className="flex items-center gap-3 bg-primary px-4 py-3">
       <button type="button" aria-label="Voltar" onClick={voltar}>
@@ -577,14 +581,18 @@ function PlacarDaPelada() {
       <h1 className="min-w-0 flex-1 truncate text-base font-extrabold text-primary-foreground">
         {pelada.titulo}
       </h1>
-      <Link
-        to="/pelada/$id/times"
-        params={{ id }}
-        replace
-        className="flex items-center gap-1 text-xs font-semibold text-mint"
-      >
-        <Users className="size-4" /> Editar times
-      </Link>
+      {corrigindo ? (
+        <span className="text-xs font-semibold text-mint">Corrigindo</span>
+      ) : (
+        <Link
+          to="/pelada/$id/times"
+          params={{ id }}
+          replace
+          className="flex items-center gap-1 text-xs font-semibold text-mint"
+        >
+          <Users className="size-4" /> Editar times
+        </Link>
+      )}
     </header>
   );
 
@@ -603,70 +611,83 @@ function PlacarDaPelada() {
       <div className="app-shell flex min-h-dvh flex-col">
         {cabecalho}
         <div className="space-y-4 p-4">
-          <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
-            <h2 className="text-sm font-bold text-foreground">
-              {encerrados.length === 0 ? "Primeiro jogo" : `Jogo ${encerrados.length + 1}`}
-            </h2>
-            {numTimes > 2 ? (
-              ([0, 1] as const).map((lado) => (
-                <div key={lado}>
-                  <p className="mb-1 text-[11px] font-semibold text-muted-foreground uppercase">
-                    {lado === 0 ? "De um lado" : "Do outro"}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {Array.from({ length: numTimes }, (_, t) => {
-                      const cor = corDoTime(t);
-                      const ativo = confronto[lado] === t;
-                      return (
-                        <button
-                          key={t}
-                          type="button"
-                          aria-pressed={ativo}
-                          disabled={confronto[lado === 0 ? 1 : 0] === t}
-                          onClick={() =>
-                            setProximo(lado === 0 ? [t, confronto[1]] : [confronto[0], t])
-                          }
-                          className={cn(
-                            "rounded-full border-2 px-3 py-1.5 text-xs font-bold disabled:opacity-30",
-                            cor.borda,
-                            ativo ? cn(cor.solido, "text-white") : cn(cor.fundo, cor.texto),
-                          )}
-                        >
-                          {nomeTime(t)}
-                        </button>
-                      );
-                    })}
+          {corrigindo ? (
+            <section className="space-y-1 rounded-2xl bg-mint-soft p-4">
+              <h2 className="text-sm font-bold text-primary">Corrigindo a pelada</h2>
+              <p className="text-xs text-primary">
+                Toque no lápis de um jogo pra trocar jogador de time, colocar quem faltou, ou
+                acertar e adicionar gols, assistências, defesas e cartões. No fim, toque em “Salvar
+                correção”.
+              </p>
+            </section>
+          ) : (
+            <section className="space-y-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
+              <h2 className="text-sm font-bold text-foreground">
+                {encerrados.length === 0 ? "Primeiro jogo" : `Jogo ${encerrados.length + 1}`}
+              </h2>
+              {numTimes > 2 ? (
+                ([0, 1] as const).map((lado) => (
+                  <div key={lado}>
+                    <p className="mb-1 text-[11px] font-semibold text-muted-foreground uppercase">
+                      {lado === 0 ? "De um lado" : "Do outro"}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Array.from({ length: numTimes }, (_, t) => {
+                        const cor = corDoTime(t);
+                        const ativo = confronto[lado] === t;
+                        return (
+                          <button
+                            key={t}
+                            type="button"
+                            aria-pressed={ativo}
+                            disabled={confronto[lado === 0 ? 1 : 0] === t}
+                            onClick={() =>
+                              setProximo(lado === 0 ? [t, confronto[1]] : [confronto[0], t])
+                            }
+                            className={cn(
+                              "rounded-full border-2 px-3 py-1.5 text-xs font-bold disabled:opacity-30",
+                              cor.borda,
+                              ativo ? cn(cor.solido, "text-white") : cn(cor.fundo, cor.texto),
+                            )}
+                          >
+                            {nomeTime(t)}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-center text-lg font-extrabold text-foreground">
-                <span className={corDoTime(confronto[0]).texto}>{nomeTime(confronto[0])}</span>
-                <span className="mx-2 text-muted-foreground">×</span>
-                <span className={corDoTime(confronto[1]).texto}>{nomeTime(confronto[1])}</span>
-              </p>
-            )}
-            {fila.length > 0 && (
-              <p className="text-xs text-muted-foreground">
-                Na espera: {fila.map(nomeTime).join(", ")}
-              </p>
-            )}
-            <Button className="w-full" onClick={() => iniciarJogo(confronto)}>
-              <Play className="mr-2 size-4" /> Começar jogo
-            </Button>
-          </section>
+                ))
+              ) : (
+                <p className="text-center text-lg font-extrabold text-foreground">
+                  <span className={corDoTime(confronto[0]).texto}>{nomeTime(confronto[0])}</span>
+                  <span className="mx-2 text-muted-foreground">×</span>
+                  <span className={corDoTime(confronto[1]).texto}>{nomeTime(confronto[1])}</span>
+                </p>
+              )}
+              {fila.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Na espera: {fila.map(nomeTime).join(", ")}
+                </p>
+              )}
+              <Button className="w-full" onClick={() => iniciarJogo(confronto)}>
+                <Play className="mr-2 size-4" /> Começar jogo
+              </Button>
+            </section>
+          )}
 
           {ultimo && (
             <section className="space-y-2 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-bold text-foreground">Jogos de hoje</h2>
-                <button
-                  type="button"
-                  onClick={reabrirUltimo}
-                  className="flex items-center gap-1 text-xs font-semibold text-muted-foreground"
-                >
-                  <RotateCcw className="size-3.5" /> Reabrir o último
-                </button>
+                {!corrigindo && (
+                  <button
+                    type="button"
+                    onClick={reabrirUltimo}
+                    className="flex items-center gap-1 text-xs font-semibold text-muted-foreground"
+                  >
+                    <RotateCcw className="size-3.5" /> Reabrir o último
+                  </button>
+                )}
               </div>
               <ul className="divide-y divide-border">
                 {encerrados.map((j, i) => {
@@ -735,18 +756,18 @@ function PlacarDaPelada() {
 
         {encerrados.length > 0 && (
           <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
-            {!jaComecou && (
+            {!jaComecou && !corrigindo && (
               <p className="mb-2 text-center text-xs text-muted-foreground">
                 Dá pra finalizar a partir do horário da pelada ({pelada.horario.slice(0, 5)}).
               </p>
             )}
             <Button
-              variant="outline"
+              variant={corrigindo ? "default" : "outline"}
               className="w-full"
               disabled={!jaComecou}
               onClick={() => setFolha({ tipo: "finalizar" })}
             >
-              <Flag className="mr-2 size-4" /> Finalizar pelada
+              <Flag className="mr-2 size-4" /> {corrigindo ? "Salvar correção" : "Finalizar pelada"}
             </Button>
           </div>
         )}
@@ -776,16 +797,20 @@ function PlacarDaPelada() {
           })()}
 
         {folha?.tipo === "finalizar" && (
-          <Folha titulo="Finalizar a pelada?" onFechar={() => setFolha(null)}>
+          <Folha
+            titulo={corrigindo ? "Salvar a correção?" : "Finalizar a pelada?"}
+            onFechar={() => setFolha(null)}
+          >
             <p className="text-sm text-muted-foreground">
-              Salva {encerrados.length} {encerrados.length === 1 ? "jogo" : "jogos"} nas
-              estatísticas da turma e abre as avaliações por 2h.
+              {corrigindo
+                ? "Os números da pelada, do ranking da turma e dos jogadores passam a ser os corrigidos. A janela de avaliação e o MVP não mudam."
+                : `Salva ${encerrados.length} ${encerrados.length === 1 ? "jogo" : "jogos"} nas estatísticas da turma e abre as avaliações por 2h.`}
             </p>
             <Button className="w-full" disabled={salvando} onClick={finalizarPelada}>
-              {salvando ? "Salvando…" : "Finalizar e ver o resumo"}
+              {salvando ? "Salvando…" : corrigindo ? "Salvar correção" : "Finalizar e ver o resumo"}
             </Button>
             <Button variant="outline" className="w-full" onClick={() => setFolha(null)}>
-              Ainda tem jogo
+              {corrigindo ? "Continuar corrigindo" : "Ainda tem jogo"}
             </Button>
           </Folha>
         )}
@@ -1494,7 +1519,11 @@ function EditorDeJogo({
   onPronto: () => void;
 }) {
   const [modo, setModo] = useState<
-    { tipo: "adicionar"; lado: Lado } | { tipo: "autor"; golId: string } | null
+    | { tipo: "adicionar"; lado: Lado }
+    | { tipo: "autor"; golId: string }
+    | { tipo: "novo-gol"; lado: Lado }
+    | { tipo: "lance"; lado: Lado; memberId: string }
+    | null
   >(null);
   const lances = jogo.lances ?? [];
   const historico = [...jogo.gols.map((g) => ({ ...g, tipo: "gol" as const })), ...lances].sort(
@@ -1527,48 +1556,105 @@ function EditorDeJogo({
     );
   }
 
-  const golEmEdicao =
-    modo?.tipo === "autor" ? jogo.gols.find((g) => g.id === modo.golId) : undefined;
-  if (golEmEdicao) {
+  // assistência, defesa épica ou cartão que faltou marcar
+  if (modo?.tipo === "lance") {
+    const { lado, memberId } = modo;
     return (
       <>
-        <p className="text-sm text-muted-foreground">Quem fez o gol dos {golEmEdicao.minuto}'?</p>
-        <div className="grid grid-cols-2 gap-3">
-          {([0, 1] as const).map((lado) => {
-            const cor = corDoTime(jogo.times[lado]);
-            return (
-              <div key={lado} className="min-w-0 space-y-1.5">
-                <p className={cn("truncate text-xs font-extrabold uppercase", cor.texto)}>
-                  {nomeTime(jogo.times[lado])}
-                </p>
-                {[...jogo.lados[lado], null].map((memberId) => (
-                  <button
-                    key={memberId ?? "sem"}
-                    type="button"
-                    onClick={() => {
-                      onMudar((j) => ({
-                        ...j,
-                        gols: j.gols.map((g) =>
-                          g.id === golEmEdicao.id ? { ...g, lado, memberId } : g,
-                        ),
-                      }));
-                      setModo(null);
-                    }}
-                    className={cn(
-                      "w-full rounded-xl border-2 px-3 py-2.5 text-left text-sm font-semibold",
-                      cor.borda,
-                      golEmEdicao.lado === lado && golEmEdicao.memberId === memberId
-                        ? cn(cor.solido, "text-white")
-                        : cn(cor.fundo, "text-foreground"),
-                    )}
-                  >
-                    {memberId ? nomeJogador(memberId) : "Sem autor / contra"}
-                  </button>
-                ))}
-              </div>
-            );
-          })}
+        <p className="text-sm text-muted-foreground">
+          O que faltou marcar pra <span className="font-bold">{nomeJogador(memberId)}</span>?
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {TIPOS_DE_LANCE.map((tipo) => (
+            <button
+              key={tipo}
+              type="button"
+              onClick={() => {
+                onMudar((j) => ({
+                  ...j,
+                  lances: [
+                    ...(j.lances ?? []),
+                    { id: crypto.randomUUID(), tipo, lado, memberId, tempo: j.tempo, minuto: 0 },
+                  ],
+                }));
+                setModo(null);
+              }}
+              className={cn(
+                "flex min-h-12 items-center gap-2.5 rounded-xl border-2 border-border bg-background px-3 text-left text-sm font-bold text-foreground active:scale-[0.97]",
+                tipo === "vermelho" && "col-span-2",
+              )}
+            >
+              <span className={cn("size-5 shrink-0 rounded", COR_DO_LANCE[tipo])} />
+              {NOME_DO_LANCE[tipo]}
+            </button>
+          ))}
         </div>
+        <Button variant="outline" className="w-full" onClick={() => setModo(null)}>
+          Voltar
+        </Button>
+      </>
+    );
+  }
+
+  // escolher quem fez o gol: trocando o autor de um gol, ou marcando um gol que faltou
+  const golEmEdicao =
+    modo?.tipo === "autor" ? jogo.gols.find((g) => g.id === modo.golId) : undefined;
+  const ladoDoGol = golEmEdicao?.lado ?? (modo?.tipo === "novo-gol" ? modo.lado : null);
+  if (ladoDoGol !== null) {
+    const cor = corDoTime(jogo.times[ladoDoGol]);
+    const escolher = (memberId: string | null) => {
+      onMudar((j) =>
+        golEmEdicao
+          ? // o gol continua do time que marcou: o placar não muda
+            { ...j, gols: j.gols.map((g) => (g.id === golEmEdicao.id ? { ...g, memberId } : g)) }
+          : {
+              ...j,
+              gols: [
+                ...j.gols,
+                { id: crypto.randomUUID(), lado: ladoDoGol, memberId, tempo: j.tempo, minuto: 0 },
+              ],
+            },
+      );
+      setModo(null);
+    };
+    // quem jogou nesse time primeiro; os do outro time ficam embaixo (caso tenha trocado de lado)
+    const doTime = jogo.lados[ladoDoGol];
+    const doOutro = jogo.lados[ladoDoGol === 0 ? 1 : 0];
+    const botao = (memberId: string | null) => (
+      <button
+        key={memberId ?? "sem"}
+        type="button"
+        onClick={() => escolher(memberId)}
+        className={cn(
+          "w-full rounded-xl border-2 px-3 py-2.5 text-left text-sm font-semibold",
+          cor.borda,
+          golEmEdicao && golEmEdicao.memberId === memberId
+            ? cn(cor.solido, "text-white")
+            : cn(cor.fundo, "text-foreground"),
+        )}
+      >
+        {memberId ? nomeJogador(memberId) : "Sem autor / contra"}
+      </button>
+    );
+    return (
+      <>
+        <p className="text-sm text-muted-foreground">
+          {golEmEdicao ? "Quem fez esse gol" : "Gol"} do{" "}
+          <span className={cn("font-bold", cor.texto)}>{nomeTime(jogo.times[ladoDoGol])}</span>?
+          {golEmEdicao ? " O gol continua desse time: o placar não muda." : ""}
+        </p>
+        <div className="grid grid-cols-2 gap-1.5">
+          {doTime.map(botao)}
+          {botao(null)}
+        </div>
+        {doOutro.length > 0 && (
+          <>
+            <p className="text-xs font-semibold text-muted-foreground">
+              Estavam no {nomeTime(jogo.times[ladoDoGol === 0 ? 1 : 0])}
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">{doOutro.map(botao)}</div>
+          </>
+        )}
         <Button variant="outline" className="w-full" onClick={() => setModo(null)}>
           Voltar
         </Button>
@@ -1578,6 +1664,9 @@ function EditorDeJogo({
 
   return (
     <>
+      <p className="text-xs text-muted-foreground">
+        Toque no nome de um jogador pra marcar assistência, defesa épica ou cartão que faltou.
+      </p>
       <div className="grid grid-cols-2 gap-3">
         {([0, 1] as const).map((lado) => {
           const cor = corDoTime(jogo.times[lado]);
@@ -1601,9 +1690,14 @@ function EditorDeJogo({
                     cor.borda,
                   )}
                 >
-                  <span className="min-w-0 flex-1 truncate py-2 text-sm font-semibold text-foreground">
+                  {/* tocar no nome marca assistência, defesa épica ou cartão que faltou */}
+                  <button
+                    type="button"
+                    onClick={() => setModo({ tipo: "lance", lado, memberId })}
+                    className="min-w-0 flex-1 truncate py-2 text-left text-sm font-semibold text-foreground"
+                  >
                     {nomeJogador(memberId)}
-                  </span>
+                  </button>
                   <button
                     type="button"
                     aria-label={`Passar ${nomeJogador(memberId)} pro outro time`}
@@ -1633,6 +1727,13 @@ function EditorDeJogo({
               >
                 + Adicionar jogador
               </button>
+              <button
+                type="button"
+                onClick={() => setModo({ tipo: "novo-gol", lado })}
+                className={cn("w-full rounded-xl py-2 text-xs font-bold text-white", cor.solido)}
+              >
+                + Gol do {nomeTime(jogo.times[lado])}
+              </button>
             </div>
           );
         })}
@@ -1644,7 +1745,9 @@ function EditorDeJogo({
           <ul className="divide-y divide-border">
             {historico.map((g) => (
               <li key={g.id} className="flex items-center gap-2 py-2 text-sm">
-                <span className="w-9 text-xs font-extrabold tabular-nums">{g.minuto}'</span>
+                <span className="w-9 text-xs font-extrabold tabular-nums">
+                  {g.minuto > 0 ? `${g.minuto}'` : "–"}
+                </span>
                 <span
                   className={cn(
                     "size-2.5 shrink-0 rounded-full",
