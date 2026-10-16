@@ -146,7 +146,14 @@ function PlacarDaPelada() {
   useEffect(() => {
     if (!dados || estado) return;
     const doBanco = ehEstadoPlacar(dados.pelada.placar_estado) ? dados.pelada.placar_estado : null;
-    setEstado(lerLocal(id) ?? doBanco ?? estadoVazio());
+    const carregado = lerLocal(id) ?? doBanco ?? estadoVazio();
+    // Pelada finalizada só se corrige: jogo aberto ali (começado por engano) não vale e sai.
+    // O que conta na pelada é o que foi encerrado e salvo.
+    setEstado(
+      dados.pelada.status === "finalizada"
+        ? { ...carregado, jogos: carregado.jogos.filter((j) => j.encerrado) }
+        : carregado,
+    );
   }, [dados, estado, id]);
 
   const sincronizado = useRef<string | null>(null);
