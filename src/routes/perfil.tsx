@@ -15,7 +15,7 @@ import { AuraTier } from "@/components/goating/aura-tier";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ProgressoTier } from "@/components/goating/progresso-tier";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
-import { atributosZerados, carregarMedias, ehGoleiro } from "@/lib/atributos";
+import { atributosZerados, carregarMedias } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -143,12 +143,12 @@ function Perfil() {
     };
   }, [perfil?.foto_url]);
 
-  // goleiro mostra as habilidades de goleiro na carta e no radar
-  const goleiro = ehGoleiro(perfil?.posicao_preferida);
+  // a carta e o radar mostram as notas da posição do perfil
+  const posicaoDaCarta = perfil?.posicao_preferida ?? null;
   const medias = useQuery({
-    queryKey: ["medias", userId, goleiro],
+    queryKey: ["medias", userId, posicaoDaCarta],
     enabled: !!userId && !!perfil,
-    queryFn: () => carregarMedias(userId!, goleiro),
+    queryFn: () => carregarMedias(userId!, posicaoDaCarta),
   });
 
   const seguidores = useQuery({
@@ -238,7 +238,7 @@ function Perfil() {
     ? tierPorNome(perfil.tier_reconhecido)
     : null;
 
-  const attrs = medias.data ?? atributosZerados(goleiro);
+  const attrs = medias.data ?? atributosZerados(posicaoDaCarta);
 
   async function revelarTier() {
     setAbrindo(true);

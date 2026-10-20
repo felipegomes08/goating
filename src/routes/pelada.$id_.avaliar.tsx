@@ -16,9 +16,15 @@ import { useSession } from "@/hooks/use-session";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { COLUNAS_DE_NOTA, atributosDe, ehGoleiro } from "@/lib/atributos";
+import {
+  COLUNAS_DE_NOTA,
+  NOME_DA_POSICAO,
+  POSICOES_DE_AVALIACAO,
+  atributosDe,
+  posicaoDe,
+  type Posicao,
+} from "@/lib/atributos";
 import { chamarPraAvaliar, fimDaJanela, janelaAberta } from "@/lib/janela-avaliacao";
 import { podeGerirPelada } from "@/lib/placar/dados";
 import { cn } from "@/lib/utils";
@@ -62,7 +68,7 @@ function Aviso({ texto }: { texto: string }) {
   );
 }
 
-/** As sete notas de uma avaliação: a lista muda se a pessoa jogou na linha ou no gol. */
+/** As notas de uma avaliação: a lista muda com a posição em que a pessoa jogou. */
 type Lista = ReturnType<typeof atributosDe>;
 type Atributos = Record<string, number>;
 
@@ -106,10 +112,11 @@ function Avaliar() {
 
   // null = ainda não navegou; começa no primeiro jogador pendente.
   const [indiceEscolhido, setIndiceEscolhido] = useState<number | null>(null);
-  // Rascunhos por jogador e por tipo (linha/gol): sobrevivem a "Anterior"/"Pular".
+  // Rascunhos por jogador e por posição: sobrevivem a "Anterior"/"Pular".
   const [rascunhos, setRascunhos] = useState<Record<string, Atributos>>({});
   // "Jogou no gol hoje" quando quem avalia mexe na chave; sem mexer vale o perfil do jogador.
-  const [goleiroManual, setGoleiroManual] = useState<Record<string, boolean>>({});
+  // "Jogou de" quando quem avalia troca; sem trocar, vale a posição do perfil do jogador.
+  const [posicaoManual, setPosicaoManual] = useState<Record<string, Posicao>>({});
   // Comentário digitado pra cada jogador (opcional; aparece no perfil dele, sem o meu nome).
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
   // Jogadores avaliados nesta sessão (somados aos que já vieram do banco).
@@ -141,22 +148,29 @@ function Avaliar() {
         supabase
           .from("evaluations")
           .select(
-            "avaliado_id, nota_geral, como_goleiro, comentario, chute, drible, velocidade, toque, posicionamento, comportamento, pontualidade, reflexo, elasticidade, reposicao, jogo_pes",
+            `avaliado_id, nota_geral, como_goleiro, posicao, comentario, ${COLUNAS_DE_NOTA.join(", ")}`,
           )
           .eq("match_id", id)
           .eq("avaliador_id", userId!),
       ]);
 
       // Avaliações que eu já fiz, para poder revisar/corrigir.
-      const salvas: Record<string, { goleiro: boolean; attrs: Atributos; comentario: string }> = {};
-      for (const f of feitas ?? []) {
+      const salvas: Record<string, { posicao: Posicao; attrs: Atributos; comentario: string }> = {};
+      for (const f of (feitas ?? []) as unknown as {
+        avaliado_id: string;
+        nota_geral: number;
+        como_goleiro: boolean;
+        posicao: string | null;
+        comentario: string | null;
+      }[]) {
         const geral = Number(f.nota_geral);
         const notas = f as unknown as Record<string, number | null>;
+        const posicao = posicaoDe(f.posicao ?? (f.como_goleiro ? "GOL" : null));
         salvas[f.avaliado_id] = {
-          goleiro: f.como_goleiro,
+          posicao,
           comentario: f.comentario ?? "",
           attrs: Object.fromEntries(
-            atributosDe(f.como_goleiro).map((a) => [
+            atributosDe(posicao).map((a) => [
               a.chave,
               notas[a.chave] == null ? geral : Number(notas[a.chave]),
             ]),
@@ -180,7 +194,7 @@ function Avaliar() {
             id: uid,
             nome: p?.nome_exibicao ?? "Jogador",
             foto: p?.foto_url ?? null,
-            goleiroNoPerfil: ehGoleiro(p?.posicao_preferida),
+            posicaoNoPerfil: posicaoDe(p?.posicao_preferida),
           };
         })
         // Ordem estável: a lista não muda enquanto a pessoa navega.
@@ -279,13 +293,13 @@ function Avaliar() {
   }
 
   const salva = salvas[jogador.id];
-  const goleiro = goleiroManual[jogador.id] ?? salva?.goleiro ?? jogador.goleiroNoPerfil;
-  const lista = atributosDe(goleiro);
-  const chaveRascunho = `${jogador.id}:${goleiro ? "gol" : "linha"}`;
+  const posicao = posicaoManual[jogador.id] ?? salva?.posicao ?? jogador.posicaoNoPerfil;
+  const lista = atributosDe(posicao);
+  const chaveRascunho = `${jogador.id}:${posicao}`;
   const attrs: Atributos =
     rascunhos[chaveRascunho] ??
-    // a avaliação salva só serve de ponto de partida se foi do mesmo tipo
-    (salva?.goleiro === goleiro ? salva.attrs : undefined) ??
+    // a avaliação salva só serve de ponto de partida se foi na mesma posição
+    (salva?.posicao === posicao ? salva.attrs : undefined) ??
     atributosIguais(lista, NOTA_PADRAO);
   const notaGeral = mediaGeral(lista, attrs);
   const detalhado = detalhadoManual ?? !todosIguais(lista, attrs);
@@ -317,7 +331,8 @@ function Avaliar() {
       ...colunasNulas(),
       ...(usouDetalhada ? attrs : {}),
       nota_geral: notaGeral,
-      como_goleiro: goleiro,
+      posicao,
+      como_goleiro: posicao === "GOL",
       comentario: comentario.trim() || null,
     };
 
@@ -413,28 +428,41 @@ function Avaliar() {
           )}
         </div>
 
-        {/* goleiro é avaliado por outras habilidades; a chave já vem ligada pra quem é goleiro no perfil */}
-        <label
-          htmlFor="jogou-no-gol"
-          className="flex items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-card)]"
-        >
-          <span>
-            <span className="block text-sm font-semibold text-foreground">Jogou no gol hoje</span>
-            <span className="block text-xs text-muted-foreground">
-              {goleiro
-                ? "Avaliando como goleiro: reflexo, reposição, jogo com os pés..."
-                : "Avaliando como jogador de linha."}
-            </span>
-          </span>
-          <Switch
-            id="jogou-no-gol"
-            checked={goleiro}
-            onCheckedChange={(ligado) => {
-              setGoleiroManual((g) => ({ ...g, [jogador.id]: ligado }));
-              setDetalhadoManual(null);
-            }}
-          />
-        </label>
+        {/* cada posição é avaliada pelas habilidades dela; já vem marcada a do perfil do jogador */}
+        <div className="space-y-2 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-card)]">
+          <p className="text-sm font-semibold text-foreground">
+            Jogou de <span className="text-primary">{NOME_DA_POSICAO[posicao].toLowerCase()}</span>
+          </p>
+          <div className="grid grid-cols-6 gap-1">
+            {POSICOES_DE_AVALIACAO.map((p) => (
+              <button
+                key={p}
+                type="button"
+                aria-pressed={p === posicao}
+                aria-label={NOME_DA_POSICAO[p]}
+                onClick={() => {
+                  setPosicaoManual((m) => ({ ...m, [jogador.id]: p }));
+                  setDetalhadoManual(null);
+                }}
+                className={cn(
+                  "rounded-lg py-2 text-xs font-extrabold",
+                  p === posicao
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground",
+                )}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {lista
+              .slice(0, 5)
+              .map((a) => a.nome)
+              .join(", ")}{" "}
+            e comportamento.
+          </p>
+        </div>
 
         <div className="rounded-2xl bg-mint-soft p-4">
           <div className="flex items-center justify-between">

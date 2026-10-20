@@ -12,7 +12,7 @@ import { BottomNav } from "@/components/goating/bottom-nav";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ComentariosDoJogador } from "@/components/goating/comentarios-do-jogador";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
-import { atributosZerados, carregarMedias, ehGoleiro } from "@/lib/atributos";
+import { atributosZerados, carregarMedias } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { overallLiberado, tierPorNome } from "@/lib/tiers";
@@ -69,11 +69,11 @@ function JogadorPublico() {
   const perfil = perfilQuery.data;
   const fotoUrl = useAvatarUrl(perfil?.foto_url);
 
-  const goleiro = ehGoleiro(perfil?.posicao_preferida);
+  const posicao = perfil?.posicao_preferida ?? null;
   const medias = useQuery({
-    queryKey: ["medias", id, goleiro],
+    queryKey: ["medias", id, posicao],
     enabled: !!userId && !!perfil,
-    queryFn: () => carregarMedias(id, goleiro),
+    queryFn: () => carregarMedias(id, posicao),
   });
 
   const rede = useQuery({
@@ -162,7 +162,7 @@ function JogadorPublico() {
   const liberado = overallLiberado(perfil.avaliacoes_recebidas);
   const overall = liberado ? Number(perfil.overall) : 0;
   const tier = liberado ? tierPorNome(perfil.tier_reconhecido) : null;
-  const attrs = medias.data ?? atributosZerados(goleiro);
+  const attrs = medias.data ?? atributosZerados(posicao);
   const segue = !!seguindoEste.data;
 
   return (

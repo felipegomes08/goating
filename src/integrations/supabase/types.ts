@@ -171,6 +171,15 @@ export type Database = {
           comportamento: number | null
           criado_em: string
           drible: number | null
+          controle: number | null
+          desarme: number | null
+          finalizacao: number | null
+          fisico: number | null
+          jogo_aereo: number | null
+          marcacao: number | null
+          passe: number | null
+          visao: number | null
+          posicao: string | null
           id: string
           match_id: string
           nota_geral: number
@@ -192,6 +201,15 @@ export type Database = {
           comportamento?: number | null
           criado_em?: string
           drible?: number | null
+          controle?: number | null
+          desarme?: number | null
+          finalizacao?: number | null
+          fisico?: number | null
+          jogo_aereo?: number | null
+          marcacao?: number | null
+          passe?: number | null
+          visao?: number | null
+          posicao?: string | null
           id?: string
           match_id: string
           nota_geral: number
@@ -213,6 +231,15 @@ export type Database = {
           comportamento?: number | null
           criado_em?: string
           drible?: number | null
+          controle?: number | null
+          desarme?: number | null
+          finalizacao?: number | null
+          fisico?: number | null
+          jogo_aereo?: number | null
+          marcacao?: number | null
+          passe?: number | null
+          visao?: number | null
+          posicao?: string | null
           id?: string
           match_id?: string
           nota_geral?: number
@@ -926,21 +953,25 @@ export type Database = {
       medias_do_jogador: {
         Args: { p_user_id: string }
         Returns: {
-          chute: number | null
-          comportamento: number | null
-          drible: number | null
-          elasticidade: number | null
-          jogo_pes: number | null
-          nota_geral: number | null
-          pontualidade: number | null
-          posicionamento: number | null
-          posicionamento_goleiro: number | null
-          reflexo: number | null
-          reposicao: number | null
-          toque: number | null
+          comportamento: number
+          controle: number
+          desarme: number
+          drible: number
+          elasticidade: number
+          finalizacao: number
+          fisico: number
+          jogo_aereo: number
+          jogo_pes: number
+          marcacao: number
+          nota_geral: number
+          passe: number
+          posicionamento_goleiro: number
+          reflexo: number
+          reposicao: number
           total: number
           total_goleiro: number
-          velocidade: number | null
+          velocidade: number
+          visao: number
         }[]
       }
       remover_da_turma: { Args: { p_member_id: string }; Returns: undefined }
