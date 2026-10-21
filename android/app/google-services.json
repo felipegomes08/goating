@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "583778341603",
+    "project_id": "goating-375ac",
+    "storage_bucket": "goating-375ac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:583778341603:android:ebe045f94a81be01daebd6",
+        "android_client_info": {
+          "package_name": "br.com.goating.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhIwDbcO2nwkqG-Wqr0wizzKuCsFQE-Gs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

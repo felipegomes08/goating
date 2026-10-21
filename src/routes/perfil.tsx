@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Camera, LogOut, Pencil, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { esquecerPushNoApp } from "@/lib/nativo";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { useNumerosDoJogador } from "@/hooks/use-numeros-do-jogador";
 import { BottomNav } from "@/components/goating/bottom-nav";
@@ -217,6 +218,8 @@ function Perfil() {
   }
 
   async function sair() {
+    // este celular para de receber os avisos da conta que está saindo
+    await esquecerPushNoApp();
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();

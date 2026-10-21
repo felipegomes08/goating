@@ -27,6 +27,11 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Avisos (push): ícone e cor na barra de notificação, canal padrão -->
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_goating" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/goating_verde" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="goating" />
     </application>
 
     <!-- Permissions -->

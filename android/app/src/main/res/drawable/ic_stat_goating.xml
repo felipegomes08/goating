@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícone da barra de notificação: a cabra do Goating em branco (o Android pinta conforme o tema). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="640"
+    android:viewportHeight="640">
+    <group android:translateX="-192" android:translateY="-200">
+        <path android:fillColor="#FFFFFFFF" android:pathData="M218,383 C255,320 300,270 330,265 C370,280 410,310 440,338 C460,370 480,410 490,442 L415,450 C390,420 370,405 352,395 C380,400 410,415 425,425 C390,370 350,335 310,335 C270,340 240,360 218,383 Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M804,383 C767,320 722,270 692,265 C652,280 612,310 582,338 C562,370 542,410 532,442 L607,450 C632,420 652,405 670,395 C642,400 612,415 597,425 C632,370 672,335 712,335 C752,340 782,360 804,383 Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M658,470 L455,470 C400,470 362,520 362,575 C362,630 405,680 460,680 L575,680 C590,680 597,670 600,662 L650,558 L520,558 L495,603 L575,603 L557,636 L465,636 C432,636 415,605 415,575 C415,545 435,523 465,523 L600,523 Z" />
+        <path android:fillColor="#FFFFFFFF" android:pathData="M452,703 C480,715 500,720 512,720 C535,718 552,712 570,703 L548,758 L540,748 L511,803 L485,748 L474,758 Z" />
+    </group>
+</vector>

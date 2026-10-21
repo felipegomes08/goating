@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { RecuperacaoRedirect } from "@/components/goating/recuperacao-redirect";
 import { SessaoValida } from "@/components/goating/sessao-valida";
+import { PushNoCelular } from "@/components/goating/push-no-celular";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { iniciarApp } from "@/lib/nativo";
@@ -137,6 +138,7 @@ function RootComponent() {
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <RecuperacaoRedirect />
       <SessaoValida />
+      <PushNoCelular />
       <Outlet />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>

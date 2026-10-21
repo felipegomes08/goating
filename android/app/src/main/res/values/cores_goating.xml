@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- cor do ícone dos avisos na barra de notificação -->
+    <color name="goating_verde">#5EF28E</color>
+</resources>
