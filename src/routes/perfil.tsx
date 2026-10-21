@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { useNumerosDoJogador } from "@/hooks/use-numeros-do-jogador";
 import { BottomNav } from "@/components/goating/bottom-nav";
+import { Sino } from "@/components/goating/sino";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
 import { ComentariosDoJogador } from "@/components/goating/comentarios-do-jogador";
 import { ExcluirConta } from "@/components/goating/excluir-conta";
@@ -282,6 +283,9 @@ function Perfil() {
         <AuraTier tier={tier} />
         <div className="relative flex items-center justify-between">
           <h1 className="text-lg font-bold text-primary-foreground">Meu perfil</h1>
+          <span className="ml-auto mr-1">
+            <Sino />
+          </span>
           <Button
             variant="ghost"
             size="sm"

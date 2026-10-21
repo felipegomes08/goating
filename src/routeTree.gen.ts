@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BuscarRouteImport } from './routes/buscar'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as MinhasPartidasRouteImport } from './routes/minhas-partidas'
+import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as RankingRouteImport } from './routes/ranking'
@@ -53,6 +54,11 @@ const CriarRoute = CriarRouteImport.update({
 const MinhasPartidasRoute = MinhasPartidasRouteImport.update({
   id: '/minhas-partidas',
   path: '/minhas-partidas',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificacoesRoute = NotificacoesRouteImport.update({
+  id: '/notificacoes',
+  path: '/notificacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PerfilRoute = PerfilRouteImport.update({
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
   '/minhas-partidas': typeof MinhasPartidasRoute
+  '/notificacoes': typeof NotificacoesRoute
   '/perfil': typeof PerfilRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
   '/minhas-partidas': typeof MinhasPartidasRoute
+  '/notificacoes': typeof NotificacoesRoute
   '/perfil': typeof PerfilRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/buscar': typeof BuscarRoute
   '/criar': typeof CriarRoute
   '/minhas-partidas': typeof MinhasPartidasRoute
+  '/notificacoes': typeof NotificacoesRoute
   '/perfil': typeof PerfilRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
@@ -206,6 +215,7 @@ export interface FileRouteTypes {
     | '/buscar'
     | '/criar'
     | '/minhas-partidas'
+    | '/notificacoes'
     | '/perfil'
     | '/privacidade'
     | '/ranking'
@@ -228,6 +238,7 @@ export interface FileRouteTypes {
     | '/buscar'
     | '/criar'
     | '/minhas-partidas'
+    | '/notificacoes'
     | '/perfil'
     | '/privacidade'
     | '/ranking'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/buscar'
     | '/criar'
     | '/minhas-partidas'
+    | '/notificacoes'
     | '/perfil'
     | '/privacidade'
     | '/ranking'
@@ -273,6 +285,7 @@ export interface RootRouteChildren {
   BuscarRoute: typeof BuscarRoute
   CriarRoute: typeof CriarRoute
   MinhasPartidasRoute: typeof MinhasPartidasRoute
+  NotificacoesRoute: typeof NotificacoesRoute
   PerfilRoute: typeof PerfilRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   RankingRoute: typeof RankingRoute
@@ -325,6 +338,13 @@ declare module '@tanstack/react-router' {
       path: '/minhas-partidas'
       fullPath: '/minhas-partidas'
       preLoaderRoute: typeof MinhasPartidasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notificacoes': {
+      id: '/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/notificacoes'
+      preLoaderRoute: typeof NotificacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/perfil': {
@@ -441,6 +461,7 @@ const rootRouteChildren: RootRouteChildren = {
   BuscarRoute: BuscarRoute,
   CriarRoute: CriarRoute,
   MinhasPartidasRoute: MinhasPartidasRoute,
+  NotificacoesRoute: NotificacoesRoute,
   PerfilRoute: PerfilRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   RankingRoute: RankingRoute,

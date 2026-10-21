@@ -1,10 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { Bell, CalendarPlus, Flag, MapPin, Search } from "lucide-react";
-import { toast } from "sonner";
+import { CalendarPlus, Flag, MapPin, Search } from "lucide-react";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { DIAS_NO_FEED, useFeed } from "@/hooks/use-feed";
 import { GoatingLogo } from "@/components/goating/logo";
+import { Sino } from "@/components/goating/sino";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
 import { CAMPO_NO_VERDE, Segmentos, classeSegmento } from "@/components/goating/titulo-grande";
@@ -67,14 +67,7 @@ function Feed() {
       <header className="bg-primary px-4 pt-5 pb-1">
         <div className="flex items-center justify-between">
           <GoatingLogo withWordmark iconTone="light" wordmarkTone="dark" />
-          <button
-            type="button"
-            aria-label="Notificações"
-            onClick={() => toast("Notificações chegam em breve.")}
-            className="flex size-9 items-center justify-center rounded-full bg-white/10 text-primary-foreground active:opacity-60"
-          >
-            <Bell className="size-[18px]" />
-          </button>
+          <Sino />
         </div>
         {cidade && (
           <p className="mt-2 flex items-center gap-1 text-xs font-medium text-mint">

@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { useMinhasTurmas } from "@/hooks/use-turmas";
 import { BottomNav } from "@/components/goating/bottom-nav";
+import { Sino } from "@/components/goating/sino";
 import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
 import { CartaoTurma } from "@/components/goating/cartao-turma";
 import { RedeDeJogadores } from "@/components/goating/rede-de-jogadores";
@@ -84,12 +85,14 @@ function MinhasTurmas() {
             : "O futebol fixo da galera, com placar e ranking."
         }
         acao={
-          !criando &&
-          !vendoJogadores && (
-            <Button size="sm" className="shrink-0" onClick={() => setCriando(true)}>
-              <Plus /> Criar
-            </Button>
-          )
+          <span className="flex shrink-0 items-center gap-2">
+            {!criando && !vendoJogadores && (
+              <Button size="sm" className="shrink-0" onClick={() => setCriando(true)}>
+                <Plus /> Criar
+              </Button>
+            )}
+            <Sino />
+          </span>
         }
       >
         <Segmentos colunas={2}>

@@ -585,9 +585,46 @@ export type Database = {
           },
         ]
       }
+      notificacoes: {
+        Row: {
+          chave: string | null
+          corpo: string | null
+          criado_em: string
+          id: string
+          lida_em: string | null
+          link: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          chave?: string | null
+          corpo?: string | null
+          criado_em?: string
+          id?: string
+          lida_em?: string | null
+          link?: string | null
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          chave?: string | null
+          corpo?: string | null
+          criado_em?: string
+          id?: string
+          lida_em?: string | null
+          link?: string | null
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       matches: {
         Row: {
           avaliacao_ate: string | null
+          avisada_em: string | null
           cidade: string
           contagem_vitoria: string
           crew_id: string | null
@@ -617,6 +654,7 @@ export type Database = {
         }
         Insert: {
           avaliacao_ate?: string | null
+          avisada_em?: string | null
           cidade: string
           contagem_vitoria?: string
           crew_id?: string | null
@@ -646,6 +684,7 @@ export type Database = {
         }
         Update: {
           avaliacao_ate?: string | null
+          avisada_em?: string | null
           cidade?: string
           contagem_vitoria?: string
           crew_id?: string | null
