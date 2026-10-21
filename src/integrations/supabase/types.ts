@@ -733,6 +733,27 @@ export type Database = {
           },
         ];
       };
+      ranking_semanal: {
+        Row: {
+          posicao_cidade: number | null;
+          posicao_geral: number;
+          semana: string;
+          user_id: string;
+        };
+        Insert: {
+          posicao_cidade?: number | null;
+          posicao_geral: number;
+          semana: string;
+          user_id: string;
+        };
+        Update: {
+          posicao_cidade?: number | null;
+          posicao_geral?: number;
+          semana?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           avaliacoes_recebidas: number;
@@ -854,6 +875,7 @@ export type Database = {
           gols: number;
           jogos: number;
           member_id: string;
+          mvps: number;
           nome: string;
           peladas: number;
           user_id: string;

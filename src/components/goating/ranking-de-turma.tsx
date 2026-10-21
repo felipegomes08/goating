@@ -8,7 +8,14 @@ import {
   useRankingDaTurma,
   type Periodo,
 } from "@/hooks/use-turmas";
-import { TabelaRanking, type ColunaRanking } from "@/components/goating/tabela-ranking";
+import {
+  COLUNA_GRATIS,
+  PeriodosDoRanking,
+  TabelaRanking,
+  type ColunaRanking,
+} from "@/components/goating/tabela-ranking";
+import { FolhaPremium } from "@/components/goating/cadeado";
+import { usePremium } from "@/hooks/use-premium";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -28,8 +35,13 @@ export function RankingDeTurma({
   onEscolher: (crewId: string) => void;
 }) {
   const turmas = useMinhasTurmas(userId);
-  const [periodo, setPeriodo] = useState<Periodo>("mes");
-  const [ordem, setOrdem] = useState<ColunaRanking>("vitorias");
+  const { premium } = usePremium();
+  const [periodoEscolhido, setPeriodo] = useState<Periodo>("mes");
+  const [ordemEscolhida, setOrdem] = useState<ColunaRanking>("vitorias");
+  const [bloqueio, setBloqueio] = useState<string | null>(null);
+  // sem Premium o ranking fica em vitórias, desde o começo
+  const periodo: Periodo = premium ? periodoEscolhido : "tudo";
+  const ordem: ColunaRanking = premium ? ordemEscolhida : COLUNA_GRATIS;
 
   const escolhida =
     (turmas.data ?? []).find((t) => t.crew_id === turmaId) ?? turmas.data?.[0] ?? null;
@@ -92,22 +104,14 @@ export function RankingDeTurma({
         </div>
       )}
 
-      <div className="flex gap-1 rounded-xl bg-foreground/[0.06] p-1">
-        {PERIODOS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            aria-pressed={periodo === p.id}
-            onClick={() => setPeriodo(p.id)}
-            className={cn(
-              "flex-1 rounded-lg py-1.5 text-xs font-bold transition-colors",
-              periodo === p.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
-            )}
-          >
-            {p.rotulo}
-          </button>
-        ))}
-      </div>
+      <PeriodosDoRanking
+        opcoes={PERIODOS}
+        valor={periodo}
+        onMudar={setPeriodo}
+        premium={premium}
+        livre="tudo"
+        onBloqueado={() => setBloqueio("Ranking do mês e do ano")}
+      />
 
       {ranking.isLoading ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
@@ -117,8 +121,16 @@ export function RankingDeTurma({
           ).
         </p>
       ) : (
-        <TabelaRanking linhas={linhas} ordem={ordem} onOrdenar={setOrdem} userId={userId} />
+        <TabelaRanking
+          linhas={linhas}
+          ordem={ordem}
+          onOrdenar={setOrdem}
+          userId={userId}
+          premium={premium}
+          onBloqueado={() => setBloqueio("Ordenar o ranking")}
+        />
       )}
+      {bloqueio && <FolhaPremium recurso={bloqueio} onFechar={() => setBloqueio(null)} />}
 
       <Link
         to="/turma/$id"

@@ -30,11 +30,15 @@ import { usePedidosDaTurma } from "@/components/goating/pedidos-da-turma";
 import { FolhaNome } from "@/components/goating/folha-nome";
 import { chaveNome } from "@/lib/placar/lista";
 import {
+  COLUNA_GRATIS,
   COLUNAS_RANKING,
+  PeriodosDoRanking,
   TabelaRanking,
   formatarMedia,
   type ColunaRanking,
 } from "@/components/goating/tabela-ranking";
+import { FolhaPremium } from "@/components/goating/cadeado";
+import { usePremium } from "@/hooks/use-premium";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -81,8 +85,13 @@ function PaginaDaTurma() {
   const queryClient = useQueryClient();
   const voltar = useVoltar(() => void navigate({ to: "/turmas" }));
   const aba = abaDaUrl ?? "ranking";
-  const [periodo, setPeriodo] = useState<Periodo>("mes");
-  const [ordem, setOrdem] = useState<ColunaRanking>("vitorias");
+  const { premium } = usePremium();
+  const [periodoEscolhido, setPeriodo] = useState<Periodo>("mes");
+  const [ordemEscolhida, setOrdem] = useState<ColunaRanking>("vitorias");
+  const [bloqueio, setBloqueio] = useState<string | null>(null);
+  // sem Premium o ranking fica em vitórias, desde o começo
+  const periodo: Periodo = premium ? periodoEscolhido : "tudo";
+  const ordem: ColunaRanking = premium ? ordemEscolhida : COLUNA_GRATIS;
   const [gerandoImagem, setGerandoImagem] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [renomeando, setRenomeando] = useState<{ memberId: string; nome: string } | null>(null);
@@ -412,7 +421,10 @@ function PaginaDaTurma() {
         {
           turma: dados.nome,
           periodo: rotuloPeriodo,
-          colunaOrdenada: COLUNAS_RANKING.findIndex((c) => c.id === ordem),
+          // colunas do pôster (sem MVPs): a ordenada fica em destaque
+          colunaOrdenada: (
+            ["jogos", "vitorias", "gols", "assistencias", "media", "aproveitamento"] as const
+          ).findIndex((c) => c === ordem),
           linhas: linhas.map((l) => ({
             nome: l.nome,
             jogos: l.jogos,
@@ -581,14 +593,29 @@ function PaginaDaTurma() {
 
         {aba === "ranking" && (
           <>
-            <Abas opcoes={PERIODOS} valor={periodo} onMudar={setPeriodo} />
+            <PeriodosDoRanking
+              opcoes={PERIODOS}
+              valor={periodo}
+              onMudar={setPeriodo}
+              premium={premium}
+              livre="tudo"
+              onBloqueado={() => setBloqueio("Ranking do mês e do ano")}
+            />
             {ranking.isLoading ? (
               <Skeleton className="h-64 w-full rounded-2xl" />
             ) : linhas.length === 0 ? (
               <Vazio>Nenhuma pelada com placar nesse período ainda.</Vazio>
             ) : (
-              <TabelaRanking linhas={linhas} ordem={ordem} onOrdenar={setOrdem} userId={userId} />
+              <TabelaRanking
+                linhas={linhas}
+                ordem={ordem}
+                onOrdenar={setOrdem}
+                userId={userId}
+                premium={premium}
+                onBloqueado={() => setBloqueio("Ordenar o ranking")}
+              />
             )}
+            {bloqueio && <FolhaPremium recurso={bloqueio} onFechar={() => setBloqueio(null)} />}
           </>
         )}
 

@@ -34,12 +34,21 @@ type Props = {
   seguindo?: boolean | undefined;
   onAlternarSeguir?: (() => void) | undefined;
   ocupado?: boolean;
+  /** posições que subiu (positivo) ou caiu (negativo) desde a última foto do ranking */
+  variacao?: number | null | undefined;
 };
 
 const COR_DO_PODIO = ["text-tier-ouro", "text-tier-prata", "text-tier-bronze"];
 
 /** Linha de jogador usada na busca/comunidade, no ranking e nas listas de seguidores/seguindo. */
-export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocupado }: Props) {
+export function JogadorItem({
+  jogador,
+  posicao,
+  seguindo,
+  onAlternarSeguir,
+  ocupado,
+  variacao,
+}: Props) {
   const foto = useAvatarUrl(jogador.foto_url);
   const liberado = overallLiberado(jogador.avaliacoes_recebidas);
   const overall = liberado ? Math.round(Number(jogador.overall)) : null;
@@ -65,6 +74,20 @@ export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocup
           )}
         >
           {posicao}
+          {variacao != null && (
+            <span
+              className={cn(
+                "block text-[9px] leading-none font-extrabold",
+                variacao > 0
+                  ? "text-emerald-600"
+                  : variacao < 0
+                    ? "text-destructive"
+                    : "text-muted-foreground",
+              )}
+            >
+              {variacao > 0 ? `▲${variacao}` : variacao < 0 ? `▼${-variacao}` : "–"}
+            </span>
+          )}
         </span>
       )}
 

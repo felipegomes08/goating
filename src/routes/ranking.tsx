@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Search } from "lucide-react";
+import { Lock, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
@@ -16,6 +16,10 @@ import {
 import { JogadorItem, type JogadorResumo } from "@/components/goating/jogador-item";
 import { RankingDeTurma } from "@/components/goating/ranking-de-turma";
 import { RankingDeTurmasDaCidade } from "@/components/goating/ranking-de-turmas-da-cidade";
+import { PodioDoRanking } from "@/components/goating/podio-do-ranking";
+import { FolhaPremium } from "@/components/goating/cadeado";
+import { usePremium } from "@/hooks/use-premium";
+import { useHistoricoNoRanking, usePosicoesDaSemana } from "@/hooks/use-ranking-semanal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -85,6 +89,8 @@ function Ranking() {
   const [termo, setTermo] = useState("");
   const [busca, setBusca] = useState("");
   const [ocupados, setOcupados] = useState<Set<string>>(new Set());
+  const [convite, setConvite] = useState<string | null>(null);
+  const { premium } = usePremium();
 
   useEffect(() => {
     if (!carregando && !userId) navigate({ to: "/auth", replace: true });
@@ -192,6 +198,43 @@ function Ranking() {
   const minhaPosicao = (lista.data ?? []).findIndex((j) => j.id === userId) + 1;
   const euApareco = minhaPosicao > 0;
   const liberado = perfil ? perfil.avaliacoes_recebidas >= MIN_AVALIACOES : false;
+
+  // Premium: setinhas de subiu/caiu (comparando com a foto semanal) e o histórico da posição.
+  // Geral e Cidade, sem Premium: pódio, a sua linha e o resto borrado.
+  const disputa = !buscando && (aba === "geral" || aba === "cidade");
+  const travado = disputa && !premium;
+  const semana = usePosicoesDaSemana(aba === "cidade" ? "cidade" : "geral", disputa && premium);
+  const historico = useHistoricoNoRanking(userId, disputa && premium);
+  const variacaoDe = (id: string, posicao: number) => {
+    if (!disputa || !premium) return undefined;
+    const antes = semana.data?.get(id);
+    return antes ? antes - posicao : null;
+  };
+  const jogadores = lista.data ?? [];
+  const comPodio = !buscando && jogadores.length >= 3;
+  const resto = comPodio ? jogadores.slice(3) : jogadores;
+  const inicioDoResto = comPodio ? 4 : 1;
+  const borrados = resto.filter((j) => j.id !== userId).slice(0, 5);
+
+  const linha = (j: JogadorResumo, posicao: number | undefined) => (
+    <div
+      key={j.id}
+      className={
+        j.id === userId ? "rounded-2xl ring-2 ring-mint ring-offset-2 ring-offset-background" : ""
+      }
+    >
+      <JogadorItem
+        jogador={j}
+        posicao={posicao}
+        variacao={posicao ? variacaoDe(j.id, posicao) : undefined}
+        seguindo={buscando ? (meusSeguidos.data?.has(j.id) ?? false) : undefined}
+        ocupado={ocupados.has(j.id)}
+        onAlternarSeguir={
+          buscando ? () => alternarSeguir(j.id, meusSeguidos.data?.has(j.id) ?? false) : undefined
+        }
+      />
+    </div>
+  );
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
@@ -313,29 +356,90 @@ function Ranking() {
                       </p>
                     )}
                   </div>
+                ) : buscando ? (
+                  jogadores.map((j) => linha(j, undefined))
                 ) : (
-                  (lista.data ?? []).map((j, i) => (
-                    <div
-                      key={j.id}
-                      className={
-                        j.id === userId
-                          ? "rounded-2xl ring-2 ring-mint ring-offset-2 ring-offset-background"
-                          : ""
-                      }
-                    >
-                      <JogadorItem
-                        jogador={j}
-                        posicao={buscando ? undefined : i + 1}
-                        seguindo={buscando ? (meusSeguidos.data?.has(j.id) ?? false) : undefined}
-                        ocupado={ocupados.has(j.id)}
-                        onAlternarSeguir={
-                          buscando
-                            ? () => alternarSeguir(j.id, meusSeguidos.data?.has(j.id) ?? false)
-                            : undefined
-                        }
-                      />
+                  <>
+                    {comPodio && (
+                      <PodioDoRanking jogadores={jogadores.slice(0, 3)} userId={userId} />
+                    )}
+                    {travado ? (
+                      <>
+                        {minhaPosicao > 3 && linha(jogadores[minhaPosicao - 1]!, minhaPosicao)}
+                        {borrados.length > 0 && (
+                          <div className="relative">
+                            <div
+                              aria-hidden
+                              className="pointer-events-none space-y-2 blur-[6px] select-none"
+                            >
+                              {borrados.map((j) => (
+                                <JogadorItem key={j.id} jogador={j} posicao={0} />
+                              ))}
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <button
+                                type="button"
+                                onClick={() => setConvite("Ranking completo")}
+                                className="flex flex-col items-center gap-1 rounded-2xl bg-card/95 px-5 py-4 text-center shadow-[var(--shadow-card)]"
+                              >
+                                <Lock className="size-5 text-tier-ouro" />
+                                <span className="text-sm font-extrabold text-foreground">
+                                  Ver ranking completo
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {resto.length} {resto.length === 1 ? "jogador" : "jogadores"}{" "}
+                                  depois do top 3 · Premium
+                                </span>
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      resto.map((j, i) => linha(j, inicioDoResto + i))
+                    )}
+                  </>
+                )}
+
+                {euApareco && disputa && (
+                  <div className="sticky bottom-20 z-10 pt-2">
+                    <div className="flex items-center gap-3 rounded-2xl bg-primary px-4 py-3 text-primary-foreground shadow-lg">
+                      <span className="text-2xl font-black tabular-nums">{minhaPosicao}º</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold">
+                          Você está em {minhaPosicao}º
+                        </span>
+                        {premium ? (
+                          <span className="block truncate text-xs text-mint">
+                            {(() => {
+                              const v = variacaoDe(userId!, minhaPosicao);
+                              const semanas = (historico.data ?? [])
+                                .map((h) => (aba === "cidade" ? h.posicao_cidade : h.posicao_geral))
+                                .filter((p): p is number => p != null);
+                              const texto =
+                                v == null || v === 0
+                                  ? "Mesma posição da semana passada"
+                                  : v > 0
+                                    ? `Subiu ${v} desde a semana passada`
+                                    : `Caiu ${-v} desde a semana passada`;
+                              return semanas.length > 1
+                                ? `${texto} · ${semanas.map((p) => `${p}º`).join(" → ")}`
+                                : texto;
+                            })()}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConvite("Subiu ou caiu")}
+                            className="flex items-center gap-1 text-xs text-mint"
+                          >
+                            <Lock className="size-3 text-tier-ouro" /> Veja se subiu ou caiu na
+                            semana
+                          </button>
+                        )}
+                      </span>
                     </div>
-                  ))
+                  </div>
                 )}
               </>
             )}
@@ -343,6 +447,7 @@ function Ranking() {
         )}
       </main>
 
+      {convite && <FolhaPremium recurso={convite} onFechar={() => setConvite(null)} />}
       <PuxarParaAtualizar />
       <BottomNav />
     </div>

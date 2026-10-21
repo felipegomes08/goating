@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Crown } from "lucide-react";
+import { ChevronDown, Crown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type LinhaRanking = {
@@ -10,6 +10,7 @@ export type LinhaRanking = {
   vitorias: number;
   gols: number;
   assistencias: number;
+  mvps: number;
   /** gols por jogo */
   media: number;
   /** 0 a 100 */
@@ -17,13 +18,17 @@ export type LinhaRanking = {
 };
 
 export type ColunaRanking =
-  "jogos" | "vitorias" | "gols" | "assistencias" | "media" | "aproveitamento";
+  "jogos" | "vitorias" | "gols" | "assistencias" | "mvps" | "media" | "aproveitamento";
+
+/** Sem Premium, o ranking da turma fica nessa coluna (e no período "Tudo"). */
+export const COLUNA_GRATIS: ColunaRanking = "vitorias";
 
 export const COLUNAS_RANKING: { id: ColunaRanking; sigla: string; nome: string }[] = [
   { id: "jogos", sigla: "J", nome: "jogos" },
   { id: "vitorias", sigla: "V", nome: "vitórias" },
   { id: "gols", sigla: "G", nome: "gols" },
   { id: "assistencias", sigla: "A", nome: "assistências" },
+  { id: "mvps", sigla: "MVP", nome: "MVPs" },
   { id: "media", sigla: "M", nome: "gols por jogo" },
   { id: "aproveitamento", sigla: "%", nome: "aproveitamento" },
 ];
@@ -33,17 +38,24 @@ export const formatarMedia = (media: number) => media.toFixed(1).replace(".", ",
 const valorDaColuna = (linha: LinhaRanking, coluna: ColunaRanking) =>
   coluna === "media" ? formatarMedia(linha.media) : String(linha[coluna]);
 
-/** Tabela do ranking da turma. Toque no cabeçalho de uma coluna pra ordenar por ela. */
+/**
+ * Tabela do ranking da turma. Toque no cabeçalho de uma coluna pra ordenar por ela. Sem
+ * Premium, só a coluna de vitórias ordena: as outras mostram o cadeado e chamam `onBloqueado`.
+ */
 export function TabelaRanking({
   linhas,
   ordem,
   onOrdenar,
   userId,
+  premium = true,
+  onBloqueado,
 }: {
   linhas: LinhaRanking[];
   ordem: ColunaRanking;
   onOrdenar: (coluna: ColunaRanking) => void;
   userId: string | null;
+  premium?: boolean;
+  onBloqueado?: () => void;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)]">
@@ -65,6 +77,7 @@ export function TabelaRanking({
             </th>
             {COLUNAS_RANKING.map((c) => {
               const ativa = ordem === c.id;
+              const trancada = !premium && c.id !== COLUNA_GRATIS;
               return (
                 <th
                   key={c.id}
@@ -74,15 +87,21 @@ export function TabelaRanking({
                 >
                   <button
                     type="button"
-                    aria-label={`Ordenar por ${c.nome}`}
-                    onClick={() => onOrdenar(c.id)}
+                    aria-label={
+                      trancada ? `Ordenar por ${c.nome}: Premium` : `Ordenar por ${c.nome}`
+                    }
+                    onClick={() => (trancada ? onBloqueado?.() : onOrdenar(c.id))}
                     className={cn(
                       "flex w-full flex-col items-center py-1.5 font-bold",
                       ativa ? "text-primary" : "text-muted-foreground",
                     )}
                   >
                     {c.sigla}
-                    <ChevronDown className={cn("size-3", ativa ? "opacity-100" : "opacity-0")} />
+                    {trancada ? (
+                      <Lock className="size-2.5 text-tier-ouro" />
+                    ) : (
+                      <ChevronDown className={cn("size-3", ativa ? "opacity-100" : "opacity-0")} />
+                    )}
                   </button>
                 </th>
               );
@@ -136,9 +155,52 @@ export function TabelaRanking({
         </tbody>
       </table>
       <p className="border-t border-border px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-        {COLUNAS_RANKING.map((c) => `${c.sigla} ${c.nome}`).join(" · ")}. Toque numa coluna pra
-        ordenar.
+        {COLUNAS_RANKING.map((c) => `${c.sigla} ${c.nome}`).join(" · ")}.{" "}
+        {premium ? "Toque numa coluna pra ordenar." : "Ordenar pelas outras colunas é Premium."}
       </p>
+    </div>
+  );
+}
+
+/**
+ * Mês, Ano e Tudo do ranking da turma. Sem Premium, só o período `livre` abre: os outros
+ * mostram o cadeado e chamam `onBloqueado`.
+ */
+export function PeriodosDoRanking<T extends string>({
+  opcoes,
+  valor,
+  onMudar,
+  premium,
+  livre,
+  onBloqueado,
+}: {
+  opcoes: { id: T; rotulo: string }[];
+  valor: T;
+  onMudar: (valor: T) => void;
+  premium: boolean;
+  livre: T;
+  onBloqueado: () => void;
+}) {
+  return (
+    <div className="flex gap-1 rounded-xl bg-foreground/[0.06] p-1">
+      {opcoes.map((o) => {
+        const trancado = !premium && o.id !== livre;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            aria-pressed={valor === o.id}
+            onClick={() => (trancado ? onBloqueado() : onMudar(o.id))}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-bold transition-colors",
+              valor === o.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+            )}
+          >
+            {o.rotulo}
+            {trancado && <Lock className="size-3 text-tier-ouro" />}
+          </button>
+        );
+      })}
     </div>
   );
 }
