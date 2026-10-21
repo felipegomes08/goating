@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { paraEscalaCard } from "@/lib/tiers";
 
 /**
- * As notas de uma avaliação. Cada posição tem cinco habilidades próprias (as que aparecem
+ * As notas de uma avaliação. Cada posição tem seis habilidades próprias (as que aparecem
  * na cartinha), e todo mundo tem Comportamento (que entra no radar e na nota geral). As que
  * se repetem entre posições são a mesma nota: o "Passe" do volante soma com o "Passe" de
  * quando ele jogou de meia. O banco usa as mesmas listas (gatilho `normalizar_nota_geral`).
@@ -56,6 +56,8 @@ const NOTA = {
   },
   reposicao: { chave: "reposicao", nome: "Reposição", radar: "Reposição", sigla: "REP" },
   jogo_pes: { chave: "jogo_pes", nome: "Jogo com os pés", radar: "Pés", sigla: "PÉS" },
+  saida_gol: { chave: "saida_gol", nome: "Saída do gol", radar: "Saída", sigla: "SAI" },
+  cruzamento: { chave: "cruzamento", nome: "Cruzamento", radar: "Cruzamento", sigla: "CRU" },
   comportamento: {
     chave: "comportamento",
     nome: "Comportamento",
@@ -64,15 +66,28 @@ const NOTA = {
   },
 } satisfies Record<string, Definicao>;
 
-/** As cinco habilidades de cada posição, na ordem em que aparecem na cartinha. */
+/**
+ * As seis habilidades de cada posição, na ordem em que aparecem na cartinha. Controle de bola
+ * saiu das listas (entra no Drible), mas continua guardado nas avaliações antigas.
+ */
 const HABILIDADES: Record<Posicao, Definicao[]> = {
-  GOL: [NOTA.reflexo, NOTA.posicionamento, NOTA.elasticidade, NOTA.reposicao, NOTA.jogo_pes],
-  ZAG: [NOTA.marcacao, NOTA.desarme, NOTA.jogo_aereo, NOTA.fisico, NOTA.passe],
-  LAT: [NOTA.velocidade, NOTA.marcacao, NOTA.passe, NOTA.fisico, NOTA.drible],
-  VOL: [NOTA.desarme, NOTA.marcacao, NOTA.passe, NOTA.fisico, NOTA.visao],
-  MEI: [NOTA.passe, NOTA.visao, NOTA.drible, NOTA.finalizacao, NOTA.controle],
-  ATA: [NOTA.finalizacao, NOTA.velocidade, NOTA.drible, NOTA.passe, NOTA.controle],
+  GOL: [
+    NOTA.reflexo,
+    NOTA.posicionamento,
+    NOTA.elasticidade,
+    NOTA.reposicao,
+    NOTA.jogo_pes,
+    NOTA.saida_gol,
+  ],
+  ZAG: [NOTA.marcacao, NOTA.desarme, NOTA.velocidade, NOTA.fisico, NOTA.passe, NOTA.jogo_aereo],
+  LAT: [NOTA.velocidade, NOTA.marcacao, NOTA.passe, NOTA.fisico, NOTA.drible, NOTA.cruzamento],
+  VOL: [NOTA.desarme, NOTA.marcacao, NOTA.passe, NOTA.fisico, NOTA.visao, NOTA.velocidade],
+  MEI: [NOTA.passe, NOTA.visao, NOTA.drible, NOTA.finalizacao, NOTA.velocidade, NOTA.fisico],
+  ATA: [NOTA.finalizacao, NOTA.velocidade, NOTA.drible, NOTA.passe, NOTA.fisico, NOTA.jogo_aereo],
 };
+
+/** Quantas notas cabem na cartinha (as habilidades da posição; o comportamento fica de fora). */
+export const NOTAS_NA_CARTA = 6;
 
 /** Todas as colunas de nota que o app grava em `evaluations`. */
 export const COLUNAS_DE_NOTA = Object.values(NOTA).map((n) => n.chave);

@@ -457,7 +457,7 @@ function Avaliar() {
           </div>
           <p className="text-xs text-muted-foreground">
             {lista
-              .slice(0, 5)
+              .slice(0, -1)
               .map((a) => a.nome)
               .join(", ")}{" "}
             e comportamento.

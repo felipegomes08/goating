@@ -167,20 +167,20 @@ export function PlayerCard({
                 </div>
 
                 <div
-                  className="absolute grid grid-cols-5 items-center px-[2cqw]"
+                  className="absolute grid grid-cols-6 items-center px-[1.5cqw]"
                   style={caixa(atrib)}
                 >
-                  {atributos.slice(0, 5).map(({ sigla: label, valor }) => (
+                  {atributos.slice(0, 6).map(({ sigla: label, valor }) => (
                     <div key={label} className="text-center">
                       <p
                         className={cn("leading-none font-extrabold tabular-nums", cor)}
-                        style={{ fontSize: "6.4cqw" }}
+                        style={{ fontSize: "5.6cqw" }}
                       >
                         <NumeroAnimado valor={valor} />
                       </p>
                       <p
-                        className={cn("mt-[1cqw] font-semibold tracking-wider opacity-80", cor)}
-                        style={{ fontSize: "3cqw" }}
+                        className={cn("mt-[1cqw] font-semibold tracking-wide opacity-80", cor)}
+                        style={{ fontSize: "2.6cqw" }}
                       >
                         {label}
                       </p>

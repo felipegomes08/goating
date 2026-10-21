@@ -168,8 +168,10 @@ export type Database = {
           jogo_pes: number | null
           reflexo: number | null
           reposicao: number | null
+          saida_gol: number | null
           comportamento: number | null
           criado_em: string
+          cruzamento: number | null
           drible: number | null
           controle: number | null
           desarme: number | null
@@ -198,8 +200,10 @@ export type Database = {
           jogo_pes?: number | null
           reflexo?: number | null
           reposicao?: number | null
+          saida_gol?: number | null
           comportamento?: number | null
           criado_em?: string
+          cruzamento?: number | null
           drible?: number | null
           controle?: number | null
           desarme?: number | null
@@ -228,8 +232,10 @@ export type Database = {
           jogo_pes?: number | null
           reflexo?: number | null
           reposicao?: number | null
+          saida_gol?: number | null
           comportamento?: number | null
           criado_em?: string
+          cruzamento?: number | null
           drible?: number | null
           controle?: number | null
           desarme?: number | null
@@ -955,6 +961,7 @@ export type Database = {
         Returns: {
           comportamento: number
           controle: number
+          cruzamento: number
           desarme: number
           drible: number
           elasticidade: number
@@ -968,6 +975,7 @@ export type Database = {
           posicionamento_goleiro: number
           reflexo: number
           reposicao: number
+          saida_gol: number
           total: number
           total_goleiro: number
           velocidade: number

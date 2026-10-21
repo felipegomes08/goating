@@ -287,19 +287,20 @@ async function carta(
   );
 
   const atrib = area(visual.layout.atrib);
-  const coluna = (atrib.w * 0.94) / 5;
-  dados.atributos.slice(0, 5).forEach((a, i) => {
-    const cx = atrib.x + atrib.w * 0.03 + coluna * (i + 0.5);
+  // seis notas numa linha: as habilidades da posição (o comportamento fica no radar)
+  const coluna = (atrib.w * 0.96) / 6;
+  dados.atributos.slice(0, 6).forEach((a, i) => {
+    const cx = atrib.x + atrib.w * 0.02 + coluna * (i + 0.5);
     escrever(ctx, String(a.valor), cx, atrib.y + atrib.h * 0.52, {
       peso: 900,
-      tamanho: w * 0.066,
+      tamanho: w * 0.058,
       cor: cores.texto,
       largura: coluna,
       alinhar: "center",
     });
     escrever(ctx, a.sigla, cx, atrib.y + atrib.h * 0.8, {
       peso: 600,
-      tamanho: w * 0.031,
+      tamanho: w * 0.027,
       cor: comAlfa(cores.texto, 0.8),
       largura: coluna,
       alinhar: "center",
