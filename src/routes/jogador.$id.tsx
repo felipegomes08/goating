@@ -4,14 +4,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, UserMinus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/hooks/use-session";
+import { usePerfil, useSession } from "@/hooks/use-session";
 import { useNumerosDoJogador } from "@/hooks/use-numeros-do-jogador";
 import { useVoltar } from "@/hooks/use-voltar";
 import { useAvatarUrl } from "@/hooks/use-avatar";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ComentariosDoJogador } from "@/components/goating/comentarios-do-jogador";
-import { RadarAttrs } from "@/components/goating/radar-attrs";
+import { AtributosDoJogador } from "@/components/goating/atributos-do-jogador";
+import { CompararJogadores } from "@/components/goating/comparar-jogadores";
+import { usePremium } from "@/hooks/use-premium";
 import { SeloPremium } from "@/components/goating/selo-premium";
 import { GaleriaDeMvps } from "@/components/goating/galeria-de-mvps";
 import { capaDe } from "@/lib/capas";
@@ -51,6 +53,8 @@ function JogadorPublico() {
   const voltar = useVoltar(() => void navigate({ to: "/ranking", search: { aba: "cidade" } }));
   const queryClient = useQueryClient();
   const { userId, carregando } = useSession();
+  const { data: meuPerfil } = usePerfil(userId);
+  const { premium: eupremium } = usePremium();
 
   useEffect(() => {
     if (carregando) return;
@@ -167,7 +171,9 @@ function JogadorPublico() {
   const liberado = overallLiberado(perfil.avaliacoes_recebidas);
   const overall = liberado ? Number(perfil.overall) : 0;
   const tier = liberado ? tierPorNome(perfil.tier_reconhecido) : null;
-  const attrs = medias.data ?? atributosZerados(posicao);
+  const attrs = medias.data?.atributos ?? atributosZerados(posicao);
+  // as notas de cada habilidade só aparecem quando o dono do perfil é Premium
+  const notasOcultas = medias.data ? !medias.data.liberadas : !ehPremium(perfil);
   const segue = !!seguindoEste.data;
 
   return (
@@ -202,8 +208,22 @@ function JogadorPublico() {
             cardGeradoUrl={perfil.card_gerado_url}
             avaliacoesRecebidas={perfil.avaliacoes_recebidas}
             moldura={molduraDe(perfil)}
+            notasOcultas={notasOcultas}
           />
         </div>
+
+        {userId && userId !== perfil.id && (
+          <CompararJogadores
+            meuId={userId}
+            premium={eupremium}
+            nome={perfil.nome_exibicao}
+            posicao={posicao}
+            overall={Math.round(overall)}
+            meuOverall={Math.round(Number(meuPerfil?.overall ?? 0))}
+            atributos={attrs}
+            ocultas={notasOcultas}
+          />
+        )}
 
         <Button
           onClick={alternarSeguir}
@@ -284,10 +304,12 @@ function JogadorPublico() {
         {/* a galeria aparece pra visitantes só quando o dono é Premium */}
         {ehPremium(perfil) && <GaleriaDeMvps userId={perfil.id} total={perfil.vezes_mvp} premium />}
 
-        <section className="rounded-2xl bg-primary p-4">
-          <h2 className="mb-2 text-sm font-bold text-primary-foreground">Atributos</h2>
-          <RadarAttrs eixos={attrs.map((a) => ({ label: a.radar, valor: a.valor }))} />
-        </section>
+        <AtributosDoJogador
+          atributos={attrs}
+          ocultas={notasOcultas}
+          proprio={false}
+          nome={perfil.nome_exibicao}
+        />
 
         <ComentariosDoJogador userId={id} proprio={false} />
       </main>

@@ -53,6 +53,8 @@ export type DadosDoCartao = {
    * no lugar dos atributos. `de` é o tier anterior (null = era o primeiro).
    */
   conquista?: { de: TierNome | null } | undefined;
+  /** o dono não é Premium: as notas de cada habilidade saem como "??" */
+  notasOcultas?: boolean | undefined;
   /** moldura Premium em volta da carta (só de quem é Premium) */
   moldura?: MolduraId | null | undefined;
 };
@@ -320,7 +322,7 @@ async function carta(
   const coluna = (atrib.w * 0.96) / 6;
   dados.atributos.slice(0, 6).forEach((a, i) => {
     const cx = atrib.x + atrib.w * 0.02 + coluna * (i + 0.5);
-    escrever(ctx, String(a.valor), cx, atrib.y + atrib.h * 0.52, {
+    escrever(ctx, dados.notasOcultas ? "??" : String(a.valor), cx, atrib.y + atrib.h * 0.52, {
       peso: 900,
       tamanho: w * 0.058,
       cor: cores.texto,
@@ -591,14 +593,18 @@ export async function desenharCartao(dados: DadosDoCartao): Promise<HTMLCanvasEl
     ctx.strokeStyle = "rgba(255,255,255,0.1)";
     ctx.lineWidth = 2;
     ctx.stroke();
-    radar(ctx, dados.atributos, MARGEM + 196, y + alturaPainel / 2 + 4, 112, cores.brilho);
+    // sem Premium as notas não saem: teia e barras ficam num formato neutro, valores "??"
+    const atributos = dados.notasOcultas
+      ? dados.atributos.map((a) => ({ ...a, valor: 50 }))
+      : dados.atributos;
+    radar(ctx, atributos, MARGEM + 196, y + alturaPainel / 2 + 4, 112, cores.brilho);
 
-    const melhor = Math.max(...dados.atributos.map((a) => a.valor));
+    const melhor = dados.notasOcultas ? -1 : Math.max(...atributos.map((a) => a.valor));
     const xRotulo = MARGEM + 410;
     const xBarra = xRotulo + 172;
     const xValor = LARGURA - MARGEM - 30;
     const larguraBarra = xValor - 76 - xBarra;
-    dados.atributos.forEach((a, i) => {
+    atributos.forEach((a, i) => {
       const valor = a.valor;
       const base = y + 62 + i * 40;
       const topo = valor === melhor && valor > 0;
@@ -626,7 +632,7 @@ export async function desenharCartao(dados: DadosDoCartao): Promise<HTMLCanvasEl
         );
         ctx.fill();
       }
-      escrever(ctx, String(valor), xValor, base + 2, {
+      escrever(ctx, dados.notasOcultas ? "??" : String(valor), xValor, base + 2, {
         peso: 900,
         tamanho: 30,
         cor: topo ? cores.texto : BRANCO,

@@ -1047,6 +1047,7 @@ export type Database = {
           jogo_pes: number;
           marcacao: number;
           nota_geral: number;
+          notas_liberadas: boolean;
           passe: number;
           posicionamento_goleiro: number;
           reflexo: number;
@@ -1058,6 +1059,7 @@ export type Database = {
           visao: number;
         }[];
       };
+      raio_x_do_jogador: { Args: never; Returns: Json };
       remover_da_turma: { Args: { p_member_id: string }; Returns: undefined };
       sair_da_turma: { Args: { p_crew_id: string }; Returns: undefined };
       salvar_placar: {

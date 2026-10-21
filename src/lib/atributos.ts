@@ -115,7 +115,8 @@ export const atributosZerados = (posicao: string | null | undefined): AtributoEx
 /**
  * Médias do radar/carta de um jogador, nas notas da posição dele. Vêm prontas do banco
  * (função `medias_do_jogador`): as avaliações são privadas, ninguém lê a nota que cada
- * pessoa deu.
+ * pessoa deu. As notas de cada habilidade só vêm quando o dono é Premium (`liberadas`);
+ * sem isso a tela mostra só o overall e esconde as notas.
  *
  * Avaliação rápida grava só a nota geral, e o jogador pode ter sido avaliado em outra
  * posição: nota sem nenhum valor próprio mostra a média das notas gerais.
@@ -123,18 +124,22 @@ export const atributosZerados = (posicao: string | null | undefined): AtributoEx
 export async function carregarMedias(
   userId: string,
   posicao: string | null | undefined,
-): Promise<AtributoExibido[]> {
+): Promise<{ atributos: AtributoExibido[]; liberadas: boolean }> {
   const { data, error } = await supabase.rpc("medias_do_jogador", { p_user_id: userId });
   if (error) throw error;
-  const medias = data[0] as Record<string, number | null> | undefined;
+  const medias = data[0] as Record<string, number | boolean | null> | undefined;
+  const liberadas = medias?.["notas_liberadas"] === true;
   if (!medias || Number(medias["total"]) === 0 || medias["nota_geral"] == null) {
-    return atributosZerados(posicao);
+    return { atributos: atributosZerados(posicao), liberadas };
   }
   const geral = Number(medias["nota_geral"]);
   const goleiro = ehGoleiro(posicao);
-  return atributosDe(posicao).map((a) => {
-    // "posicionamento" de goleiro vem numa coluna própria
-    const coluna = goleiro && a.chave === "posicionamento" ? "posicionamento_goleiro" : a.chave;
-    return { ...a, valor: paraEscalaCard(Number(medias[coluna] ?? geral)) };
-  });
+  return {
+    liberadas,
+    atributos: atributosDe(posicao).map((a) => {
+      // "posicionamento" de goleiro vem numa coluna própria
+      const coluna = goleiro && a.chave === "posicionamento" ? "posicionamento_goleiro" : a.chave;
+      return { ...a, valor: paraEscalaCard(Number(medias[coluna] ?? geral)) };
+    }),
+  };
 }

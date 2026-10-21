@@ -21,7 +21,8 @@ import { molduraDe, molduraPorId, type MolduraId } from "@/lib/molduras";
 import { ehPremium } from "@/lib/premium";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ProgressoTier } from "@/components/goating/progresso-tier";
-import { RadarAttrs } from "@/components/goating/radar-attrs";
+import { AtributosDoJogador } from "@/components/goating/atributos-do-jogador";
+import { RaioXDoJogador } from "@/components/goating/raio-x";
 import { atributosZerados, carregarMedias } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -250,7 +251,7 @@ function Perfil() {
     ? tierPorNome(perfil.tier_reconhecido)
     : null;
 
-  const attrs = medias.data ?? atributosZerados(posicaoDaCarta);
+  const attrs = medias.data?.atributos ?? atributosZerados(posicaoDaCarta);
 
   async function revelarTier() {
     setAbrindo(true);
@@ -278,7 +279,11 @@ function Perfil() {
   const moldura = previa ? molduraPorId(previa.moldura) : molduraDe(perfil);
   const capa = previa ? capaPorId(previa.capa) : capaDe(perfil);
 
+  // as notas de cada habilidade só aparecem pra quem é Premium
+  const notasOcultas = medias.data ? !medias.data.liberadas : !premium;
+
   const dadosDoCartao = {
+    notasOcultas,
     moldura: salvo.moldura,
     nome: perfil.nome_exibicao,
     nick: perfil.handle,
@@ -330,6 +335,7 @@ function Perfil() {
             abrindo={abrindo}
             onRevelar={revelarTier}
             moldura={moldura}
+            notasOcultas={notasOcultas}
           />
         </div>
 
@@ -446,10 +452,14 @@ function Perfil() {
 
         {userId && <GaleriaDeMvps userId={userId} total={perfil.vezes_mvp} premium={premium} />}
 
-        <section className="rounded-2xl bg-primary p-4">
-          <h2 className="mb-2 text-sm font-bold text-primary-foreground">Atributos</h2>
-          <RadarAttrs eixos={attrs.map((a) => ({ label: a.radar, valor: a.valor }))} />
-        </section>
+        <AtributosDoJogador
+          atributos={attrs}
+          ocultas={notasOcultas}
+          proprio
+          nome={perfil.nome_exibicao}
+        />
+
+        {userId && <RaioXDoJogador userId={userId} posicao={posicaoDaCarta} premium={premium} />}
 
         {userId && <ComentariosDoJogador userId={userId} proprio />}
 
@@ -655,6 +665,7 @@ function Perfil() {
               cardGeradoUrl={perfil.card_gerado_url}
               avaliacoesRecebidas={perfil.avaliacoes_recebidas}
               moldura={moldura}
+              notasOcultas={notasOcultas}
             />
           </div>
           <div

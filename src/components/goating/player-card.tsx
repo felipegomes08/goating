@@ -40,6 +40,7 @@ export function PlayerCard({
   onRevelar,
   interativa = true,
   moldura = null,
+  notasOcultas = false,
 }: {
   nome: string;
   posicao: string | null;
@@ -60,6 +61,8 @@ export function PlayerCard({
   interativa?: boolean;
   /** Moldura Premium em volta da carta (null = sem moldura). */
   moldura?: Moldura | null;
+  /** O dono não é Premium: as notas de cada habilidade aparecem como "??" borrado. */
+  notasOcultas?: boolean;
 }) {
   const [cacheUrl, setCacheUrl] = useState<string | null>(null);
   const bloqueado = avaliacoesFaltando(avaliacoesRecebidas) > 0;
@@ -182,7 +185,11 @@ export function PlayerCard({
                         className={cn("leading-none font-extrabold tabular-nums", cor)}
                         style={{ fontSize: "5.6cqw" }}
                       >
-                        <NumeroAnimado valor={valor} />
+                        {notasOcultas ? (
+                          <span className="blur-[1.2cqw] select-none">??</span>
+                        ) : (
+                          <NumeroAnimado valor={valor} />
+                        )}
                       </p>
                       <p
                         className={cn("mt-[1cqw] font-semibold tracking-wide opacity-80", cor)}
