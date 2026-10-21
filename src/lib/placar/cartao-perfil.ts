@@ -26,6 +26,7 @@ import {
   tierSeguinte,
 } from "@/lib/tiers";
 import { hostDoSite } from "@/lib/site";
+import { molduraPorId, type MolduraId } from "@/lib/molduras";
 
 export type DadosDoCartao = {
   nome: string;
@@ -52,6 +53,8 @@ export type DadosDoCartao = {
    * no lugar dos atributos. `de` é o tier anterior (null = era o primeiro).
    */
   conquista?: { de: TierNome | null } | undefined;
+  /** moldura Premium em volta da carta (só de quem é Premium) */
+  moldura?: MolduraId | null | undefined;
 };
 
 const ALTURA = 1920;
@@ -201,6 +204,32 @@ async function carta(
   ctx.fillStyle = chao;
   ctx.fillRect(x - w * 0.3, y + h + 26 - w, w * 1.6, w * 2);
   ctx.restore();
+
+  const moldura = molduraPorId(dados.moldura);
+  if (molde && moldura) {
+    // moldura Premium: a silhueta do molde um pouco maior, pintada com o degradê da moldura,
+    // atrás da carta e com brilho na cor dela (igual à camada de trás da carta do app)
+    const mw = w * 1.06;
+    const mh = h * 1.045;
+    const tela = document.createElement("canvas");
+    tela.width = Math.ceil(mw);
+    tela.height = Math.ceil(mh);
+    const c = tela.getContext("2d");
+    if (c) {
+      c.drawImage(molde, 0, 0, mw, mh);
+      c.globalCompositeOperation = "source-in";
+      const degrade = c.createLinearGradient(0, 0, mw, mh);
+      moldura.cores.forEach((cor, i) => degrade.addColorStop(i / (moldura.cores.length - 1), cor));
+      c.fillStyle = degrade;
+      c.fillRect(0, 0, mw, mh);
+      ctx.save();
+      ctx.shadowColor = comAlfa(moldura.brilho, 0.95);
+      ctx.shadowBlur = 70;
+      ctx.drawImage(tela, x - (mw - w) / 2, y - (mh - h) / 2);
+      ctx.drawImage(tela, x - (mw - w) / 2, y - (mh - h) / 2);
+      ctx.restore();
+    }
+  }
 
   if (molde) {
     // primeira passada só pelo brilho em volta; a foto entra depois e o molde fecha por cima

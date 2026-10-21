@@ -737,6 +737,7 @@ export type Database = {
         Row: {
           avaliacoes_recebidas: number;
           bio: string | null;
+          capa: string | null;
           card_gerado_url: string | null;
           cidade: string | null;
           criado_em: string;
@@ -744,11 +745,13 @@ export type Database = {
           foto_url: string | null;
           handle: string | null;
           id: string;
+          moldura: string | null;
           nome_exibicao: string;
           overall: number;
           peladas_jogadas: number;
           perfil_completo: boolean;
           plano: string;
+          premium_ate: string | null;
           posicao_preferida: string | null;
           push_desligados: string[];
           tier_pendente: string | null;
@@ -759,6 +762,7 @@ export type Database = {
         Insert: {
           avaliacoes_recebidas?: number;
           bio?: string | null;
+          capa?: string | null;
           card_gerado_url?: string | null;
           cidade?: string | null;
           criado_em?: string;
@@ -766,11 +770,13 @@ export type Database = {
           foto_url?: string | null;
           handle?: string | null;
           id: string;
+          moldura?: string | null;
           nome_exibicao: string;
           overall?: number;
           peladas_jogadas?: number;
           perfil_completo?: boolean;
           plano?: string;
+          premium_ate?: string | null;
           posicao_preferida?: string | null;
           push_desligados?: string[];
           tier_pendente?: string | null;
@@ -781,6 +787,7 @@ export type Database = {
         Update: {
           avaliacoes_recebidas?: number;
           bio?: string | null;
+          capa?: string | null;
           card_gerado_url?: string | null;
           cidade?: string | null;
           criado_em?: string;
@@ -788,11 +795,13 @@ export type Database = {
           foto_url?: string | null;
           handle?: string | null;
           id?: string;
+          moldura?: string | null;
           nome_exibicao?: string;
           overall?: number;
           peladas_jogadas?: number;
           perfil_completo?: boolean;
           plano?: string;
+          premium_ate?: string | null;
           posicao_preferida?: string | null;
           push_desligados?: string[];
           tier_pendente?: string | null;
@@ -807,6 +816,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      eh_premium: { Args: { p_user: string }; Returns: boolean };
       esquecer_dispositivo: { Args: { p_token: string }; Returns: undefined };
       registrar_dispositivo: {
         Args: { p_token: string; p_plataforma?: string };

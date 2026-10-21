@@ -3,6 +3,8 @@ import { Gift, Lock, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useContador } from "@/hooks/use-contador";
 import { cn } from "@/lib/utils";
+import type { Moldura } from "@/lib/molduras";
+import { EfeitosDaMoldura, MolduraDaCarta } from "@/components/goating/moldura-da-carta";
 import { type CaixaCarta, type TierConfig, TIERS, avaliacoesFaltando } from "@/lib/tiers";
 
 /** Posiciona um elemento numa área do molde (em %), com folga opcional em cada lado. */
@@ -37,6 +39,7 @@ export function PlayerCard({
   revelando = false,
   onRevelar,
   interativa = true,
+  moldura = null,
 }: {
   nome: string;
   posicao: string | null;
@@ -55,6 +58,8 @@ export function PlayerCard({
   onRevelar?: () => void;
   /** Inclina seguindo o dedo/mouse, flutua e tem brilho holográfico. */
   interativa?: boolean;
+  /** Moldura Premium em volta da carta (null = sem moldura). */
+  moldura?: Moldura | null;
 }) {
   const [cacheUrl, setCacheUrl] = useState<string | null>(null);
   const bloqueado = avaliacoesFaltando(avaliacoesRecebidas) > 0;
@@ -112,8 +117,9 @@ export function PlayerCard({
           onPointerMove={inclinar}
           onPointerLeave={soltar}
           onPointerCancel={soltar}
-          className={cn("carta-tilt", interativa && "carta-tilt-ativa")}
+          className={cn("carta-tilt relative", interativa && "carta-tilt-ativa")}
         >
+          {moldura && !cacheUrl && <MolduraDaCarta moldura={moldura} molde={visual.molde} />}
           {/* @container: os textos usam cqw pra escalar junto com a largura da carta */}
           <div className="@container relative aspect-[1086/1448] overflow-hidden rounded-2xl">
             {cacheUrl ? (
@@ -212,6 +218,7 @@ export function PlayerCard({
               </>
             )}
           </div>
+          {moldura && !cacheUrl && <EfeitosDaMoldura moldura={moldura} />}
         </div>
       </div>
 

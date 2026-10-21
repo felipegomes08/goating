@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { carregarElenco, compartilhar } from "@/lib/placar/dados";
 import { FolhaPoster } from "@/components/goating/folha-poster";
+import { SeloPremium } from "@/components/goating/selo-premium";
+import { usePremiums } from "@/hooks/use-premiums";
 import {
   campeoesDoDia,
   corDoTime,
@@ -49,6 +51,8 @@ function ResumoDaPelada() {
       return peladaRes.data ? { pelada: peladaRes.data, jogos: jogosRes.data, elenco } : null;
     },
   });
+  // quem é Premium sai com a coroa no resumo e com o nome dourado no pôster
+  const premiums = usePremiums(consulta.data?.elenco.map((j) => j.userId) ?? []);
 
   if (carregando || consulta.isLoading) {
     return (
@@ -153,7 +157,11 @@ function ResumoDaPelada() {
           empates: l.empates,
           derrotas: l.derrotas,
         })),
-    artilharia: artilharia.map((j) => ({ nome: j.nome, gols: j.gols })),
+    artilharia: artilharia.map((j) => ({
+      nome: j.nome,
+      gols: j.gols,
+      premium: !!j.userId && premiums.has(j.userId),
+    })),
   };
 
   async function compartilharResumo() {
@@ -244,7 +252,10 @@ function ResumoDaPelada() {
                   ) : (
                     <span className="size-4 shrink-0" />
                   )}
-                  <span className="min-w-0 flex-1 truncate font-semibold">{j.nome}</span>
+                  <span className="flex min-w-0 flex-1 items-center gap-1">
+                    <span className="truncate font-semibold">{j.nome}</span>
+                    {j.userId && premiums.has(j.userId) && <SeloPremium />}
+                  </span>
                   {j.time !== null && (
                     <span
                       className={cn("text-[10px] font-bold uppercase", corDoTime(j.time).texto)}

@@ -461,6 +461,141 @@
   animation: xp-brilho 2.4s ease-in-out infinite;
 }
 
+/* Molduras Premium da carta (src/lib/molduras.ts): a silhueta do molde um pouco maior, atrás
+   da carta, pintada com um degradê que gira, mais brilho e partículas. */
+@property --moldura-ang {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes moldura-giro {
+  to {
+    --moldura-ang: 360deg;
+  }
+}
+
+@keyframes moldura-pulso {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px var(--moldura-brilho)) drop-shadow(0 0 18px var(--moldura-brilho));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px var(--moldura-brilho)) drop-shadow(0 0 30px var(--moldura-brilho));
+  }
+}
+
+.moldura-brilho {
+  animation: moldura-pulso 2.6s ease-in-out infinite;
+}
+
+.moldura-borda {
+  transform: scale(1.06, 1.045);
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
+  background: conic-gradient(from var(--moldura-ang), var(--moldura-cores));
+  animation: moldura-giro 4s linear infinite;
+}
+
+.moldura-neon {
+  animation-duration: 2s;
+}
+
+.moldura-fogo {
+  background: linear-gradient(0deg, var(--moldura-cores));
+  background-size: 100% 300%;
+  animation: moldura-chama 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes moldura-chama {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 0% 100%;
+  }
+}
+
+.moldura-particula {
+  position: absolute;
+  border-radius: 9999px;
+  animation: particula-sobe linear infinite;
+}
+
+.moldura-particula-faisca {
+  background: #fff3b0;
+  box-shadow: 0 0 6px #f7d774;
+}
+
+.moldura-particula-brasa {
+  background: #ffb300;
+  box-shadow: 0 0 8px #ff3d00;
+}
+
+.moldura-particula-neve {
+  background: #ffffff;
+  box-shadow: 0 0 6px #81d4fa;
+}
+
+/* Estádio: dois refletores no alto, varrendo a carta. */
+@keyframes moldura-refletor {
+  0%,
+  100% {
+    transform: rotate(-14deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+}
+
+.moldura-refletor {
+  position: absolute;
+  top: -10%;
+  width: 22%;
+  height: 75%;
+  transform-origin: 50% 0%;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.55), transparent 85%);
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+  mix-blend-mode: screen;
+  animation: moldura-refletor 5s ease-in-out infinite;
+}
+
+.moldura-refletor-direita {
+  animation-delay: -2.5s;
+}
+
+/* Revelação de tier de quem é Premium: confete caindo. */
+@keyframes confete-cai {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(540deg);
+    opacity: 0.8;
+  }
+}
+
+.confete {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: confete-cai linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .moldura-brilho,
+  .moldura-borda,
+  .moldura-particula,
+  .moldura-refletor,
+  .confete {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-card-float,
   .carta-brilho,

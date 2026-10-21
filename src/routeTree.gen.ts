@@ -16,6 +16,7 @@ import { Route as CriarRouteImport } from './routes/criar'
 import { Route as MinhasPartidasRouteImport } from './routes/minhas-partidas'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
 import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as RankingRouteImport } from './routes/ranking'
 import { Route as RedeRouteImport } from './routes/rede'
@@ -64,6 +65,11 @@ const NotificacoesRoute = NotificacoesRouteImport.update({
 const PerfilRoute = PerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PremiumRoute = PremiumRouteImport.update({
+  id: '/premium',
+  path: '/premium',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/minhas-partidas': typeof MinhasPartidasRoute
   '/notificacoes': typeof NotificacoesRoute
   '/perfil': typeof PerfilRoute
+  '/premium': typeof PremiumRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/minhas-partidas': typeof MinhasPartidasRoute
   '/notificacoes': typeof NotificacoesRoute
   '/perfil': typeof PerfilRoute
+  '/premium': typeof PremiumRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/minhas-partidas': typeof MinhasPartidasRoute
   '/notificacoes': typeof NotificacoesRoute
   '/perfil': typeof PerfilRoute
+  '/premium': typeof PremiumRoute
   '/privacidade': typeof PrivacidadeRoute
   '/ranking': typeof RankingRoute
   '/rede': typeof RedeRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/minhas-partidas'
     | '/notificacoes'
     | '/perfil'
+    | '/premium'
     | '/privacidade'
     | '/ranking'
     | '/rede'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/minhas-partidas'
     | '/notificacoes'
     | '/perfil'
+    | '/premium'
     | '/privacidade'
     | '/ranking'
     | '/rede'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/minhas-partidas'
     | '/notificacoes'
     | '/perfil'
+    | '/premium'
     | '/privacidade'
     | '/ranking'
     | '/rede'
@@ -287,6 +299,7 @@ export interface RootRouteChildren {
   MinhasPartidasRoute: typeof MinhasPartidasRoute
   NotificacoesRoute: typeof NotificacoesRoute
   PerfilRoute: typeof PerfilRoute
+  PremiumRoute: typeof PremiumRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   RankingRoute: typeof RankingRoute
   RedeRoute: typeof RedeRoute
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/perfil'
       preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/premium': {
+      id: '/premium'
+      path: '/premium'
+      fullPath: '/premium'
+      preLoaderRoute: typeof PremiumRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidade': {
@@ -463,6 +483,7 @@ const rootRouteChildren: RootRouteChildren = {
   MinhasPartidasRoute: MinhasPartidasRoute,
   NotificacoesRoute: NotificacoesRoute,
   PerfilRoute: PerfilRoute,
+  PremiumRoute: PremiumRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   RankingRoute: RankingRoute,
   RedeRoute: RedeRoute,

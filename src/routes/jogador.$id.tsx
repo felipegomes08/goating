@@ -12,6 +12,11 @@ import { BottomNav } from "@/components/goating/bottom-nav";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ComentariosDoJogador } from "@/components/goating/comentarios-do-jogador";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
+import { SeloPremium } from "@/components/goating/selo-premium";
+import { GaleriaDeMvps } from "@/components/goating/galeria-de-mvps";
+import { capaDe } from "@/lib/capas";
+import { molduraDe } from "@/lib/molduras";
+import { ehPremium } from "@/lib/premium";
 import { atributosZerados, carregarMedias } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -167,7 +172,10 @@ function JogadorPublico() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
-      <header className="bg-primary px-4 pt-6 pb-8">
+      <header
+        className="bg-primary px-4 pt-6 pb-8"
+        style={capaDe(perfil) ? { background: capaDe(perfil)!.fundo } : undefined}
+      >
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
@@ -177,8 +185,9 @@ function JogadorPublico() {
           >
             <ArrowLeft className="size-4" /> Voltar
           </Button>
-          <h1 className="truncate text-lg font-bold text-primary-foreground">
-            {perfil.nome_exibicao}
+          <h1 className="flex min-w-0 items-center gap-1.5 text-lg font-bold text-primary-foreground">
+            <span className="truncate">{perfil.nome_exibicao}</span>
+            {ehPremium(perfil) && <SeloPremium className="size-4" />}
           </h1>
         </div>
 
@@ -192,6 +201,7 @@ function JogadorPublico() {
             tier={tier}
             cardGeradoUrl={perfil.card_gerado_url}
             avaliacoesRecebidas={perfil.avaliacoes_recebidas}
+            moldura={molduraDe(perfil)}
           />
         </div>
 
@@ -270,6 +280,9 @@ function JogadorPublico() {
           </p>
           {perfil.bio && <p className="mt-2 text-xs text-muted-foreground">{perfil.bio}</p>}
         </section>
+
+        {/* a galeria aparece pra visitantes só quando o dono é Premium */}
+        {ehPremium(perfil) && <GaleriaDeMvps userId={perfil.id} total={perfil.vezes_mvp} premium />}
 
         <section className="rounded-2xl bg-primary p-4">
           <h2 className="mb-2 text-sm font-bold text-primary-foreground">Atributos</h2>

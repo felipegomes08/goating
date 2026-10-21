@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { TIERS, overallLiberado, tierPorNome } from "@/lib/tiers";
 import { TierBadge } from "@/components/goating/tier-badge";
 import { PosicaoBadge } from "@/components/goating/posicao-badge";
+import { SeloPremium } from "@/components/goating/selo-premium";
+import { ehPremium } from "@/lib/premium";
 
 export type JogadorResumo = {
   id: string;
@@ -19,6 +21,9 @@ export type JogadorResumo = {
   avaliacoes_recebidas: number;
   posicao_preferida?: string | null;
   vezes_mvp?: number;
+  /** pra coroa de Premium ao lado do nome (sem eles, não aparece) */
+  plano?: string | null;
+  premium_ate?: string | null;
 };
 
 type Props = {
@@ -85,6 +90,7 @@ export function JogadorItem({ jogador, posicao, seguindo, onAlternarSeguir, ocup
             <span className="truncate text-sm font-extrabold text-foreground">
               {jogador.nome_exibicao}
             </span>
+            {ehPremium(jogador) && <SeloPremium />}
             <PosicaoBadge posicao={jogador.posicao_preferida} />
           </span>
           <span className="block truncate text-xs text-muted-foreground">

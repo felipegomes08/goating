@@ -18,6 +18,7 @@ import {
 } from "@/lib/placar/poster";
 import { TIERS, type TierNome, tierPorNome } from "@/lib/tiers";
 import { hostDoSite } from "@/lib/site";
+import { molduraPorId, type MolduraId } from "@/lib/molduras";
 
 export type DadosDoMvp = {
   nome: string;
@@ -43,7 +44,73 @@ export type DadosDoMvp = {
   /** dia da pelada, "aaaa-mm-dd" */
   data: string;
   turma: string | null;
+  /** MVP Premium: o cartão ganha a moldura dele e o selo dos MVPs marcantes (5º, 10º, 20º...) */
+  premium?: boolean | undefined;
+  moldura?: MolduraId | null | undefined;
 };
+
+/** MVPs que viram cartão especial (só pra quem é Premium). */
+export const MVPS_MARCANTES = [5, 10, 20, 50, 100];
+
+/** Moldura Premium em volta do cartão inteiro, com brilho na cor dela. */
+function molduraDoCartao(ctx: Ctx, id: MolduraId) {
+  const moldura = molduraPorId(id);
+  if (!moldura) return;
+  const degrade = ctx.createLinearGradient(0, 0, LARGURA, ALTURA);
+  moldura.cores.forEach((cor, i) => degrade.addColorStop(i / (moldura.cores.length - 1), cor));
+  ctx.save();
+  ctx.strokeStyle = degrade;
+  ctx.shadowColor = comAlfa(moldura.brilho, 0.9);
+  ctx.shadowBlur = 40;
+  ctx.lineWidth = 18;
+  retanguloArredondado(ctx, 22, 22, LARGURA - 44, ALTURA - 44, 48);
+  ctx.stroke();
+  ctx.lineWidth = 4;
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = comAlfa("#FFFFFF", 0.6);
+  retanguloArredondado(ctx, 40, 40, LARGURA - 80, ALTURA - 80, 34);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Medalhão dourado do MVP marcante ("10º MVP"), no canto de cima. */
+function medalhao(ctx: Ctx, mvps: number) {
+  const x = LARGURA - MARGEM - 110;
+  const y = 300;
+  const raio = 104;
+  ctx.save();
+  ctx.shadowColor = comAlfa("#F7D774", 0.9);
+  ctx.shadowBlur = 50;
+  const ouro = ctx.createLinearGradient(x - raio, y - raio, x + raio, y + raio);
+  ouro.addColorStop(0, "#FFF3B0");
+  ouro.addColorStop(0.5, "#E9B93A");
+  ouro.addColorStop(1, "#8A6A12");
+  ctx.fillStyle = ouro;
+  ctx.beginPath();
+  ctx.arc(x, y, raio, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = "#FFF3B0";
+  ctx.beginPath();
+  ctx.arc(x, y, raio - 14, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+  escrever(ctx, `${mvps}º`, x, y + 22, {
+    peso: 900,
+    tamanho: 84,
+    cor: "#3A2A05",
+    largura: raio * 1.5,
+    alinhar: "center",
+  });
+  escrever(ctx, "MVP", x, y + 62, {
+    peso: 900,
+    tamanho: 30,
+    cor: "#3A2A05",
+    largura: raio * 1.2,
+    alinhar: "center",
+  });
+}
 
 const ALTURA = 1920;
 /** até onde vai a foto */
@@ -397,6 +464,9 @@ export async function desenharCartaoMvp(dados: DadosDoMvp): Promise<HTMLCanvasEl
     largura: util * 0.38,
     alinhar: "right",
   });
+
+  if (dados.premium && MVPS_MARCANTES.includes(dados.mvps)) medalhao(ctx, dados.mvps);
+  if (dados.premium && dados.moldura) molduraDoCartao(ctx, dados.moldura);
 
   return canvas;
 }

@@ -59,7 +59,7 @@ export const Route = createFileRoute("/ranking")({
 });
 
 const CAMPOS =
-  "id, nome_exibicao, handle, cidade, foto_url, overall, peladas_jogadas, xp, tier_reconhecido, avaliacoes_recebidas, posicao_preferida, vezes_mvp";
+  "id, nome_exibicao, handle, cidade, foto_url, overall, peladas_jogadas, xp, tier_reconhecido, avaliacoes_recebidas, posicao_preferida, vezes_mvp, plano, premium_ate";
 
 /**
  * Ordem do ranking: primeiro a cartinha (o tier que aparece na tela), depois XP, depois

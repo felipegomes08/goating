@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, LogOut, Pencil, Share2, Users } from "lucide-react";
+import { Camera, Crown, LogOut, Pencil, Share2, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { esquecerPushNoApp } from "@/lib/nativo";
@@ -14,6 +14,11 @@ import { ComentariosDoJogador } from "@/components/goating/comentarios-do-jogado
 import { ExcluirConta } from "@/components/goating/excluir-conta";
 import { FolhaCartao } from "@/components/goating/folha-cartao";
 import { AuraTier } from "@/components/goating/aura-tier";
+import { GaleriaDeMvps } from "@/components/goating/galeria-de-mvps";
+import { FolhaPersonalizar, type Previa } from "@/components/goating/folha-personalizar";
+import { capaDe, capaPorId, type CapaId } from "@/lib/capas";
+import { molduraDe, molduraPorId, type MolduraId } from "@/lib/molduras";
+import { ehPremium } from "@/lib/premium";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ProgressoTier } from "@/components/goating/progresso-tier";
 import { RadarAttrs } from "@/components/goating/radar-attrs";
@@ -70,6 +75,9 @@ function Perfil() {
   const [conquista, setConquista] = useState<{ de: TierNome | null } | null>(null);
   const [compartilhandoConquista, setCompartilhandoConquista] = useState(false);
   const [compartilhando, setCompartilhando] = useState(false);
+  const [personalizando, setPersonalizando] = useState(false);
+  // o que a pessoa está experimentando na folha de personalizar (null = o que está salvo)
+  const [previa, setPrevia] = useState<Previa | null>(null);
 
   useEffect(() => {
     if (!carregando && !userId) navigate({ to: "/auth", replace: true });
@@ -262,7 +270,16 @@ function Perfil() {
     setConquista({ de: anterior });
   }
 
+  const premium = ehPremium(perfil);
+  const salvo: Previa = {
+    moldura: (molduraDe(perfil)?.id ?? null) as MolduraId | null,
+    capa: (capaDe(perfil)?.id ?? null) as CapaId | null,
+  };
+  const moldura = previa ? molduraPorId(previa.moldura) : molduraDe(perfil);
+  const capa = previa ? capaPorId(previa.capa) : capaDe(perfil);
+
   const dadosDoCartao = {
+    moldura: salvo.moldura,
     nome: perfil.nome_exibicao,
     nick: perfil.handle,
     cidade: perfil.cidade,
@@ -283,7 +300,7 @@ function Perfil() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <header className="relative isolate overflow-hidden bg-primary px-4 pt-6 pb-8">
-        <AuraTier tier={tier} />
+        <AuraTier tier={tier} fundo={capa?.fundo} />
         <div className="relative flex items-center justify-between">
           <h1 className="text-lg font-bold text-primary-foreground">Meu perfil</h1>
           <span className="ml-auto mr-1">
@@ -312,10 +329,11 @@ function Perfil() {
             recompensaPendente={!!perfil.tier_pendente}
             abrindo={abrindo}
             onRevelar={revelarTier}
+            moldura={moldura}
           />
         </div>
 
-        <div className="relative mt-4 flex justify-center gap-2">
+        <div className="relative mt-4 flex flex-wrap justify-center gap-2">
           <label className="flex cursor-pointer items-center gap-2 rounded-full bg-mint/15 px-3 py-1.5 text-xs font-semibold text-mint">
             <Camera className="size-4" />
             Trocar foto
@@ -340,6 +358,21 @@ function Perfil() {
               Compartilhar
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setPersonalizando(true)}
+            className="flex items-center gap-1.5 rounded-full bg-tier-ouro/20 px-3 py-1.5 text-xs font-bold text-tier-ouro"
+          >
+            <Sparkles className="size-4" />
+            Personalizar
+          </button>
+          <Link
+            to="/premium"
+            className="flex items-center gap-1.5 rounded-full bg-tier-ouro/20 px-3 py-1.5 text-xs font-bold text-tier-ouro"
+          >
+            <Crown className="size-4 fill-tier-ouro" />
+            Premium
+          </Link>
         </div>
       </header>
 
@@ -410,6 +443,8 @@ function Perfil() {
           avaliacoes={perfil.avaliacoes_recebidas}
           recompensaPendente={!!perfil.tier_pendente}
         />
+
+        {userId && <GaleriaDeMvps userId={userId} total={perfil.vezes_mvp} premium={premium} />}
 
         <section className="rounded-2xl bg-primary p-4">
           <h2 className="mb-2 text-sm font-bold text-primary-foreground">Atributos</h2>
@@ -541,6 +576,20 @@ function Perfil() {
 
       <BottomNav />
 
+      {personalizando && userId && (
+        <FolhaPersonalizar
+          userId={userId}
+          premium={premium}
+          atual={salvo}
+          previa={previa ?? salvo}
+          onPrevia={setPrevia}
+          onFechar={() => {
+            setPersonalizando(false);
+            setPrevia(null);
+          }}
+        />
+      )}
+
       {compartilhando && (
         <FolhaCartao
           dados={dadosDoCartao}
@@ -564,6 +613,29 @@ function Perfil() {
               background: `radial-gradient(ellipse 85% 48% at 50% 50%, color-mix(in oklch, ${tier.cor} 42%, transparent), transparent 72%)`,
             }}
           />
+          {/* Premium: raios dourados girando e chuva de confete na revelação */}
+          {premium && (
+            <div
+              aria-hidden
+              className="animate-surgir pointer-events-none absolute inset-0"
+              style={{ animationDelay: "700ms", "--aura": "#F7D774" } as CSSProperties}
+            >
+              <div className="aura-raios" style={{ opacity: 0.7 }} />
+              {Array.from({ length: 28 }, (_, i) => (
+                <span
+                  key={i}
+                  className="confete"
+                  style={{
+                    left: `${(i * 37) % 100}%`,
+                    background: ["#F7D774", "#FFF3B0", "#5EF28E", "#FFFFFF"][i % 4],
+                    animationDuration: `${2.6 + ((i * 7) % 5) * 0.4}s`,
+                    animationDelay: `${0.9 + ((i * 3) % 10) * 0.15}s`,
+                    transform: `rotate(${(i * 47) % 360}deg)`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
           <div className="animate-surgir relative text-center" style={{ animationDelay: "900ms" }}>
             <p className="text-xs font-bold tracking-[0.2em] text-white/60 uppercase">
               Novo tier desbloqueado
@@ -582,6 +654,7 @@ function Perfil() {
               tier={tier}
               cardGeradoUrl={perfil.card_gerado_url}
               avaliacoesRecebidas={perfil.avaliacoes_recebidas}
+              moldura={moldura}
             />
           </div>
           <div

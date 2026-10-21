@@ -8,6 +8,9 @@ import { FolhaCartao } from "@/components/goating/folha-cartao";
 import { Button } from "@/components/ui/button";
 import { gerarCartaoMvp, type DadosDoMvp } from "@/lib/placar/cartao-mvp";
 import { tierPorNome } from "@/lib/tiers";
+import { molduraDe } from "@/lib/molduras";
+import { ehPremium } from "@/lib/premium";
+import { SeloPremium } from "@/components/goating/selo-premium";
 
 /**
  * O MVP da pelada, depois que a janela de avaliação fechou: quem foi, e o cartão dele
@@ -31,7 +34,7 @@ export function DestaqueDoMvp({
         supabase
           .from("profiles")
           .select(
-            "nome_exibicao, handle, posicao_preferida, overall, tier_reconhecido, foto_url, vezes_mvp",
+            "nome_exibicao, handle, posicao_preferida, overall, tier_reconhecido, foto_url, vezes_mvp, plano, premium_ate, moldura",
           )
           .eq("id", mvpId)
           .maybeSingle(),
@@ -83,6 +86,8 @@ export function DestaqueDoMvp({
     pelada: pelada.titulo,
     data: pelada.data,
     turma: consulta.data.turma,
+    premium: ehPremium(perfil),
+    moldura: molduraDe(perfil)?.id ?? null,
   };
   // com foto no perfil, espera o endereço dela ficar pronto pra não gerar o cartão sem a foto
   const pronto = !perfil.foto_url || !!fotoUrl;
@@ -101,8 +106,9 @@ export function DestaqueDoMvp({
           <p className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-tier-ouro">
             <Crown className="size-3.5" /> MVP DA PARTIDA
           </p>
-          <p className="truncate text-lg leading-tight font-extrabold text-foreground">
-            {perfil.nome_exibicao}
+          <p className="flex min-w-0 items-center gap-1.5 text-lg leading-tight font-extrabold text-foreground">
+            <span className="truncate">{perfil.nome_exibicao}</span>
+            {dados.premium && <SeloPremium className="size-4" />}
           </p>
           {dados.nota !== null && (
             <p className="text-xs text-muted-foreground">

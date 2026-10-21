@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePremiums } from "@/hooks/use-premiums";
+import { SeloPremium } from "@/components/goating/selo-premium";
 import { vibrar } from "@/lib/placar/alarme";
 import type { JogadorDoDia } from "@/lib/placar/dados";
 import { corDoTime, nomeDoTime } from "@/lib/placar/estado";
@@ -58,6 +60,7 @@ export function QuadroTimes({
   /** `antesDe`: o jogador que fica logo abaixo de onde soltou; sem ele, vai pro fim do time */
   onMover: (memberId: string, time: number | null, antesDe?: string | null) => void;
 }) {
+  const premiums = usePremiums(jogadores.map((j) => j.userId));
   const [arraste, setArraste] = useState<{
     memberId: string;
     nome: string;
@@ -123,7 +126,10 @@ export function QuadroTimes({
         onClick={() => onTocar(jogador.memberId)}
         className="min-w-0 flex-1 py-2 pl-2.5 text-left"
       >
-        <span className="block truncate">{jogador.nome}</span>
+        <span className="flex min-w-0 items-center gap-1">
+          <span className="truncate">{jogador.nome}</span>
+          {jogador.userId && premiums.has(jogador.userId) && <SeloPremium className="size-3" />}
+        </span>
         <span className="block text-[10px] font-bold text-muted-foreground">
           {etiqueta(jogador, base)}
         </span>

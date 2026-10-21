@@ -5,7 +5,14 @@ import type { TierConfig } from "@/lib/tiers";
  * Fundo do topo do perfil: brilho, raios girando e partículas subindo na cor do tier.
  * Quanto maior o tier, mais partículas e mais forte o brilho.
  */
-export function AuraTier({ tier }: { tier: TierConfig | null }) {
+export function AuraTier({
+  tier,
+  fundo,
+}: {
+  tier: TierConfig | null;
+  /** capa Premium do perfil: troca o fundo verde, mantendo o brilho e as partículas do tier */
+  fundo?: string | undefined;
+}) {
   const cor = tier?.cor ?? "var(--mint)";
   const ordem = tier?.ordem ?? 0;
   const quantidade = 6 + ordem * 3;
@@ -17,7 +24,7 @@ export function AuraTier({ tier }: { tier: TierConfig | null }) {
       style={
         {
           "--aura": cor,
-          background: `radial-gradient(ellipse 80% 50% at 50% 45%, color-mix(in oklch, ${cor} ${32 + ordem * 7}%, transparent), transparent 72%), linear-gradient(180deg, oklch(0.2 0.045 163), var(--primary) 55%, oklch(0.24 0.05 163))`,
+          background: `radial-gradient(ellipse 80% 50% at 50% 45%, color-mix(in oklch, ${cor} ${32 + ordem * 7}%, transparent), transparent 72%), ${fundo ?? "linear-gradient(180deg, oklch(0.2 0.045 163), var(--primary) 55%, oklch(0.24 0.05 163))"}`,
         } as CSSProperties
       }
     >

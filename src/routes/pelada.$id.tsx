@@ -35,6 +35,8 @@ import { podeGerirPelada } from "@/lib/placar/dados";
 import { tierPorNome } from "@/lib/tiers";
 import { destinosDoLocal } from "@/lib/local";
 import { TierBadge } from "@/components/goating/tier-badge";
+import { SeloPremium } from "@/components/goating/selo-premium";
+import { ehPremium } from "@/lib/premium";
 import { origemDoSite } from "@/lib/site";
 import {
   JANELA_AVALIACAO_TEXTO,
@@ -85,6 +87,7 @@ type Participante = {
   overall: number | string | null;
   tier_reconhecido: string | null;
   foto: string | null;
+  premium: boolean;
 };
 
 function iniciais(nome: string) {
@@ -161,7 +164,7 @@ function DetalhePelada() {
       const ids = [...new Set([...(parts ?? []).map((p) => p.user_id), pelada.organizador_id])];
       const { data: perfis } = await supabase
         .from("profiles")
-        .select("id, nome_exibicao, overall, tier_reconhecido, foto_url")
+        .select("id, nome_exibicao, overall, tier_reconhecido, foto_url, plano, premium_ate")
         .in("id", ids);
 
       const lista: Participante[] = (parts ?? []).map((p) => {
@@ -174,6 +177,7 @@ function DetalhePelada() {
           overall: perfil?.overall ?? null,
           tier_reconhecido: perfil?.tier_reconhecido ?? null,
           foto: perfil?.foto_url ?? null,
+          premium: ehPremium(perfil),
         };
       });
 
@@ -538,6 +542,7 @@ function DetalhePelada() {
                     <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                       <TierBadge tier={tier} overall={p.overall} size={18} />
                       <span className="truncate">{p.nome}</span>
+                      {p.premium && <SeloPremium />}
                       {p.user_id === pelada.organizador_id && (
                         <span className="shrink-0 text-[10px] font-bold text-muted-foreground">
                           ORG

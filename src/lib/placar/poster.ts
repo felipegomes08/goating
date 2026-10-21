@@ -21,7 +21,8 @@ export type DadosDoPoster = {
     | undefined;
   /** vários jogos: classificação dos times no dia */
   tabela?: { nome: string; vitorias: number; empates: number; derrotas: number }[] | undefined;
-  artilharia: { nome: string; gols: number }[];
+  /** `premium`: o nome sai dourado (quem é Premium) */
+  artilharia: { nome: string; gols: number; premium?: boolean | undefined }[];
   /** linhas soltas abaixo da tabela (ex.: jogo decidido nos pênaltis) */
   notas?: string[] | undefined;
   /** os outros lances do dia: quem mais deu assistência, defesas épicas e cartões */
@@ -451,12 +452,18 @@ export async function desenharPoster(dados: DadosDoPoster): Promise<HTMLCanvasEl
           largura: 50,
         });
       }
+      ctx.save();
+      if (jogador.premium) {
+        ctx.shadowColor = "rgba(247,215,116,0.8)";
+        ctx.shadowBlur = 18;
+      }
       escrever(ctx, jogador.nome, MARGEM + 76, base, {
-        peso: lider ? 800 : 600,
+        peso: lider || jogador.premium ? 800 : 600,
         tamanho: 42,
-        cor: BRANCO,
+        cor: jogador.premium ? OURO : BRANCO,
         largura: util - 220,
       });
+      ctx.restore();
       escrever(ctx, String(jogador.gols), LARGURA - MARGEM, base + 4, {
         peso: 900,
         tamanho: 56,
