@@ -733,6 +733,12 @@ export type Database = {
           },
         ];
       };
+      conquistas: {
+        Row: { codigo: string; ganha_em: string; user_id: string };
+        Insert: { codigo: string; ganha_em?: string; user_id: string };
+        Update: { codigo?: string; ganha_em?: string; user_id?: string };
+        Relationships: [];
+      };
       ranking_semanal: {
         Row: {
           posicao_cidade: number | null;
@@ -1060,6 +1066,10 @@ export type Database = {
         }[];
       };
       raio_x_do_jogador: { Args: never; Returns: Json };
+      progresso_das_conquistas: {
+        Args: { p_user: string };
+        Returns: { codigo: string; meta: number; valor: number }[];
+      };
       remover_da_turma: { Args: { p_member_id: string }; Returns: undefined };
       sair_da_turma: { Args: { p_crew_id: string }; Returns: undefined };
       salvar_placar: {

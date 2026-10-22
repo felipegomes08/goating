@@ -31,6 +31,7 @@ const GRUPO: Record<string, string> = {
   mvp_voce: "avaliacao",
   subiu: "conquistas",
   colega_subiu: "conquistas",
+  conquista: "conquistas",
   seguidor: "social",
   comentario: "social",
 };

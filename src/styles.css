@@ -662,6 +662,25 @@
   animation-delay: -2.5s;
 }
 
+/* Medalha de quem é Premium: um brilho atravessa de tempos em tempos. */
+@keyframes medalha-brilho {
+  0%,
+  60% {
+    transform: translateX(-120%) rotate(25deg);
+  }
+  100% {
+    transform: translateX(120%) rotate(25deg);
+  }
+}
+
+.medalha-premium::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(90deg, transparent 35%, rgb(255 255 255 / 0.75) 50%, transparent 65%);
+  animation: medalha-brilho 3.2s ease-in-out infinite;
+}
+
 /* Revelação de tier de quem é Premium: confete caindo. */
 @keyframes confete-cai {
   0% {

@@ -52,6 +52,11 @@ const FRENTES: { titulo: string; itens: Beneficio[] }[] = [
       },
       {
         icone: Medal,
+        titulo: "Medalhas douradas",
+        texto: "Suas conquistas em ouro, brilhando, e medalhas que só quem é Premium tem.",
+      },
+      {
+        icone: Medal,
         titulo: "Galeria de MVPs",
         texto: "Todos os seus MVPs guardados, com cartas especiais no 5º, 10º e 20º.",
       },

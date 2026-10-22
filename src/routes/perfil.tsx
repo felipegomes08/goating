@@ -1,7 +1,7 @@
 import { type CSSProperties, useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Crown, LogOut, Pencil, Share2, Sparkles, Users } from "lucide-react";
+import { Camera, Crown, Info, LogOut, Pencil, Share2, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { esquecerPushNoApp } from "@/lib/nativo";
@@ -15,6 +15,8 @@ import { ExcluirConta } from "@/components/goating/excluir-conta";
 import { FolhaCartao } from "@/components/goating/folha-cartao";
 import { AuraTier } from "@/components/goating/aura-tier";
 import { GaleriaDeMvps } from "@/components/goating/galeria-de-mvps";
+import { ConquistasDoJogador } from "@/components/goating/conquistas";
+import { FolhaXp } from "@/components/goating/folha-xp";
 import { FolhaPersonalizar, type Previa } from "@/components/goating/folha-personalizar";
 import { capaDe, capaPorId, type CapaId } from "@/lib/capas";
 import { molduraDe, molduraPorId, type MolduraId } from "@/lib/molduras";
@@ -78,6 +80,7 @@ function Perfil() {
   const [compartilhandoConquista, setCompartilhandoConquista] = useState(false);
   const [compartilhando, setCompartilhando] = useState(false);
   const [personalizando, setPersonalizando] = useState(false);
+  const [explicandoXp, setExplicandoXp] = useState(false);
   // o que a pessoa está experimentando na folha de personalizar (null = o que está salvo)
   const [previa, setPrevia] = useState<Previa | null>(null);
 
@@ -399,15 +402,29 @@ function Perfil() {
             ["XP", perfil.xp],
             ["MVPs", perfil.vezes_mvp],
             ["Avaliações", perfil.avaliacoes_recebidas],
-          ].map(([label, valor]) => (
-            <div
-              key={String(label)}
-              className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]"
-            >
-              <p className="text-xl font-extrabold text-foreground">{valor}</p>
-              <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-            </div>
-          ))}
+          ].map(([label, valor]) =>
+            label === "XP" ? (
+              // o XP abre a explicação de como ele é ganho
+              <button
+                key="XP"
+                type="button"
+                onClick={() => setExplicandoXp(true)}
+                className="relative rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)] active:bg-secondary/60"
+              >
+                <Info className="absolute top-2 right-2 size-3.5 text-muted-foreground" />
+                <p className="text-xl font-extrabold text-foreground">{valor}</p>
+                <p className="text-[11px] font-medium text-muted-foreground">XP · como ganhar</p>
+              </button>
+            ) : (
+              <div
+                key={String(label)}
+                className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]"
+              >
+                <p className="text-xl font-extrabold text-foreground">{valor}</p>
+                <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+              </div>
+            ),
+          )}
         </section>
 
         <section className="flex items-center justify-between rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
@@ -442,6 +459,8 @@ function Perfil() {
           avaliacoes={perfil.avaliacoes_recebidas}
           recompensaPendente={!!perfil.tier_pendente}
         />
+
+        {userId && <ConquistasDoJogador userId={userId} proprio premiumDono={premium} />}
 
         {userId && <GaleriaDeMvps userId={userId} total={perfil.vezes_mvp} premium={premium} />}
 
@@ -578,6 +597,15 @@ function Perfil() {
       </main>
 
       <BottomNav />
+
+      {explicandoXp && (
+        <FolhaXp
+          xp={perfil.xp}
+          overall={overall}
+          tier={tier}
+          onFechar={() => setExplicandoXp(false)}
+        />
+      )}
 
       {personalizando && userId && (
         <FolhaPersonalizar

@@ -10,6 +10,7 @@ import {
   CalendarX,
   Crown,
   Gift,
+  Medal,
   MessageSquareText,
   ShieldCheck,
   Star,
@@ -63,6 +64,7 @@ const ICONE: Record<string, LucideIcon> = {
   mvp_voce: Crown,
   subiu: Gift,
   colega_subiu: Gift,
+  conquista: Medal,
   seguidor: UserPlus,
   comentario: MessageSquareText,
 };
@@ -82,7 +84,7 @@ const GRUPOS_DE_AVISO = [
 ] as const;
 
 /** Tipos que pedem destaque dourado (conquista). */
-const DOURADO = new Set(["mvp_voce", "subiu", "lotou"]);
+const DOURADO = new Set(["mvp_voce", "subiu", "lotou", "conquista"]);
 
 function grupoDe(data: Date) {
   const hoje = new Date();
