@@ -286,6 +286,7 @@ function Perfil() {
   const dadosDoCartao = {
     notasOcultas,
     moldura: salvo.moldura,
+    capa: capaPorId(salvo.capa)?.imagem ?? null,
     nome: perfil.nome_exibicao,
     nick: perfil.handle,
     cidade: perfil.cidade,

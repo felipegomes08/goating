@@ -1,19 +1,37 @@
 import { ehPremium } from "@/lib/premium";
 
 /**
- * Capas Premium: o fundo do topo do perfil. A mesma lista vale no banco
- * (`profiles_aparencia_premium`): mudou aqui, muda lá.
+ * Capas Premium: o fundo do topo do perfil e do cartão compartilhado. A mesma lista vale no
+ * banco (`profiles_aparencia_premium`): mudou aqui, muda lá.
+ *
+ * As de imagem (`imagem`, em `public/capas/`) também viram o fundo do cartão compartilhado.
  */
-export type CapaId = "noite" | "estadio" | "ouro" | "neon" | "campo";
+export type CapaId = "noite" | "estadio" | "ouro" | "neon" | "campo" | "coletiva" | "galaxia";
 
-export type Capa = { id: CapaId; nome: string; fundo: string };
+export type Capa = { id: CapaId; nome: string; fundo: string; imagem?: string };
+
+/** Fundo de imagem com um véu escuro, pra o texto branco do topo continuar legível. */
+const comImagem = (url: string) =>
+  `linear-gradient(180deg, rgb(3 16 11 / 0.55), rgb(3 16 11 / 0.15) 40%, rgb(3 16 11 / 0.6)), url(${url}) center / cover no-repeat`;
 
 export const CAPAS: Capa[] = [
   {
     id: "estadio",
     nome: "Estádio",
-    fundo:
-      "radial-gradient(ellipse 55% 45% at 15% 0%, rgb(255 255 255 / 0.4), transparent 65%), radial-gradient(ellipse 55% 45% at 85% 0%, rgb(255 255 255 / 0.4), transparent 65%), repeating-linear-gradient(90deg, #1b7a3d 0 44px, #16703a 44px 88px)",
+    fundo: comImagem("/capas/estadio.webp"),
+    imagem: "/capas/estadio.webp",
+  },
+  {
+    id: "coletiva",
+    nome: "Coletiva",
+    fundo: comImagem("/capas/coletiva.webp"),
+    imagem: "/capas/coletiva.webp",
+  },
+  {
+    id: "galaxia",
+    nome: "Galáxia",
+    fundo: comImagem("/capas/galaxia.webp"),
+    imagem: "/capas/galaxia.webp",
   },
   {
     id: "noite",

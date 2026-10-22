@@ -34,3 +34,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# artes originais e moldes do Premium (as versões do app ficam em public/)
+artes-premium/

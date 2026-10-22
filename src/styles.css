@@ -501,19 +501,113 @@
   animation-duration: 2s;
 }
 
-.moldura-fogo {
-  background: linear-gradient(0deg, var(--moldura-cores));
-  background-size: 100% 300%;
-  animation: moldura-chama 1.4s ease-in-out infinite alternate;
+/* Molduras de arte (imagem do efeito atrás da carta), cada uma com o seu movimento. */
+.moldura-arte {
+  position: absolute;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
 }
 
-@keyframes moldura-chama {
-  from {
-    background-position: 0% 0%;
+/* fogo: as chamas tremulam e sobem um pouco, mais claras e mais escuras */
+@keyframes moldura-arte-chama {
+  0% {
+    transform: scale(1, 1);
+    filter: brightness(1) saturate(1);
   }
-  to {
-    background-position: 0% 100%;
+  30% {
+    transform: scale(1.012, 1.03) translateY(-0.6%);
+    filter: brightness(1.18) saturate(1.15);
   }
+  60% {
+    transform: scale(0.996, 1.01);
+    filter: brightness(0.95) saturate(1);
+  }
+  100% {
+    transform: scale(1.008, 1.025) translateY(-0.4%);
+    filter: brightness(1.12) saturate(1.1);
+  }
+}
+
+.moldura-arte-chama {
+  transform-origin: 50% 70%;
+  animation: moldura-arte-chama 1.1s ease-in-out infinite alternate;
+}
+
+/* raios: piscadas fortes e irregulares, como descarga elétrica */
+@keyframes moldura-arte-raio {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  3% {
+    filter: brightness(2.1) saturate(1.3);
+  }
+  5% {
+    filter: brightness(0.9);
+  }
+  8% {
+    filter: brightness(1.7);
+  }
+  11%,
+  52% {
+    filter: brightness(1);
+  }
+  54% {
+    filter: brightness(1.9) saturate(1.3);
+  }
+  57% {
+    filter: brightness(1);
+  }
+}
+
+.moldura-arte-raio {
+  animation: moldura-arte-raio 2.8s steps(1, end) infinite;
+}
+
+/* cristais: o brilho corre e a cor muda de leve, como luz passando pelas facetas */
+@keyframes moldura-arte-cristal {
+  0%,
+  100% {
+    filter: brightness(1) hue-rotate(0deg);
+  }
+  50% {
+    filter: brightness(1.3) hue-rotate(-18deg);
+  }
+}
+
+.moldura-arte-cristal {
+  animation: moldura-arte-cristal 3s ease-in-out infinite;
+}
+
+/* furacão: o redemoinho balança e respira em volta da carta */
+@keyframes moldura-arte-vento {
+  0%,
+  100% {
+    transform: rotate(-2deg) scale(1);
+  }
+  50% {
+    transform: rotate(2deg) scale(1.025);
+  }
+}
+
+.moldura-arte-vento {
+  animation: moldura-arte-vento 3.6s ease-in-out infinite;
+}
+
+/* gelo: brilho frio pulsando devagar */
+@keyframes moldura-arte-gelo {
+  0%,
+  100% {
+    filter: brightness(1) drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: brightness(1.15) drop-shadow(0 0 10px #81d4fa);
+  }
+}
+
+.moldura-arte-gelo {
+  animation: moldura-arte-gelo 3.4s ease-in-out infinite;
 }
 
 .moldura-particula {
@@ -591,6 +685,7 @@
   .moldura-borda,
   .moldura-particula,
   .moldura-refletor,
+  .moldura-arte,
   .confete {
     animation: none;
   }

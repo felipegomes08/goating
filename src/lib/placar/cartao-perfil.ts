@@ -26,7 +26,7 @@ import {
   tierSeguinte,
 } from "@/lib/tiers";
 import { hostDoSite } from "@/lib/site";
-import { molduraPorId, type MolduraId } from "@/lib/molduras";
+import { CAIXA_DA_ARTE, molduraPorId, type MolduraId } from "@/lib/molduras";
 
 export type DadosDoCartao = {
   nome: string;
@@ -55,6 +55,8 @@ export type DadosDoCartao = {
   conquista?: { de: TierNome | null } | undefined;
   /** o dono não é Premium: as notas de cada habilidade saem como "??" */
   notasOcultas?: boolean | undefined;
+  /** imagem da capa Premium (estádio, coletiva...): vira o fundo do cartão */
+  capa?: string | null | undefined;
   /** moldura Premium em volta da carta (só de quem é Premium) */
   moldura?: MolduraId | null | undefined;
 };
@@ -99,13 +101,28 @@ export function faisca(ctx: Ctx, x: number, y: number, r: number) {
 }
 
 /** Estádio à noite: holofotes vindo de cima e o brilho do tier atrás da carta. */
-function palco(ctx: Ctx, brilho: string, centroY: number) {
+function palco(ctx: Ctx, brilho: string, centroY: number, capa: ImageBitmap | null = null) {
   const base = ctx.createLinearGradient(0, 0, 0, ALTURA);
   base.addColorStop(0, "#04130D");
   base.addColorStop(0.45, VERDE);
   base.addColorStop(1, "#03100B");
   ctx.fillStyle = base;
   ctx.fillRect(0, 0, LARGURA, ALTURA);
+
+  if (capa) {
+    // capa Premium: a imagem cobre o fundo, escurecida em cima e embaixo pros textos
+    const escala = Math.max(LARGURA / capa.width, ALTURA / capa.height);
+    const cw = capa.width * escala;
+    const ch = capa.height * escala;
+    ctx.drawImage(capa, (LARGURA - cw) / 2, (ALTURA - ch) / 2, cw, ch);
+    const veu = ctx.createLinearGradient(0, 0, 0, ALTURA);
+    veu.addColorStop(0, "rgba(3,16,11,0.75)");
+    veu.addColorStop(0.25, "rgba(3,16,11,0.25)");
+    veu.addColorStop(0.55, "rgba(3,16,11,0.35)");
+    veu.addColorStop(1, "rgba(3,16,11,0.92)");
+    ctx.fillStyle = veu;
+    ctx.fillRect(0, 0, LARGURA, ALTURA);
+  }
 
   const aura = ctx.createRadialGradient(LARGURA / 2, centroY, 80, LARGURA / 2, centroY, 820);
   aura.addColorStop(0, comAlfa(brilho, 0.5));
@@ -208,7 +225,17 @@ async function carta(
   ctx.restore();
 
   const moldura = molduraPorId(dados.moldura);
-  if (molde && moldura) {
+  const arte = moldura?.arte ? await carregarImagem(moldura.arte) : null;
+  if (arte) {
+    // moldura de arte: a imagem do efeito atrás da carta, no mesmo lugar que no app
+    ctx.drawImage(
+      arte,
+      x + CAIXA_DA_ARTE.esquerda * w,
+      y + CAIXA_DA_ARTE.topo * h,
+      CAIXA_DA_ARTE.largura * w,
+      CAIXA_DA_ARTE.altura * h,
+    );
+  } else if (molde && moldura) {
     // moldura Premium: a silhueta do molde um pouco maior, pintada com o degradê da moldura,
     // atrás da carta e com brilho na cor dela (igual à camada de trás da carta do app)
     const mw = w * 1.06;
@@ -437,7 +464,8 @@ export async function desenharCartao(dados: DadosDoCartao): Promise<HTMLCanvasEl
   const larguraCarta = conquista ? 690 : comCarreira ? 600 : 660;
   const topoCarta = conquista ? 392 : 168;
 
-  palco(ctx, cores.brilho, topoCarta + 440);
+  const imagemDaCapa = dados.capa ? await carregarImagem(dados.capa) : null;
+  palco(ctx, cores.brilho, topoCarta + 440, imagemDaCapa);
   await desenharLogo(ctx);
   escrever(ctx, conquista ? "NOVO TIER DESBLOQUEADO" : "CARTA DO JOGADOR", LARGURA - MARGEM, 120, {
     peso: 600,

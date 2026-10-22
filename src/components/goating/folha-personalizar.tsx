@@ -105,7 +105,10 @@ export function FolhaPersonalizar({
                 <span
                   className="relative size-10 rounded-full"
                   style={{
-                    background: `conic-gradient(${m.cores.join(", ")})`,
+                    // as de arte mostram um pedaço da própria arte (a borda de cima da carta)
+                    background: m.arte
+                      ? `#0b1510 url(${m.arte}) 50% 8% / 230% no-repeat`
+                      : `conic-gradient(${m.cores.join(", ")})`,
                     boxShadow: `0 0 10px ${m.brilho}`,
                   }}
                 >

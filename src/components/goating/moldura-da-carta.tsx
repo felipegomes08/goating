@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { Moldura } from "@/lib/molduras";
+import { CAIXA_DA_ARTE, type Moldura } from "@/lib/molduras";
 
 const variaveis = (moldura: Moldura) =>
   ({
@@ -8,11 +8,28 @@ const variaveis = (moldura: Moldura) =>
   }) as CSSProperties;
 
 /**
- * Moldura Premium, camada de trás: a silhueta do molde um pouco maior, atrás da carta,
- * pintada com o degradê animado da moldura e com brilho em volta. Fica dentro da inclinação
- * 3D, então acompanha a carta.
+ * Moldura Premium, camada de trás, atrás da carta e dentro da inclinação 3D (acompanha a carta):
+ * - de arte: a imagem do efeito (fogo, raios, cristais...) saindo da silhueta, animada;
+ * - de código: a silhueta do molde um pouco maior, pintada com o degradê animado e com brilho.
  */
 export function MolduraDaCarta({ moldura, molde }: { moldura: Moldura; molde: string }) {
+  if (moldura.arte) {
+    return (
+      <img
+        src={moldura.arte}
+        alt=""
+        aria-hidden
+        draggable={false}
+        className={`moldura-arte moldura-arte-${moldura.animacao ?? "parada"}`}
+        style={{
+          left: `${CAIXA_DA_ARTE.esquerda * 100}%`,
+          top: `${CAIXA_DA_ARTE.topo * 100}%`,
+          width: `${CAIXA_DA_ARTE.largura * 100}%`,
+          height: `${CAIXA_DA_ARTE.altura * 100}%`,
+        }}
+      />
+    );
+  }
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0" style={variaveis(moldura)}>
       {/* o brilho fica no pai: a máscara cortaria o drop-shadow se estivesse no mesmo elemento */}
