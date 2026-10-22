@@ -1,10 +1,11 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import {
   ArrowLeft,
   BarChart3,
   Crown,
   Eye,
   Frame,
+  Lock,
   GitCompareArrows,
   Medal,
   Sparkles,
@@ -19,6 +20,10 @@ import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/premium")({
   ssr: false,
+  // `recurso`: o que a pessoa tentou ver quando tocou no cadeado
+  validateSearch: (search: Record<string, unknown>): { recurso?: string | undefined } => ({
+    recurso: typeof search["recurso"] === "string" ? search["recurso"].slice(0, 60) : undefined,
+  }),
   head: () => ({ meta: [{ title: "Premium · Goating" }] }),
   component: Premium,
 });
@@ -92,6 +97,7 @@ const FRENTES: { titulo: string; itens: Beneficio[] }[] = [
 function Premium() {
   const navigate = useNavigate();
   const { premium, ate } = usePremium();
+  const { recurso } = useSearch({ from: "/premium" });
   const voltar = useVoltar(() => void navigate({ to: "/perfil", replace: true }));
 
   return (
@@ -115,6 +121,12 @@ function Premium() {
       </header>
 
       <main className="flex-1 space-y-5 px-4 py-5">
+        {recurso && !premium && (
+          <p className="flex items-center gap-2 rounded-2xl border border-tier-ouro/50 bg-tier-ouro/15 px-4 py-3 text-sm font-semibold text-foreground">
+            <Lock className="size-4 shrink-0 text-tier-ouro" />
+            {recurso} faz parte do Premium.
+          </p>
+        )}
         {FRENTES.map((f) => (
           <section key={f.titulo} className="space-y-2">
             <h2 className="px-1 text-xs font-bold tracking-wide text-muted-foreground uppercase">

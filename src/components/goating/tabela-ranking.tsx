@@ -156,7 +156,17 @@ export function TabelaRanking({
       </table>
       <p className="border-t border-border px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
         {COLUNAS_RANKING.map((c) => `${c.sigla} ${c.nome}`).join(" · ")}.{" "}
-        {premium ? "Toque numa coluna pra ordenar." : "Ordenar pelas outras colunas é Premium."}
+        {premium ? (
+          "Toque numa coluna pra ordenar."
+        ) : (
+          <button
+            type="button"
+            onClick={onBloqueado}
+            className="font-bold text-tier-ouro underline"
+          >
+            Ordenar pelas outras colunas é Premium
+          </button>
+        )}
       </p>
     </div>
   );

@@ -1,5 +1,6 @@
 import { type CSSProperties, type PointerEvent, useEffect, useRef, useState } from "react";
 import { Gift, Lock, User } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useContador } from "@/hooks/use-contador";
 import { cn } from "@/lib/utils";
@@ -226,6 +227,17 @@ export function PlayerCard({
             )}
           </div>
           {moldura && !cacheUrl && <EfeitosDaMoldura moldura={moldura} />}
+          {notasOcultas && !cacheUrl && (
+            // as notas borradas não parecem erro: um selo diz que são Premium e leva pra lá
+            <Link
+              to="/premium"
+              search={{ recurso: "Ver as notas de cada habilidade" }}
+              className="absolute left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-full bg-tier-ouro px-2.5 py-1 text-[10px] font-extrabold whitespace-nowrap text-[#3A2A05] shadow-lg"
+              style={{ top: `${visual.layout.atrib.y + visual.layout.atrib.h / 2 - 3}%` }}
+            >
+              <Lock className="size-3" /> Notas no Premium
+            </Link>
+          )}
         </div>
       </div>
 

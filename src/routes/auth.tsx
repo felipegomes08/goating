@@ -51,6 +51,15 @@ function AuthPage() {
   const faltaCaptcha = CAPTCHA_LIGADO && !comprovante;
   const novaRodada = () => setRodada((r) => r + 1);
 
+  // pra onde a pessoa estava indo (convite de pelada ou de turma): o link de confirmação do
+  // e-mail volta pra lá, e a conta guarda o destino caso o e-mail abra em outro navegador
+  const destino = search?.convite
+    ? `/p/${search.convite}`
+    : search?.turma
+      ? `/turma/${search.turma}${search.c ? `?c=${encodeURIComponent(search.c)}` : ""}`
+      : null;
+  const voltaDoEmail = `${origemDoSite()}${destino ?? ""}`;
+
   /** Depois de entrar, a pessoa volta pra onde estava indo: convite de pelada, turma ou o feed. */
   function irParaDestino() {
     if (search?.convite) {
@@ -116,7 +125,7 @@ function AuthPage() {
       const { error } = await supabase.auth.resend({
         type: "signup",
         email,
-        options: { emailRedirectTo: origemDoSite(), ...comCaptcha(comprovante) },
+        options: { emailRedirectTo: voltaDoEmail, ...comCaptcha(comprovante) },
       });
       if (error) throw error;
       toast.success("Mandamos o e-mail de novo.");
@@ -137,8 +146,8 @@ function AuthPage() {
           email,
           password: senha,
           options: {
-            emailRedirectTo: origemDoSite(),
-            data: { nome_exibicao: nome },
+            emailRedirectTo: voltaDoEmail,
+            data: { nome_exibicao: nome, ...(destino ? { destino } : {}) },
             ...comCaptcha(comprovante),
           },
         });

@@ -48,9 +48,16 @@ export function AtributosDoJogador({
               <span className="text-xs text-muted-foreground">
                 Com o Premium elas aparecem pra você e pra quem visitar seu perfil
               </span>
+              <span className="mt-1 rounded-full bg-tier-ouro px-3 py-1 text-xs font-extrabold text-[#3A2A05]">
+                Ser Premium
+              </span>
             </button>
           ) : (
-            <p className="flex flex-col items-center gap-1 rounded-2xl bg-card/95 px-5 py-4 text-center shadow-lg">
+            <button
+              type="button"
+              onClick={() => setConvite(true)}
+              className="flex flex-col items-center gap-1 rounded-2xl bg-card/95 px-5 py-4 text-center shadow-lg"
+            >
               <Lock className="size-5 text-tier-ouro" />
               <span className="text-sm font-extrabold text-foreground">
                 {nome} ainda não mostra as notas
@@ -58,7 +65,10 @@ export function AtributosDoJogador({
               <span className="text-xs text-muted-foreground">
                 As notas de cada habilidade aparecem pra quem é Premium
               </span>
-            </p>
+              <span className="mt-1 rounded-full bg-tier-ouro px-3 py-1 text-xs font-extrabold text-[#3A2A05]">
+                Mostrar as minhas
+              </span>
+            </button>
           )}
         </div>
       )}
