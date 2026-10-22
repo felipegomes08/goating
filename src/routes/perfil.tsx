@@ -22,6 +22,7 @@ import { ehPremium } from "@/lib/premium";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ProgressoTier } from "@/components/goating/progresso-tier";
 import { AtributosDoJogador } from "@/components/goating/atributos-do-jogador";
+import { NumerosDaCarreira } from "@/components/goating/numeros-da-carreira";
 import { RaioXDoJogador } from "@/components/goating/raio-x";
 import { atributosZerados, carregarMedias } from "@/lib/atributos";
 import { Button } from "@/components/ui/button";
@@ -296,9 +297,9 @@ function Perfil() {
     mvps: perfil.vezes_mvp,
     xp: perfil.xp,
     avaliacoes: perfil.avaliacoes_recebidas,
-    gols: numeros.data?.gols,
-    assistencias: numeros.data?.assistencias,
-    defesas: numeros.data?.defesas,
+    gols: premium ? numeros.data?.gols : undefined,
+    assistencias: premium ? numeros.data?.assistencias : undefined,
+    defesas: premium ? numeros.data?.defesas : undefined,
     fotoUrl,
   };
 
@@ -383,6 +384,14 @@ function Perfil() {
       </header>
 
       <main className="flex-1 space-y-4 px-4 py-4">
+        {/* o que ele fez em todas as peladas, de todas as turmas: em destaque, Premium */}
+        <NumerosDaCarreira
+          numeros={numeros.data}
+          liberado={premium}
+          proprio
+          nome={perfil.nome_exibicao}
+        />
+
         <section className="grid grid-cols-2 gap-2">
           {[
             ["Peladas", perfil.peladas_jogadas],
@@ -395,23 +404,6 @@ function Perfil() {
               className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]"
             >
               <p className="text-xl font-extrabold text-foreground">{valor}</p>
-              <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-            </div>
-          ))}
-        </section>
-
-        {/* o que ele fez em todas as peladas, de todas as turmas */}
-        <section className="grid grid-cols-3 gap-2">
-          {[
-            ["Gols", numeros.data?.gols],
-            ["Assistências", numeros.data?.assistencias],
-            ["Defesas épicas", numeros.data?.defesas],
-          ].map(([label, valor]) => (
-            <div
-              key={String(label)}
-              className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]"
-            >
-              <p className="text-xl font-extrabold text-foreground tabular-nums">{valor ?? "–"}</p>
               <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
             </div>
           ))}

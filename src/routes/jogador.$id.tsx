@@ -12,6 +12,7 @@ import { BottomNav } from "@/components/goating/bottom-nav";
 import { PlayerCard } from "@/components/goating/player-card";
 import { ComentariosDoJogador } from "@/components/goating/comentarios-do-jogador";
 import { AtributosDoJogador } from "@/components/goating/atributos-do-jogador";
+import { NumerosDaCarreira } from "@/components/goating/numeros-da-carreira";
 import { CompararJogadores } from "@/components/goating/comparar-jogadores";
 import { usePremium } from "@/hooks/use-premium";
 import { SeloPremium } from "@/components/goating/selo-premium";
@@ -267,22 +268,13 @@ function JogadorPublico() {
           ))}
         </section>
 
-        {/* o que ele fez em todas as peladas, de todas as turmas */}
-        <section className="grid grid-cols-3 gap-2">
-          {[
-            ["Gols", numeros.data?.gols],
-            ["Assistências", numeros.data?.assistencias],
-            ["Defesas épicas", numeros.data?.defesas],
-          ].map(([label, valor]) => (
-            <div
-              key={String(label)}
-              className="rounded-2xl bg-card p-3 text-center shadow-[var(--shadow-card)]"
-            >
-              <p className="text-xl font-extrabold text-foreground tabular-nums">{valor ?? "–"}</p>
-              <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
-            </div>
-          ))}
-        </section>
+        {/* a carreira aparece quando o dono do perfil é Premium */}
+        <NumerosDaCarreira
+          numeros={numeros.data}
+          liberado={ehPremium(perfil)}
+          proprio={false}
+          nome={perfil.nome_exibicao}
+        />
 
         <section className="rounded-2xl bg-card p-4 text-sm shadow-[var(--shadow-card)]">
           {perfil.handle && <p className="font-bold text-primary">@{perfil.handle}</p>}

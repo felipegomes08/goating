@@ -81,6 +81,11 @@ const FRENTES: { titulo: string; itens: Beneficio[] }[] = [
     titulo: "Evolua",
     itens: [
       {
+        icone: Trophy,
+        titulo: "Sua carreira inteira",
+        texto: "Todos os gols, assistências e defesas que você já fez no Goating, em destaque.",
+      },
+      {
         icone: BarChart3,
         titulo: "Raio-X das avaliações",
         texto: "Sua média em cada habilidade, onde melhorou e onde a galera acha que dá pra subir.",
