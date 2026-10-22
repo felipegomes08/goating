@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Crown } from "lucide-react";
+import { ChevronDown, Crown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Cadeado } from "@/components/goating/cadeado";
 import { MVPS_MARCANTES } from "@/lib/placar/cartao-mvp";
 import { cn } from "@/lib/utils";
+
+/** Quantos MVPs aparecem antes do "Ver todos". */
+const MOSTRAR = 5;
 
 /**
  * Galeria de MVPs do perfil (Premium): todas as peladas em que a pessoa foi MVP, da mais nova
@@ -35,7 +39,11 @@ export function GaleriaDeMvps({
     },
   });
 
+  const [todos, setTodos] = useState(false);
+
   if (total === 0) return null;
+  // os mais recentes aparecem; o resto abre no "Ver todos"
+  const visiveis = todos ? lista : lista.slice(0, MOSTRAR);
 
   return (
     <section className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
@@ -46,7 +54,7 @@ export function GaleriaDeMvps({
       </div>
       {premium ? (
         <ul className="mt-2 divide-y divide-border">
-          {lista.map((m) => {
+          {visiveis.map((m) => {
             const marcante = MVPS_MARCANTES.includes(m.numero);
             return (
               <li key={m.id}>
@@ -82,6 +90,20 @@ export function GaleriaDeMvps({
               </li>
             );
           })}
+          {lista.length > MOSTRAR && (
+            <li>
+              <button
+                type="button"
+                onClick={() => setTodos((v) => !v)}
+                className="flex w-full items-center justify-center gap-1 pt-2 text-xs font-bold text-primary"
+              >
+                {todos ? "Mostrar menos" : `Ver todos os ${lista.length} MVPs`}
+                <ChevronDown
+                  className={cn("size-3.5 transition-transform", todos && "rotate-180")}
+                />
+              </button>
+            </li>
+          )}
         </ul>
       ) : (
         <p className="mt-1 text-xs text-muted-foreground">
