@@ -733,6 +733,42 @@ export type Database = {
           },
         ];
       };
+      assinaturas: {
+        Row: {
+          atualizado_em: string;
+          cancela_no_fim: boolean;
+          periodo_fim: string | null;
+          plano: string | null;
+          status: string;
+          stripe_customer_id: string;
+          stripe_subscription_id: string | null;
+          user_id: string;
+          usou_promocao: boolean;
+        };
+        Insert: {
+          atualizado_em?: string;
+          cancela_no_fim?: boolean;
+          periodo_fim?: string | null;
+          plano?: string | null;
+          status?: string;
+          stripe_customer_id: string;
+          stripe_subscription_id?: string | null;
+          user_id: string;
+          usou_promocao?: boolean;
+        };
+        Update: {
+          atualizado_em?: string;
+          cancela_no_fim?: boolean;
+          periodo_fim?: string | null;
+          plano?: string | null;
+          status?: string;
+          stripe_customer_id?: string;
+          stripe_subscription_id?: string | null;
+          user_id?: string;
+          usou_promocao?: boolean;
+        };
+        Relationships: [];
+      };
       conquistas: {
         Row: { codigo: string; ganha_em: string; user_id: string };
         Insert: { codigo: string; ganha_em?: string; user_id: string };

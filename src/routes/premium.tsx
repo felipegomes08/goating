@@ -16,13 +16,17 @@ import {
 import { useVoltar } from "@/hooks/use-voltar";
 import { usePremium } from "@/hooks/use-premium";
 import { BottomNav } from "@/components/goating/bottom-nav";
-import { Button } from "@/components/ui/button";
+import { AssinarPremium } from "@/components/goating/assinar-premium";
 
 export const Route = createFileRoute("/premium")({
   ssr: false,
   // `recurso`: o que a pessoa tentou ver quando tocou no cadeado
-  validateSearch: (search: Record<string, unknown>): { recurso?: string | undefined } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { recurso?: string | undefined; assinou?: 1 | undefined } => ({
     recurso: typeof search["recurso"] === "string" ? search["recurso"].slice(0, 60) : undefined,
+    // volta do pagamento do Stripe: a tela espera o Premium ligar
+    assinou: search["assinou"] === 1 || search["assinou"] === "1" ? 1 : undefined,
   }),
   head: () => ({ meta: [{ title: "Premium · Goating" }] }),
   component: Premium,
@@ -43,7 +47,8 @@ const FRENTES: { titulo: string; itens: Beneficio[] }[] = [
       {
         icone: Frame,
         titulo: "Molduras exclusivas",
-        texto: "Dourada, Neon, Fogo, Gelo e Estádio na sua carta e na imagem compartilhada.",
+        texto:
+          "Inferno, Tempestade, Cristais, Furacão, Era do Gelo e mais, na carta e na imagem compartilhada.",
       },
       {
         icone: Crown,
@@ -106,8 +111,8 @@ const FRENTES: { titulo: string; itens: Beneficio[] }[] = [
 
 function Premium() {
   const navigate = useNavigate();
-  const { premium, ate } = usePremium();
-  const { recurso } = useSearch({ from: "/premium" });
+  const { premium } = usePremium();
+  const { recurso, assinou } = useSearch({ from: "/premium" });
   const voltar = useVoltar(() => void navigate({ to: "/perfil", replace: true }));
 
   return (
@@ -137,6 +142,8 @@ function Premium() {
             {recurso} faz parte do Premium.
           </p>
         )}
+
+        <AssinarPremium voltouDoPagamento={!!assinou} />
         {FRENTES.map((f) => (
           <section key={f.titulo} className="space-y-2">
             <h2 className="px-1 text-xs font-bold tracking-wide text-muted-foreground uppercase">
@@ -164,21 +171,6 @@ function Premium() {
         <p className="px-1 text-center text-xs text-muted-foreground">
           Seu nível (Bronze ao GOAT) continua sendo conquistado jogando. O Premium não compra nível.
         </p>
-
-        {premium ? (
-          <div className="rounded-2xl bg-tier-ouro/15 p-4 text-center">
-            <p className="text-sm font-bold text-foreground">Você é Premium 👑</p>
-            {ate && (
-              <p className="text-xs text-muted-foreground">
-                Até {new Date(ate).toLocaleDateString("pt-BR")}
-              </p>
-            )}
-          </div>
-        ) : (
-          <Button className="w-full" size="lg" disabled>
-            Em breve
-          </Button>
-        )}
       </main>
 
       <BottomNav />

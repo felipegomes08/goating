@@ -199,3 +199,16 @@ export async function esquecerPushNoApp() {
   }
   if (token) await supabase.rpc("esquecer_dispositivo", { p_token: token });
 }
+
+/**
+ * Abre um endereço de fora (pagamento do Stripe, portal da assinatura). No app vai pro
+ * navegador do celular, que volta pro site no fim; no site é a própria aba.
+ */
+export async function abrirForaDoApp(url: string) {
+  if (!noApp()) {
+    window.location.href = url;
+    return;
+  }
+  const { Browser } = await import("@capacitor/browser");
+  await Browser.open({ url });
+}
