@@ -13,8 +13,8 @@ algo que ainda vai mudar (domínio, e-mail) ou de uma decisão dele.
 | Categoria | Esportes |
 | Idioma padrão | Português (Brasil) |
 | E-mail de contato | **(conferir)** hoje `felipecgomes02@gmail.com`; trocar pelo do Goating quando existir |
-| Site | **(conferir)** `https://goating-kappa.vercel.app`; trocar por `https://goating.com.br` |
-| Política de privacidade | `https://goating-kappa.vercel.app/privacidade` **(conferir domínio)** |
+| Site | **(conferir)** `https://goating.com.br`; trocar por `https://goating.com.br` |
+| Política de privacidade | `https://goating.com.br/privacidade` **(conferir domínio)** |
 
 ## Descrição curta (até 80 caracteres)
 
@@ -143,7 +143,7 @@ Resultado provável: Livre ou 10+, por causa da interação entre usuários.
 
 O Google pede um endereço na internet onde a pessoa consegue pedir a exclusão da conta sem precisar do app.
 
-- Endereço: `https://goating-kappa.vercel.app/privacidade` **(conferir domínio)**
+- Endereço: `https://goating.com.br/privacidade` **(conferir domínio)**
 - A página explica o caminho: entrar na conta, abrir **Perfil** e tocar em **Excluir minha conta**. Como o Goating também funciona pelo navegador, dá para fazer tudo pelo site.
 - O que é apagado: perfil, foto, avaliações e seguidores. Gols e vitórias continuam no ranking da turma só com o nome, sem ligação com a pessoa.
 

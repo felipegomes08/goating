@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crie uma nova senha no Goating</title>
+</head>
+<body style="margin:0;padding:0;background:#EEF2EF;font-family:Arial,Helvetica,sans-serif;">
+<!-- Supabase > Authentication > Emails > Templates > Reset password. Assunto: Sua nova senha do Goating -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF2EF;padding:24px 12px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFFFF;border-radius:20px;overflow:hidden;">
+        <tr>
+          <td align="center" style="background:#0F3D2E;padding:28px 24px;">
+            <img src="https://goating.com.br/logo/logo_so_texto_branco.png" width="160" alt="Goating" style="display:block;border:0;width:160px;height:auto;">
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px 28px 8px 28px;">
+            <p style="margin:0 0 4px 0;font-size:13px;font-weight:bold;letter-spacing:1px;color:#1C8A57;text-transform:uppercase;">Recuperar senha</p>
+            <h1 style="margin:0 0 16px 0;font-size:24px;line-height:30px;color:#0F3D2E;">Bora criar uma senha nova?</h1>
+            <p style="margin:0 0 24px 0;font-size:15px;line-height:23px;color:#3B4A43;">Recebemos um pedido pra trocar a senha da sua conta. Toque no botão abaixo pra escolher a nova. O link vale por 1 hora.</p>
+          </td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:0 28px 28px 28px;">
+            <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#5EF28E;color:#0F3D2E;font-size:16px;font-weight:bold;text-decoration:none;padding:15px 34px;border-radius:999px;">Criar nova senha</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 28px 28px 28px;">
+            <p style="margin:0 0 6px 0;font-size:12px;line-height:18px;color:#7A8A82;">Se o botão não funcionar, copie e cole este endereço no navegador:</p>
+            <p style="margin:0;font-size:12px;line-height:18px;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#1C8A57;">{{ .ConfirmationURL }}</a></p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:18px 28px;background:#F6F8F7;border-top:1px solid #E3E9E5;">
+            <p style="margin:0;font-size:12px;line-height:18px;color:#7A8A82;">Se não foi você que pediu, ignore este e-mail: sua senha continua a mesma.</p>
+            <p style="margin:8px 0 0 0;font-size:12px;color:#7A8A82;">Goating · <a href="https://goating.com.br" style="color:#1C8A57;text-decoration:none;">goating.com.br</a></p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

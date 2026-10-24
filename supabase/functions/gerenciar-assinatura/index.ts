@@ -4,7 +4,12 @@
 import Stripe from "npm:stripe@17.7.0";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ORIGENS = ["https://goating-kappa.vercel.app", "http://localhost:5173"];
+// o endereço antigo da Vercel continua aceito durante a troca de domínio
+const ORIGENS = [
+  "https://goating.com.br",
+  "https://goating-kappa.vercel.app",
+  "http://localhost:5173",
+];
 
 const cors = {
   "Access-Control-Allow-Origin": "*",

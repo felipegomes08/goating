@@ -36,3 +36,7 @@ dist-ssr
 *.sw?
 # artes originais e moldes do Premium (as versões do app ficam em public/)
 artes-premium/
+
+# Material de marketing local (fotos de jogadores, capturas)
+marketing/
+.playwright-mcp/

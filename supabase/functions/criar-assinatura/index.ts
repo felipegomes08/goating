@@ -15,8 +15,15 @@ const PRECOS = {
 const CUPOM_LANCAMENTO = "LANCAMENTO099";
 /** 30/11/2026 às 23h59 de Brasília */
 const FIM_DA_PROMOCAO = Date.parse("2026-11-30T23:59:59-03:00");
-/** pra onde o Stripe pode mandar a pessoa de volta (o site e o app em desenvolvimento) */
-const ORIGENS = ["https://goating-kappa.vercel.app", "http://localhost:5173"];
+/**
+ * pra onde o Stripe pode mandar a pessoa de volta (o site e o app em desenvolvimento); o
+ * endereço antigo da Vercel continua aceito durante a troca de domínio
+ */
+const ORIGENS = [
+  "https://goating.com.br",
+  "https://goating-kappa.vercel.app",
+  "http://localhost:5173",
+];
 
 const cors = {
   "Access-Control-Allow-Origin": "*",

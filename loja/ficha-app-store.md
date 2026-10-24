@@ -17,8 +17,8 @@ com as diferenças anotadas aqui.
 | Categoria principal | Esportes |
 | Categoria secundária | Redes sociais |
 | Idioma principal | Português (Brasil) |
-| URL de suporte | **(conferir)** `https://goating-kappa.vercel.app/privacidade`; trocar por uma página do `goating.com.br` |
-| URL da política de privacidade | `https://goating-kappa.vercel.app/privacidade` **(conferir domínio)** |
+| URL de suporte | **(conferir)** `https://goating.com.br/privacidade`; trocar por uma página do `goating.com.br` |
+| URL da política de privacidade | `https://goating.com.br/privacidade` **(conferir domínio)** |
 | Direitos autorais | `2026 Felipe Gomes` **(conferir: nome ou empresa)** |
 
 ## Texto promocional (até 170 caracteres, muda sem nova versão)
