@@ -15,6 +15,12 @@ const config: CapacitorConfig = {
     contentInset: "always",
   },
   plugins: {
+    // login com Google (e Apple no iPhone, quando a conta da Apple entrar); o resto fica de fora
+    // pra não engordar o app
+    SocialLogin: {
+      providers: { google: true, apple: true, facebook: false, twitter: false },
+      logLevel: 1,
+    },
     // tela de abertura: verde do Goating, some sozinha assim que o app carrega
     SplashScreen: {
       launchShowDuration: 600,

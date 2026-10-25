@@ -212,3 +212,28 @@ export async function abrirForaDoApp(url: string) {
   const { Browser } = await import("@capacitor/browser");
   await Browser.open({ url });
 }
+
+/**
+ * ID do cliente OAuth "Aplicativo da Web" do Google Cloud (projeto Goating). Não é segredo: é o
+ * mesmo que fica no Supabase (Authentication > Providers > Google) e no login nativo do app.
+ */
+const GOOGLE_WEB_CLIENT_ID =
+  "583778341603-6g00f6jivv35cjgp1dqki5ihs0quls3u.apps.googleusercontent.com";
+
+/**
+ * Entrar com Google dentro do app: o Google não aceita login por página web dentro de app, então
+ * abre a janelinha de contas do próprio celular e o token dela vira a sessão no Supabase.
+ */
+export async function entrarComGoogleNoApp() {
+  if (!GOOGLE_WEB_CLIENT_ID) throw new Error("Login com Google ainda não configurado no app.");
+  const { SocialLogin } = await import("@capgo/capacitor-social-login");
+  await SocialLogin.initialize({ google: { webClientId: GOOGLE_WEB_CLIENT_ID, mode: "online" } });
+  const { result } = await SocialLogin.login({
+    provider: "google",
+    options: { scopes: ["email", "profile"] },
+  });
+  const idToken = "idToken" in result ? result.idToken : null;
+  if (!idToken) throw new Error("O Google não devolveu o login.");
+  const { error } = await supabase.auth.signInWithIdToken({ provider: "google", token: idToken });
+  if (error) throw error;
+}

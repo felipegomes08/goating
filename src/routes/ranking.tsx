@@ -145,8 +145,8 @@ function Ranking() {
           .select("seguido_id")
           .eq("seguidor_id", userId!);
         if (error) throw error;
-        const ids = (vinculos ?? []).map((v) => v.seguido_id);
-        if (ids.length === 0) return [];
+        // a própria pessoa entra junto, pra ver onde está no meio de quem ela segue
+        const ids = [...(vinculos ?? []).map((v) => v.seguido_id), userId!];
         const { data, error: erroPerfis } = await supabase
           .from("profiles")
           .select(CAMPOS)
@@ -323,7 +323,7 @@ function Ranking() {
             {vendoTurmas && cidade && <RankingDeTurmasDaCidade cidade={cidade} />}
             {!vendoTurmas && (
               <>
-                {!buscando && !liberado && aba !== "seguindo" && (
+                {!buscando && !liberado && (
                   <p className="rounded-2xl bg-mint-soft p-3 text-xs font-medium text-primary">
                     Faltam {avaliacoesFaltando(perfil?.avaliacoes_recebidas ?? 0)} avaliações
                     pós-pelada pra você aparecer no ranking.
@@ -400,6 +400,15 @@ function Ranking() {
                     )}
                   </>
                 )}
+
+                {!buscando &&
+                  aba === "seguindo" &&
+                  jogadores.length === 1 &&
+                  jogadores[0]?.id === userId && (
+                    <p className="pt-2 text-center text-xs text-muted-foreground">
+                      Busca pelo nome de um jogador aí em cima pra seguir e se comparar com ele.
+                    </p>
+                  )}
 
                 {euApareco && disputa && (
                   <div className="sticky bottom-20 z-10 pt-2">
