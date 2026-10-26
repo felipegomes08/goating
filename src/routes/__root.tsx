@@ -15,6 +15,7 @@ import { SessaoValida } from "@/components/goating/sessao-valida";
 import { PushNoCelular } from "@/components/goating/push-no-celular";
 import { DestinoPendente } from "@/components/goating/destino-pendente";
 import { FotoDoGoogle } from "@/components/goating/foto-do-google";
+import { CadastroObrigatorio } from "@/components/goating/cadastro-obrigatorio";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { iniciarApp } from "@/lib/nativo";
@@ -143,6 +144,7 @@ function RootComponent() {
       <PushNoCelular />
       <DestinoPendente />
       <FotoDoGoogle />
+      <CadastroObrigatorio />
       <Outlet />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>

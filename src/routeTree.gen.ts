@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BuscarRouteImport } from './routes/buscar'
+import { Route as CompletarCadastroRouteImport } from './routes/completar-cadastro'
 import { Route as CriarRouteImport } from './routes/criar'
 import { Route as MinhasPartidasRouteImport } from './routes/minhas-partidas'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
@@ -46,6 +47,11 @@ const AuthRoute = AuthRouteImport.update({
 const BuscarRoute = BuscarRouteImport.update({
   id: '/buscar',
   path: '/buscar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompletarCadastroRoute = CompletarCadastroRouteImport.update({
+  id: '/completar-cadastro',
+  path: '/completar-cadastro',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CriarRoute = CriarRouteImport.update({
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/buscar': typeof BuscarRoute
+  '/completar-cadastro': typeof CompletarCadastroRoute
   '/criar': typeof CriarRoute
   '/minhas-partidas': typeof MinhasPartidasRoute
   '/notificacoes': typeof NotificacoesRoute
@@ -178,6 +185,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/buscar': typeof BuscarRoute
+  '/completar-cadastro': typeof CompletarCadastroRoute
   '/criar': typeof CriarRoute
   '/minhas-partidas': typeof MinhasPartidasRoute
   '/notificacoes': typeof NotificacoesRoute
@@ -204,6 +212,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/buscar': typeof BuscarRoute
+  '/completar-cadastro': typeof CompletarCadastroRoute
   '/criar': typeof CriarRoute
   '/minhas-partidas': typeof MinhasPartidasRoute
   '/notificacoes': typeof NotificacoesRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/buscar'
+    | '/completar-cadastro'
     | '/criar'
     | '/minhas-partidas'
     | '/notificacoes'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/buscar'
+    | '/completar-cadastro'
     | '/criar'
     | '/minhas-partidas'
     | '/notificacoes'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/buscar'
+    | '/completar-cadastro'
     | '/criar'
     | '/minhas-partidas'
     | '/notificacoes'
@@ -307,6 +319,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   BuscarRoute: typeof BuscarRoute
+  CompletarCadastroRoute: typeof CompletarCadastroRoute
   CriarRoute: typeof CriarRoute
   MinhasPartidasRoute: typeof MinhasPartidasRoute
   NotificacoesRoute: typeof NotificacoesRoute
@@ -350,6 +363,13 @@ declare module '@tanstack/react-router' {
       path: '/buscar'
       fullPath: '/buscar'
       preLoaderRoute: typeof BuscarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/completar-cadastro': {
+      id: '/completar-cadastro'
+      path: '/completar-cadastro'
+      fullPath: '/completar-cadastro'
+      preLoaderRoute: typeof CompletarCadastroRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/criar': {
@@ -499,6 +519,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   BuscarRoute: BuscarRoute,
+  CompletarCadastroRoute: CompletarCadastroRoute,
   CriarRoute: CriarRoute,
   MinhasPartidasRoute: MinhasPartidasRoute,
   NotificacoesRoute: NotificacoesRoute,

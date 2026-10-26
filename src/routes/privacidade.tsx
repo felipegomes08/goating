@@ -71,6 +71,11 @@ function Privacidade() {
               preencher.
             </li>
             <li>
+              <strong>Celular (opcional):</strong> se você informar, guardamos o número pra o
+              Goating poder falar com você. Ele não aparece no seu perfil e outros usuários não
+              veem.
+            </li>
+            <li>
               <strong>Uso do app:</strong> peladas que você cria ou confirma presença, turmas de que
               participa, gols, vitórias e demais números dos jogos.
             </li>

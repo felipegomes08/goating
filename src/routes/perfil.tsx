@@ -6,10 +6,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { esquecerPushNoApp } from "@/lib/nativo";
 import { useSession, usePerfil } from "@/hooks/use-session";
+import { salvarCelular, useCelular } from "@/hooks/use-celular";
 import { useNumerosDoJogador } from "@/hooks/use-numeros-do-jogador";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { Sino } from "@/components/goating/sino";
 import { CidadeCombobox } from "@/components/goating/cidade-combobox";
+import { CampoCelular } from "@/components/goating/campo-celular";
 import { ComentariosDoJogador } from "@/components/goating/comentarios-do-jogador";
 import { ExcluirConta } from "@/components/goating/excluir-conta";
 import { FolhaCartao } from "@/components/goating/folha-cartao";
@@ -33,6 +35,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NICK_MAX, normalizarNick, problemaDoNick } from "@/lib/nick";
+import { POSICOES } from "@/lib/cadastro";
+import { formatarCelular, problemaDoCelular } from "@/lib/celular";
 import { type TierNome, avaliacoesFaltando, overallLiberado, tierPorNome } from "@/lib/tiers";
 
 export const Route = createFileRoute("/perfil")({
@@ -57,19 +61,19 @@ export const Route = createFileRoute("/perfil")({
   component: Perfil,
 });
 
-const POSICOES = ["GOL", "ZAG", "LAT", "VOL", "MEI", "ATA"];
-
 function Perfil() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { userId, carregando } = useSession();
   const { data: perfil, isLoading } = usePerfil(userId);
   const numeros = useNumerosDoJogador(userId);
+  const celularSalvo = useCelular(userId);
 
   const [nome, setNome] = useState("");
   const [cidade, setCidade] = useState("");
   const [bio, setBio] = useState("");
   const [posicao, setPosicao] = useState<string | null>(null);
+  const [celular, setCelular] = useState("");
   const [nick, setNick] = useState("");
   const [editando, setEditando] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -95,6 +99,7 @@ function Perfil() {
     setCidade(perfil.cidade ?? "");
     setBio(perfil.bio ?? "");
     setPosicao(perfil.posicao_preferida);
+    setCelular(celularSalvo.data ?? "");
   }
 
   // Só sincroniza fora da edição: o perfil recarregar (foto nova, avaliação) não pode
@@ -102,7 +107,7 @@ function Perfil() {
   useEffect(() => {
     if (!editando) carregarCampos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [perfil, editando]);
+  }, [perfil, editando, celularSalvo.data]);
 
   function cancelarEdicao() {
     carregarCampos();
@@ -185,20 +190,29 @@ function Perfil() {
   });
 
   async function salvar() {
-    if (!userId || nickBloqueado) return;
+    if (!userId || nickBloqueado || !cidade.trim() || !posicao || problemaDoCelular(celular)) {
+      return;
+    }
     setSalvando(true);
     const { error } = await supabase
       .from("profiles")
       .update({
         nome_exibicao: nome.trim(),
         ...(nickMudou ? { handle: nick } : {}),
-        cidade: cidade.trim() || null,
+        cidade: cidade.trim(),
         bio: bio.trim() || null,
         posicao_preferida: posicao,
-        perfil_completo: !!(nome.trim() && cidade.trim() && posicao),
+        perfil_completo: true,
       })
       .eq("id", userId);
+    const celularMudou = celular !== (celularSalvo.data ?? "");
+    const erroCelular =
+      !error && celularMudou ? (await salvarCelular(userId, celular)).error : null;
     setSalvando(false);
+    if (erroCelular) {
+      toast.error("Salvei o perfil, mas não consegui salvar o celular.");
+      return;
+    }
     if (error) {
       // 23505 = alguém pegou o mesmo nick entre a checagem e o salvar
       toast.error(
@@ -212,6 +226,7 @@ function Perfil() {
     await queryClient.invalidateQueries({ queryKey: ["perfil", userId] });
     await queryClient.invalidateQueries({ queryKey: ["nick-livre"] });
     await queryClient.invalidateQueries({ queryKey: ["medias", userId] });
+    await queryClient.invalidateQueries({ queryKey: ["celular", userId] });
     setEditando(false);
   }
 
@@ -492,6 +507,10 @@ function Perfil() {
                 ["Nick", perfil.handle ? `@${perfil.handle}` : "sem nick"],
                 ["Cidade", perfil.cidade ?? "não informada"],
                 ["Posição", perfil.posicao_preferida ?? "não informada"],
+                [
+                  "Celular",
+                  celularSalvo.data ? formatarCelular(celularSalvo.data) : "não informado",
+                ],
                 ["Bio", perfil.bio ?? "—"],
               ].map(([rotulo, valor]) => (
                 <div key={rotulo} className="flex gap-3 py-2">
@@ -568,6 +587,7 @@ function Perfil() {
                   placeholder="Joga onde? Qual seu estilo?"
                 />
               </div>
+              <CampoCelular value={celular} onChange={setCelular} />
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -579,7 +599,15 @@ function Perfil() {
                 </Button>
                 <Button
                   onClick={salvar}
-                  disabled={salvando || !nome.trim() || nickBloqueado || nickLivre.isFetching}
+                  disabled={
+                    salvando ||
+                    !nome.trim() ||
+                    !cidade.trim() ||
+                    !posicao ||
+                    !!problemaDoCelular(celular) ||
+                    nickBloqueado ||
+                    nickLivre.isFetching
+                  }
                   className="flex-1"
                 >
                   {salvando ? "Salvando..." : "Salvar"}

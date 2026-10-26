@@ -769,6 +769,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      contatos: {
+        Row: { atualizado_em: string; celular: string | null; id: string };
+        Insert: { atualizado_em?: string; celular?: string | null; id: string };
+        Update: { atualizado_em?: string; celular?: string | null; id?: string };
+        Relationships: [];
+      };
       conquistas: {
         Row: { codigo: string; ganha_em: string; user_id: string };
         Insert: { codigo: string; ganha_em?: string; user_id: string };
