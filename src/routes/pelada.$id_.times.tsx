@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ClipboardPaste,
+  Link2,
   Palette,
   Minus,
   Pencil,
@@ -24,6 +25,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
 import { FolhaNome } from "@/components/goating/folha-nome";
 import { FolhaTimes } from "@/components/goating/folha-times";
+import { FolhaVincular } from "@/components/goating/folha-vincular";
 import { QuadroTimes } from "@/components/goating/quadro-times";
 import { cn } from "@/lib/utils";
 import {
@@ -78,6 +80,7 @@ function TimesDaPelada() {
   const [nomes, setNomes] = useState<string[]>(NOMES_PADRAO(2));
   const [cores, setCores] = useState<(string | null)[]>([]);
   const [editandoTimes, setEditandoTimes] = useState(false);
+  const [vinculando, setVinculando] = useState<{ memberId: string; nome: string } | null>(null);
   const [selecionado, setSelecionado] = useState<string | null>(null);
   const [base, setBase] = useState<BaseDoSorteio>(() => {
     try {
@@ -91,6 +94,28 @@ function TimesDaPelada() {
   const [renomeando, setRenomeando] = useState<{ memberId: string; nome: string } | null>(null);
 
   const dados = consulta.data;
+
+  // quem do elenco já jogou outra pelada pela turma; sem conta e sem nenhuma, é "novo na turma"
+  // (pode ser alguém da turma que veio com outro nome na lista colada)
+  const semConta = jogadores
+    .filter((j) => !j.userId)
+    .map((j) => j.memberId)
+    .sort();
+  const comHistorico = useQuery({
+    queryKey: ["historico-do-elenco", id, semConta],
+    enabled: semConta.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("match_players")
+        .select("member_id")
+        .in("member_id", semConta)
+        .neq("match_id", id);
+      if (error) throw error;
+      return new Set(data.map((m) => m.member_id));
+    },
+  });
+  const novoNaTurma = (j: JogadorDoDia) =>
+    !j.userId && !!comHistorico.data && !comHistorico.data.has(j.memberId);
   useEffect(() => {
     if (!dados?.souOrganizador) return;
     setJogadores(dados.jogadores);
@@ -260,6 +285,40 @@ function TimesDaPelada() {
     }
     setJogadores((lista) => lista.map((j) => (j.memberId === memberId ? { ...j, nome } : j)));
     setMembros((lista) => lista.map((m) => (m.id === memberId ? { ...m, nome } : m)));
+    return true;
+  }
+
+  /** O novo que veio da lista é alguém da turma: junta os dois e o elenco fica com o da turma. */
+  async function vincular(origem: string, destino: Membro) {
+    const { error } = await supabase.rpc("juntar_membros", {
+      p_origem: origem,
+      p_destino: destino.id,
+    });
+    if (error) {
+      toast.error(error.message || "Não deu pra vincular esse jogador.");
+      return false;
+    }
+    setJogadores((lista) =>
+      lista.map((j) =>
+        j.memberId === origem
+          ? {
+              ...j,
+              memberId: destino.id,
+              userId: destino.user_id,
+              nome: destino.nome,
+              posicao: destino.posicao ?? j.posicao,
+              estrelas: destino.estrelas ?? j.estrelas,
+            }
+          : j,
+      ),
+    );
+    setMembros((lista) =>
+      lista
+        .filter((m) => m.id !== origem)
+        .map((m) => (m.id === destino.id ? { ...m, removido_em: null } : m)),
+    );
+    if (selecionado === origem) setSelecionado(null);
+    toast.success(`Vinculado a ${destino.nome}.`);
     return true;
   }
 
@@ -505,17 +564,28 @@ function TimesDaPelada() {
                 .sort((a, b) => a.nome.localeCompare(b.nome))
                 .map((j) => (
                   <div key={j.memberId} className="flex items-center gap-2 px-3 py-2">
-                    <button
-                      type="button"
-                      aria-label={`Corrigir o nome de ${j.nome}`}
-                      onClick={() => setRenomeando({ memberId: j.memberId, nome: j.nome })}
-                      className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
-                    >
-                      <span className="truncate text-sm font-semibold text-foreground">
-                        {j.nome}
-                      </span>
-                      <Pencil className="size-3 shrink-0 text-muted-foreground" />
-                    </button>
+                    <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        aria-label={`Corrigir o nome de ${j.nome}`}
+                        onClick={() => setRenomeando({ memberId: j.memberId, nome: j.nome })}
+                        className="flex max-w-full items-center gap-1.5 text-left"
+                      >
+                        <span className="truncate text-sm font-semibold text-foreground">
+                          {j.nome}
+                        </span>
+                        <Pencil className="size-3 shrink-0 text-muted-foreground" />
+                      </button>
+                      {novoNaTurma(j) && (
+                        <button
+                          type="button"
+                          onClick={() => setVinculando({ memberId: j.memberId, nome: j.nome })}
+                          className="mt-0.5 flex items-center gap-1 rounded-full bg-tier-ouro/15 px-2 py-0.5 text-[10px] font-bold text-amber-700"
+                        >
+                          <Link2 className="size-3" /> Novo na turma · já é da turma?
+                        </button>
+                      )}
+                    </div>
                     <select
                       aria-label={`Posição de ${j.nome}`}
                       value={j.posicao ?? ""}
@@ -635,6 +705,17 @@ function TimesDaPelada() {
           <Play className="mr-2 size-4" /> Iniciar partida
         </Button>
       </div>
+
+      {vinculando && (
+        <FolhaVincular
+          nome={vinculando.nome}
+          candidatos={membros.filter(
+            (m) => m.id !== vinculando.memberId && !jogadores.some((j) => j.memberId === m.id),
+          )}
+          onEscolher={(m) => vincular(vinculando.memberId, m as Membro)}
+          onFechar={() => setVinculando(null)}
+        />
+      )}
 
       {editandoTimes && (
         <FolhaTimes
