@@ -66,13 +66,23 @@ Deno.serve(async (req) => {
     .eq("user_id", usuario.id)
     .maybeSingle();
   let cliente = assinatura?.stripe_customer_id;
+  // cliente guardado que não existe nesta conta do Stripe (ex.: criado no modo de teste) é trocado
+  if (cliente) {
+    const existe = await stripe.customers
+      .retrieve(cliente)
+      .then((c) => !("deleted" in c && c.deleted))
+      .catch(() => false);
+    if (!existe) cliente = undefined;
+  }
   if (!cliente) {
     const novo = await stripe.customers.create({
       email: usuario.email,
       metadata: { user_id: usuario.id },
     });
     cliente = novo.id;
-    await banco.from("assinaturas").insert({ user_id: usuario.id, stripe_customer_id: cliente });
+    await banco
+      .from("assinaturas")
+      .upsert({ user_id: usuario.id, stripe_customer_id: cliente }, { onConflict: "user_id" });
   }
 
   // já assina: manda pro portal em vez de cobrar duas vezes

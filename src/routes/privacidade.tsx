@@ -5,10 +5,10 @@ import { useVoltar } from "@/hooks/use-voltar";
 
 /** E-mail de contato sobre dados pessoais (provisório: trocar quando existir um do Goating). Vazio esconde o trecho. */
 const CONTATO: string = "felipecgomes02@gmail.com";
-const ATUALIZADA_EM = "13 de outubro de 2026";
+const ATUALIZADA_EM = "26 de outubro de 2026";
 
+// renderizada no servidor (sem ssr: false): o Google confere este texto na verificação do login
 export const Route = createFileRoute("/privacidade")({
-  ssr: false,
   head: () => ({
     meta: [
       { title: "Política de privacidade · Goating" },
@@ -49,6 +49,22 @@ function Privacidade() {
             <li>
               <strong>Conta:</strong> seu e-mail e sua senha (a senha fica protegida, nós não
               conseguimos lê-la).
+            </li>
+            <li>
+              <strong>Entrar com Google:</strong> se você entrar com a sua conta Google, recebemos
+              do Google só o seu nome, e-mail e foto de perfil. Usamos isso pra criar sua conta e
+              preencher o perfil (a foto do Google vira a foto do perfil, se você ainda não tiver
+              uma; dá pra trocar quando quiser). Não temos acesso à sua senha do Google, nem aos
+              seus contatos, e-mails ou arquivos.
+            </li>
+            <li>
+              <strong>Assinatura Premium:</strong> se você assinar, guardamos o plano, a situação da
+              assinatura e até quando ela vale. Os dados do cartão vão direto pro Stripe, que
+              processa o pagamento: o Goating não vê nem guarda o número do cartão.
+            </li>
+            <li>
+              <strong>Avisos no celular:</strong> se você permitir as notificações no app, guardamos
+              o código do aparelho que serve pra entregar os avisos (convites, conquistas, peladas).
             </li>
             <li>
               <strong>Perfil:</strong> nome de exibição, nick, cidade, posição, bio e foto, se você
@@ -130,15 +146,17 @@ function Privacidade() {
 
         <Secao titulo="Pra que usamos">
           <p>
-            Só pra fazer o app funcionar: mostrar suas peladas e turmas, calcular rankings e a sua
-            cartinha, e permitir que você entre na sua conta.
+            Só pra fazer o app funcionar: mostrar suas peladas e turmas, calcular rankings, a sua
+            cartinha e as suas conquistas, permitir que você entre na sua conta, mandar os e-mails
+            da conta (confirmação e troca de senha), mandar os avisos que você permitiu e liberar os
+            recursos do Premium pra quem assina. Não usamos seus dados pra anúncios.
           </p>
         </Secao>
 
         <Secao titulo="Onde ficam os dados">
           <p>
             Num banco de dados da Supabase, empresa de infraestrutura que hospeda o Goating, em
-            servidores em São Paulo.
+            servidores em São Paulo. O site fica na Vercel.
           </p>
         </Secao>
 
@@ -147,6 +165,18 @@ function Privacidade() {
             <li>
               <strong>Cloudflare Turnstile:</strong> a verificação “não sou um robô” do login e do
               cadastro. Ela analisa sinais do seu navegador pra barrar acessos automáticos.
+            </li>
+            <li>
+              <strong>Google:</strong> o login com a conta Google, se você escolher entrar assim.
+            </li>
+            <li>
+              <strong>Stripe:</strong> o pagamento da assinatura Premium.
+            </li>
+            <li>
+              <strong>Firebase (Google):</strong> a entrega dos avisos no celular Android.
+            </li>
+            <li>
+              <strong>Resend:</strong> o envio dos e-mails da conta.
             </li>
             <li>
               <strong>OpenStreetMap:</strong> as imagens do mapa, quando alguém abre “Marcar no
@@ -164,7 +194,9 @@ function Privacidade() {
             No app, vá em <strong>Perfil</strong> e toque em <strong>Excluir minha conta</strong>,
             no fim da tela. A exclusão é imediata e apaga perfil, foto, avaliações e seguidores. Nas
             turmas em que você jogou, os gols e vitórias continuam no ranking apenas com o nome, sem
-            ligação com você.
+            ligação com você. Se você tiver uma assinatura Premium, cancele antes no próprio app
+            (tela do Premium). Se entrou com Google, também pode tirar o acesso do Goating em
+            myaccount.google.com, na parte de apps conectados.
           </p>
         </Secao>
 

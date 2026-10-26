@@ -4,6 +4,7 @@ import { CalendarPlus, Flag, MapPin, Search } from "lucide-react";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { DIAS_NO_FEED, useFeed } from "@/hooks/use-feed";
 import { GoatingLogo } from "@/components/goating/logo";
+import { Apresentacao } from "@/components/goating/apresentacao";
 import { Sino } from "@/components/goating/sino";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
@@ -61,6 +62,9 @@ function Feed() {
       )
     : daAba;
   const aAvaliar = feed.data?.aAvaliar ?? 0;
+
+  // quem não entrou vê a apresentação do app (o que é, entrar, política de privacidade)
+  if (!carregando && !userId) return <Apresentacao />;
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
