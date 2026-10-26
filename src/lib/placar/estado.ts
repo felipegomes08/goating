@@ -391,53 +391,168 @@ export function nomeDoTime(nomes: string[] | null | undefined, time: number) {
   return nomes?.[time]?.trim() || `Time ${time + 1}`;
 }
 
-/** Cores fixas por time (classes completas pro Tailwind enxergar). */
+/**
+ * Cores de colete que o organizador pode dar a cada time (classes completas pro Tailwind
+ * enxergar). As seis primeiras são as de sempre, na ordem dos times; `sobre` é a cor do texto
+ * em cima da cor sólida (escuro no branco e no amarelo).
+ */
 export const CORES_TIME = [
   {
+    id: "laranja",
+    rotulo: "Laranja",
+    hexa: "#F97316",
     texto: "text-orange-600",
     fundo: "bg-orange-50",
     borda: "border-orange-500",
     solido: "bg-orange-500",
     ring: "ring-orange-400",
+    sobre: "text-white",
   },
   {
+    id: "azul",
+    rotulo: "Azul",
+    hexa: "#3B82F6",
     texto: "text-blue-600",
     fundo: "bg-blue-50",
     borda: "border-blue-500",
     solido: "bg-blue-500",
     ring: "ring-blue-400",
+    sobre: "text-white",
   },
   {
+    id: "rosa",
+    rotulo: "Rosa",
+    hexa: "#F43F5E",
     texto: "text-rose-600",
     fundo: "bg-rose-50",
     borda: "border-rose-500",
     solido: "bg-rose-500",
     ring: "ring-rose-400",
+    sobre: "text-white",
   },
   {
+    id: "roxo",
+    rotulo: "Roxo",
+    hexa: "#8B5CF6",
     texto: "text-violet-600",
     fundo: "bg-violet-50",
     borda: "border-violet-500",
     solido: "bg-violet-500",
     ring: "ring-violet-400",
+    sobre: "text-white",
   },
   {
+    id: "amarelo",
+    rotulo: "Amarelo",
+    hexa: "#FACC15",
     texto: "text-amber-600",
     fundo: "bg-amber-50",
-    borda: "border-amber-500",
-    solido: "bg-amber-500",
+    borda: "border-amber-400",
+    solido: "bg-yellow-400",
     ring: "ring-amber-400",
+    sobre: "text-neutral-900",
   },
   {
+    id: "verde-agua",
+    rotulo: "Verde-água",
+    hexa: "#14B8A6",
     texto: "text-teal-600",
     fundo: "bg-teal-50",
     borda: "border-teal-500",
     solido: "bg-teal-500",
     ring: "ring-teal-400",
+    sobre: "text-white",
+  },
+  {
+    id: "vermelho",
+    rotulo: "Vermelho",
+    hexa: "#DC2626",
+    texto: "text-red-600",
+    fundo: "bg-red-50",
+    borda: "border-red-600",
+    solido: "bg-red-600",
+    ring: "ring-red-400",
+    sobre: "text-white",
+  },
+  {
+    id: "verde",
+    rotulo: "Verde",
+    hexa: "#16A34A",
+    texto: "text-green-700",
+    fundo: "bg-green-50",
+    borda: "border-green-600",
+    solido: "bg-green-600",
+    ring: "ring-green-400",
+    sobre: "text-white",
+  },
+  {
+    id: "azul-claro",
+    rotulo: "Azul-claro",
+    hexa: "#38BDF8",
+    texto: "text-sky-600",
+    fundo: "bg-sky-50",
+    borda: "border-sky-400",
+    solido: "bg-sky-400",
+    ring: "ring-sky-300",
+    sobre: "text-white",
+  },
+  {
+    id: "vinho",
+    rotulo: "Vinho",
+    hexa: "#9F1239",
+    texto: "text-rose-900",
+    fundo: "bg-rose-50",
+    borda: "border-rose-900",
+    solido: "bg-rose-900",
+    ring: "ring-rose-700",
+    sobre: "text-white",
+  },
+  {
+    id: "preto",
+    rotulo: "Preto",
+    hexa: "#171717",
+    texto: "text-neutral-900",
+    fundo: "bg-neutral-100",
+    borda: "border-neutral-900",
+    solido: "bg-neutral-900",
+    ring: "ring-neutral-500",
+    sobre: "text-white",
+  },
+  {
+    id: "cinza",
+    rotulo: "Cinza",
+    hexa: "#737373",
+    texto: "text-neutral-500",
+    fundo: "bg-neutral-100",
+    borda: "border-neutral-400",
+    solido: "bg-neutral-500",
+    ring: "ring-neutral-400",
+    sobre: "text-white",
+  },
+  {
+    id: "branco",
+    rotulo: "Branco",
+    hexa: "#FFFFFF",
+    texto: "text-neutral-500",
+    fundo: "bg-neutral-50",
+    borda: "border-neutral-300",
+    solido: "bg-white ring-1 ring-inset ring-neutral-300",
+    ring: "ring-neutral-300",
+    sobre: "text-neutral-900",
   },
 ] as const;
 
-export const corDoTime = (time: number) => CORES_TIME[time % CORES_TIME.length]!;
+export type CorDeTime = (typeof CORES_TIME)[number];
+export type IdCorDeTime = CorDeTime["id"];
+
+/** Quantas cores entram no rodízio padrão (time 1 laranja, time 2 azul...). */
+const CORES_PADRAO = 6;
+
+/** Cor do time: a escolhida na pelada (`cores_times`) ou a padrão da posição. */
+export function corDoTime(time: number, cores?: (string | null)[] | null): CorDeTime {
+  const escolhida = CORES_TIME.find((c) => c.id === cores?.[time]);
+  return escolhida ?? CORES_TIME[time % CORES_PADRAO]!;
+}
 
 export function formatarRelogio(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));

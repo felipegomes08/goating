@@ -638,6 +638,7 @@ export type Database = {
           minutos_tempo: number;
           mvp_fechado_em: string | null;
           mvp_id: string | null;
+          cores_times: string[] | null;
           nomes_times: string[] | null;
           num_times: number;
           organizador_id: string;
@@ -668,6 +669,7 @@ export type Database = {
           minutos_tempo?: number;
           mvp_fechado_em?: string | null;
           mvp_id?: string | null;
+          cores_times?: string[] | null;
           nomes_times?: string[] | null;
           num_times?: number;
           organizador_id: string;
@@ -698,6 +700,7 @@ export type Database = {
           minutos_tempo?: number;
           mvp_fechado_em?: string | null;
           mvp_id?: string | null;
+          cores_times?: string[] | null;
           nomes_times?: string[] | null;
           num_times?: number;
           organizador_id?: string;

@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ClipboardPaste,
+  Palette,
   Minus,
   Pencil,
   Play,
@@ -22,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
 import { FolhaNome } from "@/components/goating/folha-nome";
+import { FolhaTimes } from "@/components/goating/folha-times";
 import { QuadroTimes } from "@/components/goating/quadro-times";
 import { cn } from "@/lib/utils";
 import {
@@ -74,6 +76,8 @@ function TimesDaPelada() {
   const [confirmadosFora, setConfirmadosFora] = useState<JogadorDoDia[]>([]);
   const [numTimes, setNumTimes] = useState(2);
   const [nomes, setNomes] = useState<string[]>(NOMES_PADRAO(2));
+  const [cores, setCores] = useState<(string | null)[]>([]);
+  const [editandoTimes, setEditandoTimes] = useState(false);
   const [selecionado, setSelecionado] = useState<string | null>(null);
   const [base, setBase] = useState<BaseDoSorteio>(() => {
     try {
@@ -94,6 +98,7 @@ function TimesDaPelada() {
     setConfirmadosFora(dados.confirmadosFora);
     setNumTimes(dados.pelada.num_times);
     setNomes(dados.pelada.nomes_times ?? NOMES_PADRAO(dados.pelada.num_times));
+    setCores(dados.pelada.cores_times ?? []);
   }, [dados]);
 
   if (carregando || consulta.isLoading) {
@@ -147,6 +152,20 @@ function TimesDaPelada() {
       .update({ num_times: n, nomes_times: nomesTimes })
       .eq("id", id);
     if (error) toast.error("Não deu pra salvar a quantidade de times.");
+  }
+
+  async function gravarNomesECores(nomesTimes: string[], coresTimes: string[]) {
+    const { error } = await supabase
+      .from("matches")
+      .update({ nomes_times: nomesTimes, cores_times: coresTimes })
+      .eq("id", id);
+    if (error) {
+      toast.error("Não deu pra salvar os nomes e as cores dos times.");
+      return false;
+    }
+    setNomes(nomesTimes);
+    setCores(coresTimes);
+    return true;
   }
 
   async function mudarNumTimes(n: number) {
@@ -583,12 +602,16 @@ function TimesDaPelada() {
             <Button variant={temTimes ? "outline" : "default"} className="w-full" onClick={sortear}>
               <Shuffle className="mr-2 size-4" /> {temTimes ? "Sortear de novo" : "Sortear times"}
             </Button>
+            <Button variant="outline" className="w-full" onClick={() => setEditandoTimes(true)}>
+              <Palette className="mr-2 size-4" /> Nome e cor dos times
+            </Button>
 
             {(temTimes || selecionado) && (
               <QuadroTimes
                 jogadores={jogadores}
                 numTimes={numTimes}
                 nomes={nomes}
+                cores={cores}
                 base={base}
                 selecionado={selecionado}
                 onTocar={tocarJogador}
@@ -612,6 +635,16 @@ function TimesDaPelada() {
           <Play className="mr-2 size-4" /> Iniciar partida
         </Button>
       </div>
+
+      {editandoTimes && (
+        <FolhaTimes
+          numTimes={numTimes}
+          nomes={nomes}
+          cores={cores}
+          onSalvar={gravarNomesECores}
+          onFechar={() => setEditandoTimes(false)}
+        />
+      )}
 
       {renomeando && (
         <FolhaNome

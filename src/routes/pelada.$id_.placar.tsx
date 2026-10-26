@@ -55,6 +55,7 @@ import {
   tabelaDosTimes,
   tirarDoJogo,
   type Contagem,
+  type CorDeTime,
   type EstadoPlacar,
   type Jogo,
   type Lado,
@@ -250,6 +251,7 @@ function PlacarDaPelada() {
   const numTimes = pelada.num_times;
   const jaComecou = new Date(`${pelada.data}T${pelada.horario}`).getTime() <= Date.now();
   const nomeTime = (time: number) => nomeDoTime(pelada.nomes_times, time);
+  const corTime = (time: number) => corDoTime(time, pelada.cores_times);
   const nomeJogador = (memberId: string | null) =>
     memberId
       ? (elenco.find((j) => j.memberId === memberId)?.nome ?? "Jogador")
@@ -640,7 +642,7 @@ function PlacarDaPelada() {
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {Array.from({ length: numTimes }, (_, t) => {
-                        const cor = corDoTime(t);
+                        const cor = corTime(t);
                         const ativo = confronto[lado] === t;
                         return (
                           <button
@@ -654,7 +656,7 @@ function PlacarDaPelada() {
                             className={cn(
                               "rounded-full border-2 px-3 py-1.5 text-xs font-bold disabled:opacity-30",
                               cor.borda,
-                              ativo ? cn(cor.solido, "text-white") : cn(cor.fundo, cor.texto),
+                              ativo ? cn(cor.solido, cor.sobre) : cn(cor.fundo, cor.texto),
                             )}
                           >
                             {nomeTime(t)}
@@ -666,9 +668,9 @@ function PlacarDaPelada() {
                 ))
               ) : (
                 <p className="text-center text-lg font-extrabold text-foreground">
-                  <span className={corDoTime(confronto[0]).texto}>{nomeTime(confronto[0])}</span>
+                  <span className={corTime(confronto[0]).texto}>{nomeTime(confronto[0])}</span>
                   <span className="mx-2 text-muted-foreground">×</span>
-                  <span className={corDoTime(confronto[1]).texto}>{nomeTime(confronto[1])}</span>
+                  <span className={corTime(confronto[1]).texto}>{nomeTime(confronto[1])}</span>
                 </p>
               )}
               {fila.length > 0 && (
@@ -706,7 +708,7 @@ function PlacarDaPelada() {
                       <span
                         className={cn(
                           "flex-1 truncate text-right font-semibold",
-                          corDoTime(j.times[0]).texto,
+                          corTime(j.times[0]).texto,
                         )}
                       >
                         {nomeTime(j.times[0])}
@@ -715,7 +717,7 @@ function PlacarDaPelada() {
                         {a} × {b}
                       </span>
                       <span
-                        className={cn("flex-1 truncate font-semibold", corDoTime(j.times[1]).texto)}
+                        className={cn("flex-1 truncate font-semibold", corTime(j.times[1]).texto)}
                       >
                         {nomeTime(j.times[1])}
                       </span>
@@ -743,7 +745,9 @@ function PlacarDaPelada() {
             </section>
           )}
 
-          {tabela.length > 2 && <TabelaTimes tabela={tabela} nomeTime={nomeTime} />}
+          {tabela.length > 2 && (
+            <TabelaTimes tabela={tabela} nomeTime={nomeTime} cores={pelada.cores_times} />
+          )}
 
           {artilharia.length > 0 && (
             <section className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
@@ -794,6 +798,7 @@ function PlacarDaPelada() {
                   crewId={pelada.crew_id}
                   elenco={elenco}
                   nomeTime={nomeTime}
+                  corTime={corTime}
                   nomeJogador={nomeJogador}
                   onMudar={(fn) => mudarJogo(jogo.id, fn)}
                   onIncluirNoElenco={incluirNoElenco}
@@ -870,7 +875,7 @@ function PlacarDaPelada() {
               {([0, 1] as const).map((lado) => (
                 <div
                   key={lado}
-                  className={cn(corDoTime(atual.times[lado]).texto, lado === 1 && "order-3")}
+                  className={cn(corTime(atual.times[lado]).texto, lado === 1 && "order-3")}
                 >
                   <p className="truncate text-sm font-extrabold uppercase">
                     {nomeTime(atual.times[lado])}
@@ -909,7 +914,7 @@ function PlacarDaPelada() {
             </p>
             <div className="grid grid-cols-2 gap-3">
               {([0, 1] as const).map((lado) => {
-                const cor = corDoTime(atual.times[lado]);
+                const cor = corTime(atual.times[lado]);
                 return (
                   <div key={lado} className="min-w-0 space-y-2">
                     <p
@@ -940,8 +945,9 @@ function PlacarDaPelada() {
                           {feitos > 0 && (
                             <span
                               className={cn(
-                                "min-w-7 shrink-0 rounded-full px-1.5 text-center text-lg font-black text-white tabular-nums",
+                                "min-w-7 shrink-0 rounded-full px-1.5 text-center text-lg font-black tabular-nums",
                                 cor.solido,
+                                cor.sobre,
                               )}
                             >
                               {feitos}
@@ -986,7 +992,7 @@ function PlacarDaPelada() {
                     <span
                       className={cn(
                         "size-2.5 shrink-0 rounded-full",
-                        corDoTime(atual.times[g.lado]).solido,
+                        corTime(atual.times[g.lado]).solido,
                       )}
                     />
                     <span className="min-w-0 flex-1 truncate font-semibold">
@@ -1089,7 +1095,7 @@ function PlacarDaPelada() {
             {([0, 1] as const).map((lado) => (
               <div
                 key={lado}
-                className={cn(corDoTime(atual.times[lado]).texto, lado === 1 && "order-3")}
+                className={cn(corTime(atual.times[lado]).texto, lado === 1 && "order-3")}
               >
                 <p className="truncate text-sm font-extrabold uppercase">
                   {nomeTime(atual.times[lado])}
@@ -1151,7 +1157,7 @@ function PlacarDaPelada() {
           </p>
           <div className="grid grid-cols-2 gap-3">
             {([0, 1] as const).map((lado) => {
-              const cor = corDoTime(atual.times[lado]);
+              const cor = corTime(atual.times[lado]);
               return (
                 <div key={lado} className="min-w-0 space-y-2">
                   <p
@@ -1211,8 +1217,9 @@ function PlacarDaPelada() {
                           {gols > 0 && (
                             <span
                               className={cn(
-                                "min-w-7 shrink-0 rounded-full px-1.5 text-center text-lg font-black text-white tabular-nums",
+                                "min-w-7 shrink-0 rounded-full px-1.5 text-center text-lg font-black tabular-nums",
                                 cor.solido,
+                                cor.sobre,
                               )}
                             >
                               {gols}
@@ -1273,7 +1280,7 @@ function PlacarDaPelada() {
                   <span
                     className={cn(
                       "size-2.5 shrink-0 rounded-full",
-                      corDoTime(atual.times[g.lado]).solido,
+                      corTime(atual.times[g.lado]).solido,
                     )}
                   />
                   <span className="min-w-0 flex-1">
@@ -1395,7 +1402,7 @@ function PlacarDaPelada() {
         >
           <div className="grid grid-cols-2 gap-3">
             {([0, 1] as const).map((lado) => {
-              const cor = corDoTime(atual.times[lado]);
+              const cor = corTime(atual.times[lado]);
               return (
                 <div key={lado} className="min-w-0 space-y-1.5">
                   <p className={cn("truncate text-xs font-extrabold uppercase", cor.texto)}>
@@ -1410,7 +1417,7 @@ function PlacarDaPelada() {
                         "w-full rounded-xl border-2 px-3 py-2.5 text-left text-sm font-semibold",
                         cor.borda,
                         golEmEdicao.lado === lado && golEmEdicao.memberId === memberId
-                          ? cn(cor.solido, "text-white")
+                          ? cn(cor.solido, cor.sobre)
                           : cn(cor.fundo, "text-foreground"),
                       )}
                     >
@@ -1510,6 +1517,7 @@ function EditorDeJogo({
   crewId,
   elenco,
   nomeTime,
+  corTime,
   nomeJogador,
   onMudar,
   onIncluirNoElenco,
@@ -1520,6 +1528,7 @@ function EditorDeJogo({
   crewId: string | null;
   elenco: LinhaElenco[];
   nomeTime: (time: number) => string;
+  corTime: (time: number) => CorDeTime;
   nomeJogador: (memberId: string | null) => string;
   onMudar: (fn: (jogo: Jogo) => Jogo) => void;
   onIncluirNoElenco: (linha: LinhaElenco) => void;
@@ -1608,7 +1617,7 @@ function EditorDeJogo({
     modo?.tipo === "autor" ? jogo.gols.find((g) => g.id === modo.golId) : undefined;
   const ladoDoGol = golEmEdicao?.lado ?? (modo?.tipo === "novo-gol" ? modo.lado : null);
   if (ladoDoGol !== null) {
-    const cor = corDoTime(jogo.times[ladoDoGol]);
+    const cor = corTime(jogo.times[ladoDoGol]);
     const escolher = (memberId: string | null) => {
       onMudar((j) =>
         golEmEdicao
@@ -1636,7 +1645,7 @@ function EditorDeJogo({
           "w-full rounded-xl border-2 px-3 py-2.5 text-left text-sm font-semibold",
           cor.borda,
           golEmEdicao && golEmEdicao.memberId === memberId
-            ? cn(cor.solido, "text-white")
+            ? cn(cor.solido, cor.sobre)
             : cn(cor.fundo, "text-foreground"),
         )}
       >
@@ -1676,7 +1685,7 @@ function EditorDeJogo({
       </p>
       <div className="grid grid-cols-2 gap-3">
         {([0, 1] as const).map((lado) => {
-          const cor = corDoTime(jogo.times[lado]);
+          const cor = corTime(jogo.times[lado]);
           return (
             <div key={lado} className="min-w-0 space-y-1.5">
               <p
@@ -1737,7 +1746,7 @@ function EditorDeJogo({
               <button
                 type="button"
                 onClick={() => setModo({ tipo: "novo-gol", lado })}
-                className={cn("w-full rounded-xl py-2 text-xs font-bold text-white", cor.solido)}
+                className={cn("w-full rounded-xl py-2 text-xs font-bold", cor.solido, cor.sobre)}
               >
                 + Gol do {nomeTime(jogo.times[lado])}
               </button>
@@ -1758,7 +1767,7 @@ function EditorDeJogo({
                 <span
                   className={cn(
                     "size-2.5 shrink-0 rounded-full",
-                    corDoTime(jogo.times[g.lado]).solido,
+                    corTime(jogo.times[g.lado]).solido,
                   )}
                 />
                 <span className="min-w-0 flex-1">

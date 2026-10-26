@@ -46,6 +46,7 @@ export function QuadroTimes({
   jogadores,
   numTimes,
   nomes,
+  cores,
   base,
   selecionado,
   onTocar,
@@ -54,6 +55,8 @@ export function QuadroTimes({
   jogadores: JogadorDoDia[];
   numTimes: number;
   nomes: string[];
+  /** cor do colete de cada time (id da paleta); vazio usa a padrão */
+  cores: (string | null)[];
   base: BaseDoSorteio;
   selecionado: string | null;
   onTocar: (memberId: string) => void;
@@ -198,7 +201,7 @@ export function QuadroTimes({
 
       <div className="grid grid-cols-2 gap-3">
         {times.map((time, i) => {
-          const cor = corDoTime(i);
+          const cor = corDoTime(i, cores);
           const naMira = arraste?.zona === i;
           return (
             <div

@@ -40,7 +40,9 @@ function ResumoDaPelada() {
       const [peladaRes, jogosRes, elenco] = await Promise.all([
         supabase
           .from("matches")
-          .select("id, titulo, data, crew_id, nomes_times, contagem_vitoria, placar_finalizado_em")
+          .select(
+            "id, titulo, data, crew_id, nomes_times, cores_times, contagem_vitoria, placar_finalizado_em",
+          )
           .eq("id", id)
           .maybeSingle(),
         supabase.from("games").select("*").eq("match_id", id).order("ordem"),
@@ -87,6 +89,7 @@ function ResumoDaPelada() {
 
   const { pelada, jogos, elenco } = dados;
   const nomeTime = (time: number) => nomeDoTime(pelada.nomes_times, time);
+  const corTime = (time: number) => corDoTime(time, pelada.cores_times);
   const finais: JogoFinal[] = jogos.map((j) => ({
     times: [j.time_a, j.time_b],
     placar: [j.gols_a, j.gols_b],
@@ -257,9 +260,7 @@ function ResumoDaPelada() {
                     {j.userId && premiums.has(j.userId) && <SeloPremium />}
                   </span>
                   {j.time !== null && (
-                    <span
-                      className={cn("text-[10px] font-bold uppercase", corDoTime(j.time).texto)}
-                    >
+                    <span className={cn("text-[10px] font-bold uppercase", corTime(j.time).texto)}>
                       {nomeTime(j.time)}
                     </span>
                   )}
@@ -287,7 +288,7 @@ function ResumoDaPelada() {
                     <span className="min-w-0 flex-1 truncate font-semibold">{j.nome}</span>
                     {j.time !== null && (
                       <span
-                        className={cn("text-[10px] font-bold uppercase", corDoTime(j.time).texto)}
+                        className={cn("text-[10px] font-bold uppercase", corTime(j.time).texto)}
                       >
                         {nomeTime(j.time)}
                       </span>
@@ -328,7 +329,9 @@ function ResumoDaPelada() {
           </section>
         )}
 
-        {!jogoUnico && <TabelaTimes tabela={tabela} nomeTime={nomeTime} />}
+        {!jogoUnico && (
+          <TabelaTimes tabela={tabela} nomeTime={nomeTime} cores={pelada.cores_times} />
+        )}
 
         {!jogoUnico && (
           <section className="rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
@@ -340,7 +343,7 @@ function ResumoDaPelada() {
                   <span
                     className={cn(
                       "flex-1 truncate text-right font-semibold",
-                      corDoTime(j.time_a).texto,
+                      corTime(j.time_a).texto,
                     )}
                   >
                     {nomeTime(j.time_a)}
@@ -348,7 +351,7 @@ function ResumoDaPelada() {
                   <span className="font-extrabold tabular-nums">
                     {textoDoPlacar([j.gols_a, j.gols_b], penaltisDe(j), true)}
                   </span>
-                  <span className={cn("flex-1 truncate font-semibold", corDoTime(j.time_b).texto)}>
+                  <span className={cn("flex-1 truncate font-semibold", corTime(j.time_b).texto)}>
                     {nomeTime(j.time_b)}
                   </span>
                 </li>
