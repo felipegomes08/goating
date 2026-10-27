@@ -5,7 +5,7 @@ import { useVoltar } from "@/hooks/use-voltar";
 
 /** E-mail de contato sobre dados pessoais (provisório: trocar quando existir um do Goating). Vazio esconde o trecho. */
 const CONTATO: string = "felipecgomes02@gmail.com";
-const ATUALIZADA_EM = "26 de outubro de 2026";
+const ATUALIZADA_EM = "28 de outubro de 2026";
 
 // renderizada no servidor (sem ssr: false): o Google confere este texto na verificação do login
 export const Route = createFileRoute("/privacidade")({
@@ -81,7 +81,10 @@ function Privacidade() {
             </li>
             <li>
               <strong>Avaliações:</strong> as notas que você dá e as que recebe de quem jogou com
-              você. Ninguém vê a nota que cada pessoa deu: aparece só a média.
+              você. Os outros usuários veem só a média. Quem é Premium pode ver quem deu cada nota
+              que recebeu (as notas, não os comentários), nas avaliações feitas a partir de 28 de
+              outubro de 2026; a tela de avaliar avisa disso. As avaliações anteriores continuam
+              anônimas.
             </li>
             <li>
               <strong>Comentários:</strong> o texto que você escrever ao avaliar alguém ou uma

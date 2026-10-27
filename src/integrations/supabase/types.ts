@@ -158,6 +158,7 @@ export type Database = {
           chute: number | null;
           comentario: string | null;
           como_goleiro: boolean;
+          identificavel: boolean;
           elasticidade: number | null;
           jogo_pes: number | null;
           reflexo: number | null;
@@ -190,6 +191,7 @@ export type Database = {
           chute?: number | null;
           comentario?: string | null;
           como_goleiro?: boolean;
+          identificavel?: boolean;
           elasticidade?: number | null;
           jogo_pes?: number | null;
           reflexo?: number | null;
@@ -222,6 +224,7 @@ export type Database = {
           chute?: number | null;
           comentario?: string | null;
           como_goleiro?: boolean;
+          identificavel?: boolean;
           elasticidade?: number | null;
           jogo_pes?: number | null;
           reflexo?: number | null;
@@ -1077,6 +1080,31 @@ export type Database = {
           avaliacoes: number;
           mvp_id: string;
           nota: number;
+        }[];
+      };
+      avaliacoes_da_pelada: {
+        Args: { p_match_id: string };
+        Returns: {
+          avaliacoes: number;
+          foto_url: string | null;
+          handle: string | null;
+          nome_exibicao: string;
+          nota: number;
+          posicao_preferida: string | null;
+          user_id: string;
+        }[];
+      };
+      quem_me_avaliou: {
+        Args: { p_match_id: string };
+        Returns: {
+          avaliador_id: string | null;
+          foto_url: string | null;
+          handle: string | null;
+          identificavel: boolean;
+          nome: string | null;
+          nota_geral: number;
+          notas: Json;
+          posicao: string | null;
         }[];
       };
       juntar_membros: {

@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Crown, Share2 } from "lucide-react";
+import { Crown, ListOrdered, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAvatarUrl } from "@/hooks/use-avatar";
 import { FolhaCartao } from "@/components/goating/folha-cartao";
+import { FolhaAvaliacoesDaPelada } from "@/components/goating/folha-avaliacoes-da-pelada";
 import { Button } from "@/components/ui/button";
 import { gerarCartaoMvp, type DadosDoMvp } from "@/lib/placar/cartao-mvp";
 import { tierPorNome } from "@/lib/tiers";
@@ -26,6 +27,7 @@ export function DestaqueDoMvp({
   pelada: { titulo: string; data: string; crew_id: string | null; temPlacar: boolean };
 }) {
   const [compartilhando, setCompartilhando] = useState(false);
+  const [vendoAvaliacoes, setVendoAvaliacoes] = useState(false);
 
   const consulta = useQuery({
     queryKey: ["mvp-da-partida", matchId, mvpId],
@@ -125,6 +127,21 @@ export function DestaqueDoMvp({
       >
         <Share2 className="mr-2 size-4" /> Ver cartão do MVP
       </Button>
+      <Button
+        variant="outline"
+        className="mt-2 w-full border-tier-ouro/50 bg-card font-semibold"
+        onClick={() => setVendoAvaliacoes(true)}
+      >
+        <ListOrdered className="mr-2 size-4" /> Ver avaliações e quem te avaliou
+      </Button>
+
+      {vendoAvaliacoes && (
+        <FolhaAvaliacoesDaPelada
+          matchId={matchId}
+          mvpId={mvpId}
+          onFechar={() => setVendoAvaliacoes(false)}
+        />
+      )}
 
       {compartilhando && (
         <FolhaCartao

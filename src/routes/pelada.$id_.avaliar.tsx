@@ -334,6 +334,8 @@ function Avaliar() {
       posicao,
       como_goleiro: posicao === "GOL",
       comentario: comentario.trim() || null,
+      // quem avalia nesta tela viu o aviso: quem é Premium pode ver que a nota foi dela
+      identificavel: true,
     };
 
     let erro: { code?: string } | null = null;
@@ -415,6 +417,10 @@ function Avaliar() {
       </header>
 
       <div className="flex-1 space-y-4 p-4">
+        <p className="rounded-2xl bg-mint-soft px-4 py-2.5 text-xs text-primary">
+          Seja justo: depois que as avaliações fecham, quem é Premium pode ver as notas que você deu
+          pra ele. Os comentários continuam anônimos.
+        </p>
         <div className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-[var(--shadow-card)]">
           <FotoDoAvaliado nome={jogador.nome} foto={jogador.foto} />
           <div className="flex-1">
@@ -546,7 +552,7 @@ function Avaliar() {
           />
           <p className="mt-1.5 flex justify-between gap-3 text-xs text-muted-foreground">
             <span>
-              Aparece no perfil de {jogador.nome.split(" ")[0]} sem o seu nome. É tudo anônimo.
+              O comentário aparece no perfil de {jogador.nome.split(" ")[0]} sem o seu nome.
             </span>
             <span className="shrink-0 tabular-nums">{comentario.length}/200</span>
           </p>

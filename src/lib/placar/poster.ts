@@ -493,6 +493,7 @@ export type LinhaDoRanking = {
   vitorias: number;
   gols: number;
   assistencias: number;
+  mvps: number;
   /** já formatada: "1,2" */
   media: string;
   aproveitamento: number;
@@ -501,12 +502,12 @@ export type LinhaDoRanking = {
 export type DadosDoRanking = {
   turma: string;
   periodo: string;
-  /** índice da coluna que ordena a tabela (0 = J ... 5 = %) */
+  /** índice da coluna que ordena a tabela (0 = J ... 6 = %), na ordem de COLUNAS_RANKING */
   colunaOrdenada: number;
   linhas: LinhaDoRanking[];
 };
 
-const COLUNAS_RANKING = ["J", "V", "G", "A", "M", "%"];
+const COLUNAS_RANKING = ["J", "V", "G", "A", "MVP", "M", "%"];
 const MAX_LINHAS_RANKING = 15;
 
 /** Tabela do ranking da turma como imagem: altura acompanha a quantidade de jogadores. */
@@ -548,7 +549,7 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
   escrever(ctx, dados.periodo, MARGEM, 272, { peso: 600, tamanho: 30, cor: MENTA, largura: util });
 
   // colunas de número, da direita pra esquerda
-  const LARGURA_COLUNA = 92;
+  const LARGURA_COLUNA = 84;
   const xColuna = (i: number) =>
     LARGURA - MARGEM - 24 - (COLUNAS_RANKING.length - 1 - i) * LARGURA_COLUNA;
   const xNome = MARGEM + 96;
@@ -600,6 +601,7 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
       String(l.vitorias),
       String(l.gols),
       String(l.assistencias),
+      String(l.mvps),
       l.media,
       `${l.aproveitamento}`,
     ].forEach((valor, c) => {
@@ -617,7 +619,7 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
   const rodape = TOPO_TABELA + linhas.length * ALTURA_LINHA + 50;
   escrever(
     ctx,
-    "J jogos  ·  V vitórias  ·  G gols  ·  A assistências  ·  M gols por jogo  ·  % aproveitamento",
+    "J jogos  ·  V vitórias  ·  G gols  ·  A assist.  ·  MVP  ·  M gols por jogo  ·  % aproveit.",
     LARGURA / 2,
     rodape,
     { peso: 600, tamanho: 24, cor: APAGADO, largura: util, alinhar: "center" },

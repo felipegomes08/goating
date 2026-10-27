@@ -391,7 +391,7 @@ function PaginaDaTurma() {
       "",
       ...linhas.slice(0, 15).flatMap((l, i) => [
         `${medalhas[i] ?? `${i + 1}.`} *${l.nome}*`,
-        `   ${l.jogos} ${l.jogos === 1 ? "jogo" : "jogos"} · ${l.vitorias} ${l.vitorias === 1 ? "vitória" : "vitórias"} · ${l.gols} ${l.gols === 1 ? "gol" : "gols"} · ${formatarMedia(l.media)} por jogo · ${l.aproveitamento}%`,
+        `   ${l.jogos} ${l.jogos === 1 ? "jogo" : "jogos"} · ${l.vitorias} ${l.vitorias === 1 ? "vitória" : "vitórias"} · ${l.gols} ${l.gols === 1 ? "gol" : "gols"}${l.mvps ? ` · ${l.mvps} ${l.mvps === 1 ? "MVP" : "MVPs"}` : ""} · ${formatarMedia(l.media)} por jogo · ${l.aproveitamento}%`,
         // os outros lances só aparecem pra quem tem algum
         ...(l.assistencias + l.defesas + l.amarelos + l.azuis + l.vermelhos > 0
           ? [
@@ -421,16 +421,15 @@ function PaginaDaTurma() {
         {
           turma: dados.nome,
           periodo: rotuloPeriodo,
-          // colunas do pôster (sem MVPs): a ordenada fica em destaque
-          colunaOrdenada: (
-            ["jogos", "vitorias", "gols", "assistencias", "media", "aproveitamento"] as const
-          ).findIndex((c) => c === ordem),
+          // colunas do pôster, na ordem da tabela: a ordenada fica em destaque
+          colunaOrdenada: COLUNAS_RANKING.findIndex((c) => c.id === ordem),
           linhas: linhas.map((l) => ({
             nome: l.nome,
             jogos: l.jogos,
             vitorias: l.vitorias,
             gols: l.gols,
             assistencias: l.assistencias,
+            mvps: l.mvps,
             media: formatarMedia(l.media),
             aproveitamento: l.aproveitamento,
           })),

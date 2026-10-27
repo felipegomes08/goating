@@ -5,6 +5,7 @@ import {
   Crown,
   Eye,
   Frame,
+  ScanEye,
   Lock,
   GitCompareArrows,
   Medal,
@@ -99,6 +100,11 @@ const FRENTES: { titulo: string; itens: Beneficio[] }[] = [
         icone: BarChart3,
         titulo: "Raio-X das avaliações",
         texto: "Sua média em cada habilidade, onde melhorou e onde a galera acha que dá pra subir.",
+      },
+      {
+        icone: ScanEye,
+        titulo: "Veja quem te avaliou",
+        texto: "Depois de cada pelada, quem te deu cada nota, habilidade por habilidade.",
       },
       {
         icone: GitCompareArrows,

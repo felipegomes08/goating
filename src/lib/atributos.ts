@@ -86,6 +86,11 @@ const HABILIDADES: Record<Posicao, Definicao[]> = {
   ATA: [NOTA.finalizacao, NOTA.velocidade, NOTA.drible, NOTA.passe, NOTA.fisico, NOTA.jogo_aereo],
 };
 
+/** Nome de uma coluna de nota ("jogo_aereo" vira "Jogo aéreo"); null se não for uma nota do app. */
+export function nomeDaNota(chave: string): string | null {
+  return Object.values(NOTA).find((n) => n.chave === chave)?.nome ?? null;
+}
+
 /** Quantas notas cabem na cartinha (as habilidades da posição; o comportamento fica de fora). */
 export const NOTAS_NA_CARTA = 6;
 
