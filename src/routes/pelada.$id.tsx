@@ -18,6 +18,7 @@ import {
   Trophy,
   Pencil,
   ClipboardList,
+  Wallet,
   Trash2,
   Users,
   X,
@@ -33,6 +34,7 @@ import { DestaqueDoMvp } from "@/components/goating/destaque-mvp";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { podeGerirPelada } from "@/lib/placar/dados";
+import { FolhaCobranca } from "@/components/goating/chat/folha-cobranca";
 import { tierPorNome } from "@/lib/tiers";
 import { destinosDoLocal } from "@/lib/local";
 import { TierBadge } from "@/components/goating/tier-badge";
@@ -124,6 +126,7 @@ function DetalhePelada() {
 
   const voltar = useVoltar(() => void navigate({ to: "/", replace: true }));
   const [ocupado, setOcupado] = useState(false);
+  const [cobrando, setCobrando] = useState(false);
   const [confirmandoApagar, setConfirmandoApagar] = useState(false);
   const [tirando, setTirando] = useState<{ userId: string; nome: string } | null>(null);
   const [escolhendoRota, setEscolhendoRota] = useState(false);
@@ -632,6 +635,16 @@ function DetalhePelada() {
           >
             <ClipboardList className="mr-2 size-4" /> Mandar lista no chat da turma
           </Button>
+        )}
+
+        {/* pelada da turma que já terminou: o organizador ou ADM cobra no chat da turma */}
+        {podeGerir && pelada.crew_id && finalizada && (
+          <Button variant="outline" className="w-full" onClick={() => setCobrando(true)}>
+            <Wallet className="mr-2 size-4" /> Cobrar no chat da turma
+          </Button>
+        )}
+        {cobrando && pelada.crew_id && (
+          <FolhaCobranca crewId={pelada.crew_id} matchId={id} onFechar={() => setCobrando(false)} />
         )}
 
         {(souOrganizador || (podeGerir && pelada.status === "agendada")) && (

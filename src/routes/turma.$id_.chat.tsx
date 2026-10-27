@@ -15,6 +15,7 @@ import {
   SendHorizontal,
   Trash2,
   Users,
+  Wallet,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -26,6 +27,8 @@ import { marcarChatLido, useChat, useChatsNaoLidos, type Mensagem } from "@/hook
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CartaoLista } from "@/components/goating/chat/cartao-lista";
+import { CartaoCobranca } from "@/components/goating/chat/cartao-cobranca";
+import { FolhaCobranca } from "@/components/goating/chat/folha-cobranca";
 import { quandoDaPelada } from "@/lib/quando-da-pelada";
 import { urlDaFotoDaTurma } from "@/lib/foto-turma";
 import { abrirForaDoApp, noApp } from "@/lib/nativo";
@@ -173,6 +176,8 @@ function ChatDaTurma() {
   const [menu, setMenu] = useState<Mensagem | null>(null);
   const [listaAberta, setListaAberta] = useState<string | null>(null);
   const [escolhendoPelada, setEscolhendoPelada] = useState(false);
+  const [mais, setMais] = useState(false);
+  const [cobrando, setCobrando] = useState(false);
 
   // a lista fixada no topo: a mais nova mandada no chat de uma pelada que ainda não começou
   const ultimaLista = chat.mensagens.find((m) => m.tipo === "lista")?.id;
@@ -383,7 +388,39 @@ function ChatDaTurma() {
                           </span>
                         </div>
                       )}
-                      {m.tipo === "lista" && m.match_id ? (
+                      {m.tipo === "pagamento" && m.match_id ? (
+                        <div className="mt-3 mb-1 space-y-1">
+                          <p className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+                            <Wallet className="size-3.5" />
+                            {m.autor_id === userId
+                              ? "Você"
+                              : (mapa.get(m.autor_id ?? "")?.nome.split(" ")[0] ?? "Alguém")}{" "}
+                            mandou a cobrança · {hora(m.criado_em)}
+                            {!m.apagada_em && (m.autor_id === userId || turma.data?.souGestor) && (
+                              <button
+                                type="button"
+                                aria-label="Opções da cobrança"
+                                onClick={() => setMenu(m)}
+                                className="ml-1 p-0.5"
+                              >
+                                <MoreHorizontal className="size-3.5" />
+                              </button>
+                            )}
+                          </p>
+                          {m.apagada_em ? (
+                            <p className="text-center text-xs text-muted-foreground italic">
+                              Cobrança apagada
+                            </p>
+                          ) : (
+                            <CartaoCobranca
+                              matchId={m.match_id}
+                              valor={Number((m.dados as { valor?: number } | null)?.valor ?? 0)}
+                              pix={(m.dados as { pix?: string | null } | null)?.pix ?? null}
+                              userId={userId}
+                            />
+                          )}
+                        </div>
+                      ) : m.tipo === "lista" && m.match_id ? (
                         <div className="mt-3 mb-1 space-y-1">
                           <p className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
                             <ClipboardList className="size-3.5" />
@@ -448,7 +485,7 @@ function ChatDaTurma() {
 
           <CampoDeMensagem
             onEnviar={chat.enviar}
-            onLista={turma.data?.souGestor ? () => setEscolhendoPelada(true) : undefined}
+            onLista={turma.data?.souGestor ? () => setMais(true) : undefined}
           />
         </>
       )}
@@ -458,6 +495,55 @@ function ChatDaTurma() {
           <CartaoLista matchId={listaAberta} userId={userId} />
         </Folha>
       )}
+
+      {mais && (
+        <Folha titulo="Mandar no chat" onFechar={() => setMais(false)}>
+          <div className="grid gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setMais(false);
+                setEscolhendoPelada(true);
+              }}
+              className="flex items-center gap-3 rounded-2xl bg-card p-4 text-left shadow-sm"
+            >
+              <span className="flex size-10 items-center justify-center rounded-full bg-mint-soft">
+                <ClipboardList className="size-5 text-primary" />
+              </span>
+              <span>
+                <span className="block text-sm font-extrabold text-foreground">
+                  Lista de presença
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  A galera responde Vou ou Não vou e já entra na pelada.
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMais(false);
+                setCobrando(true);
+              }}
+              className="flex items-center gap-3 rounded-2xl bg-card p-4 text-left shadow-sm"
+            >
+              <span className="flex size-10 items-center justify-center rounded-full bg-tier-ouro/20">
+                <Wallet className="size-5 text-amber-700" />
+              </span>
+              <span>
+                <span className="block text-sm font-extrabold text-foreground">
+                  Cobrança da pelada
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  Valor por pessoa, Pix e quem já pagou.
+                </span>
+              </span>
+            </button>
+          </div>
+        </Folha>
+      )}
+
+      {cobrando && <FolhaCobranca crewId={id} onFechar={() => setCobrando(false)} />}
 
       {escolhendoPelada && (
         <FolhaEnviarLista crewId={id} onFechar={() => setEscolhendoPelada(false)} />
@@ -575,7 +661,7 @@ function CampoDeMensagem({
   onLista,
 }: {
   onEnviar: (texto: string) => Promise<boolean>;
-  /** só pro organizador ou ADM: abre a escolha da pelada pra mandar a lista */
+  /** só pro organizador ou ADM: abre o "+" (lista de presença ou cobrança) */
   onLista?: (() => void) | undefined;
 }) {
   const [texto, setTexto] = useState("");
@@ -612,7 +698,7 @@ function CampoDeMensagem({
       {onLista && (
         <button
           type="button"
-          aria-label="Mandar lista da pelada"
+          aria-label="Mandar lista ou cobrança"
           onClick={onLista}
           className="flex size-10 shrink-0 items-center justify-center rounded-full bg-mint-soft text-primary"
         >

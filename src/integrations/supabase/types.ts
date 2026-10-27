@@ -814,6 +814,22 @@ export type Database = {
         };
         Relationships: [];
       };
+      pagamentos_da_pelada: {
+        Row: { marcado_por: string | null; match_id: string; member_id: string; pago_em: string | null };
+        Insert: {
+          marcado_por?: string | null;
+          match_id: string;
+          member_id: string;
+          pago_em?: string | null;
+        };
+        Update: {
+          marcado_por?: string | null;
+          match_id?: string;
+          member_id?: string;
+          pago_em?: string | null;
+        };
+        Relationships: [];
+      };
       nao_vou: {
         Row: { criado_em: string; match_id: string; user_id: string };
         Insert: { criado_em?: string; match_id: string; user_id: string };
@@ -1137,6 +1153,15 @@ export type Database = {
       enviar_lista: { Args: { p_match_id: string }; Returns: string };
       responder_lista: { Args: { p_match_id: string; p_vou: boolean }; Returns: string };
       lista_da_pelada: { Args: { p_match_id: string }; Returns: Json };
+      enviar_cobranca: {
+        Args: { p_match_id: string; p_valor: number; p_pix?: string | null };
+        Returns: string;
+      };
+      marcar_pago: {
+        Args: { p_match_id: string; p_member_id: string; p_pago: boolean };
+        Returns: undefined;
+      };
+      cobranca_da_pelada: { Args: { p_match_id: string }; Returns: Json };
       marcar_chat_lido: { Args: { p_crew_id: string }; Returns: undefined };
       silenciar_chat: { Args: { p_crew_id: string; p_silenciar: boolean }; Returns: undefined };
       apagar_mensagem: { Args: { p_id: string }; Returns: undefined };
