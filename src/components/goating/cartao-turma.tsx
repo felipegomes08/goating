@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { CalendarDays, ChevronRight, Crown, Users } from "lucide-react";
+import { CalendarDays, ChevronRight, Crown, MessageCircle, Users } from "lucide-react";
 import type { TurmaResumo } from "@/hooks/use-turmas";
 import { urlDaFotoDaTurma } from "@/lib/foto-turma";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,7 @@ function quando(data: string, horario: string) {
 }
 
 /** Cartão da turma: como você está no mês, quem é o artilheiro e quando é a próxima pelada. */
-export function CartaoTurma({ turma }: { turma: TurmaResumo }) {
+export function CartaoTurma({ turma, naoLidas = 0 }: { turma: TurmaResumo; naoLidas?: number }) {
   const jogouNoMes = turma.minha_posicao !== null;
   const proxima =
     turma.proxima_data && turma.proxima_horario
@@ -73,7 +73,15 @@ export function CartaoTurma({ turma }: { turma: TurmaResumo }) {
             {turma.peladas === 1 ? "pelada com placar" : "peladas com placar"}
           </p>
         </div>
-        <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+        {/* mensagens novas no chat da turma: o balão verde no lugar da setinha */}
+        {naoLidas > 0 ? (
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-mint px-2 py-1 text-xs font-extrabold text-mint-foreground">
+            <MessageCircle className="size-3.5" />
+            {naoLidas > 99 ? "99+" : naoLidas}
+          </span>
+        ) : (
+          <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+        )}
       </div>
 
       <div className="px-4">

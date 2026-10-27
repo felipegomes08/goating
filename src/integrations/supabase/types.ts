@@ -775,6 +775,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      mensagens_da_turma: {
+        Row: {
+          apagada_em: string | null;
+          autor_id: string | null;
+          crew_id: string;
+          criado_em: string;
+          dados: Json | null;
+          id: string;
+          match_id: string | null;
+          push_enviado_em: string | null;
+          texto: string | null;
+          tipo: string;
+        };
+        Insert: {
+          apagada_em?: string | null;
+          autor_id?: string | null;
+          crew_id: string;
+          criado_em?: string;
+          dados?: Json | null;
+          id?: string;
+          match_id?: string | null;
+          push_enviado_em?: string | null;
+          texto?: string | null;
+          tipo?: string;
+        };
+        Update: {
+          apagada_em?: string | null;
+          autor_id?: string | null;
+          crew_id?: string;
+          criado_em?: string;
+          dados?: Json | null;
+          id?: string;
+          match_id?: string | null;
+          push_enviado_em?: string | null;
+          texto?: string | null;
+          tipo?: string;
+        };
+        Relationships: [];
+      };
+      chat_da_turma_leitura: {
+        Row: { crew_id: string; lida_ate: string; silenciado: boolean; user_id: string };
+        Insert: { crew_id: string; lida_ate?: string; silenciado?: boolean; user_id: string };
+        Update: { crew_id?: string; lida_ate?: string; silenciado?: boolean; user_id?: string };
+        Relationships: [];
+      };
       contatos: {
         Row: { atualizado_em: string; celular: string | null; id: string };
         Insert: { atualizado_em?: string; celular?: string | null; id: string };
@@ -1081,6 +1126,14 @@ export type Database = {
           mvp_id: string;
           nota: number;
         }[];
+      };
+      membro_da_turma: { Args: { p_crew_id: string }; Returns: boolean };
+      marcar_chat_lido: { Args: { p_crew_id: string }; Returns: undefined };
+      silenciar_chat: { Args: { p_crew_id: string; p_silenciar: boolean }; Returns: undefined };
+      apagar_mensagem: { Args: { p_id: string }; Returns: undefined };
+      chats_nao_lidos: {
+        Args: never;
+        Returns: { crew_id: string; nao_lidas: number; silenciado: boolean }[];
       };
       avaliacoes_da_pelada: {
         Args: { p_match_id: string };

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { useMinhasTurmas } from "@/hooks/use-turmas";
+import { useChatsNaoLidos } from "@/hooks/use-chat";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { Sino } from "@/components/goating/sino";
 import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
@@ -42,6 +43,7 @@ function MinhasTurmas() {
   const { userId, carregando } = useSession();
   const { data: perfil } = usePerfil(userId);
   const turmas = useMinhasTurmas(userId);
+  const chats = useChatsNaoLidos(userId);
   const [criando, setCriando] = useState(false);
   const [nome, setNome] = useState("");
   const [ocupado, setOcupado] = useState(false);
@@ -172,7 +174,13 @@ function MinhasTurmas() {
             </p>
           </div>
         ) : (
-          (turmas.data ?? []).map((t) => <CartaoTurma key={t.crew_id} turma={t} />)
+          (turmas.data ?? []).map((t) => (
+            <CartaoTurma
+              key={t.crew_id}
+              turma={t}
+              naoLidas={chats.silenciado(t.crew_id) ? 0 : chats.naoLidas(t.crew_id)}
+            />
+          ))
         )}
       </>
     );

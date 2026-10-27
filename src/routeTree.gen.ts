@@ -33,6 +33,7 @@ import { Route as PeladaIdEditarRouteImport } from './routes/pelada.$id_.editar'
 import { Route as PeladaIdPlacarRouteImport } from './routes/pelada.$id_.placar'
 import { Route as PeladaIdResumoRouteImport } from './routes/pelada.$id_.resumo'
 import { Route as PeladaIdTimesRouteImport } from './routes/pelada.$id_.times'
+import { Route as TurmaIdChatRouteImport } from './routes/turma.$id_.chat'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -154,6 +155,11 @@ const PeladaIdTimesRoute = PeladaIdTimesRouteImport.update({
   path: '/pelada/$id/times',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TurmaIdChatRoute = TurmaIdChatRouteImport.update({
+  id: '/turma/$id_/chat',
+  path: '/turma/$id/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -180,6 +186,7 @@ export interface FileRoutesByFullPath {
   '/pelada/$id/placar': typeof PeladaIdPlacarRoute
   '/pelada/$id/resumo': typeof PeladaIdResumoRoute
   '/pelada/$id/times': typeof PeladaIdTimesRoute
+  '/turma/$id/chat': typeof TurmaIdChatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   '/pelada/$id/placar': typeof PeladaIdPlacarRoute
   '/pelada/$id/resumo': typeof PeladaIdResumoRoute
   '/pelada/$id/times': typeof PeladaIdTimesRoute
+  '/turma/$id/chat': typeof TurmaIdChatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/pelada/$id_/placar': typeof PeladaIdPlacarRoute
   '/pelada/$id_/resumo': typeof PeladaIdResumoRoute
   '/pelada/$id_/times': typeof PeladaIdTimesRoute
+  '/turma/$id_/chat': typeof TurmaIdChatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -261,6 +270,7 @@ export interface FileRouteTypes {
     | '/pelada/$id/placar'
     | '/pelada/$id/resumo'
     | '/pelada/$id/times'
+    | '/turma/$id/chat'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
     | '/pelada/$id/placar'
     | '/pelada/$id/resumo'
     | '/pelada/$id/times'
+    | '/turma/$id/chat'
   id:
     | '__root__'
     | '/'
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | '/pelada/$id_/placar'
     | '/pelada/$id_/resumo'
     | '/pelada/$id_/times'
+    | '/turma/$id_/chat'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -340,6 +352,7 @@ export interface RootRouteChildren {
   PeladaIdPlacarRoute: typeof PeladaIdPlacarRoute
   PeladaIdResumoRoute: typeof PeladaIdResumoRoute
   PeladaIdTimesRoute: typeof PeladaIdTimesRoute
+  TurmaIdChatRoute: typeof TurmaIdChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -512,6 +525,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PeladaIdTimesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/turma/$id_/chat': {
+      id: '/turma/$id_/chat'
+      path: '/turma/$id/chat'
+      fullPath: '/turma/$id/chat'
+      preLoaderRoute: typeof TurmaIdChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -540,6 +560,7 @@ const rootRouteChildren: RootRouteChildren = {
   PeladaIdPlacarRoute: PeladaIdPlacarRoute,
   PeladaIdResumoRoute: PeladaIdResumoRoute,
   PeladaIdTimesRoute: PeladaIdTimesRoute,
+  TurmaIdChatRoute: TurmaIdChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

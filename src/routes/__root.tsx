@@ -16,6 +16,7 @@ import { PushNoCelular } from "@/components/goating/push-no-celular";
 import { DestinoPendente } from "@/components/goating/destino-pendente";
 import { FotoDoGoogle } from "@/components/goating/foto-do-google";
 import { CadastroObrigatorio } from "@/components/goating/cadastro-obrigatorio";
+import { ChatAoVivo } from "@/components/goating/chat/chat-ao-vivo";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { iniciarApp } from "@/lib/nativo";
@@ -145,6 +146,7 @@ function RootComponent() {
       <DestinoPendente />
       <FotoDoGoogle />
       <CadastroObrigatorio />
+      <ChatAoVivo />
       <Outlet />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>

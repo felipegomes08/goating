@@ -111,6 +111,15 @@ let estadoDoPush: EstadoDoPush = { tipo: "desligado" };
 const ouvintesDoEstado = new Set<(e: EstadoDoPush) => void>();
 let abrirAviso: (link: string) => void = () => undefined;
 
+/** Aviso que chegou com o app aberto (o Android não mostra na bandeja nesse caso). */
+export type AvisoNoApp = {
+  titulo: string;
+  corpo: string;
+  link: string | null;
+  chat: string | null;
+};
+let receberAviso: (aviso: AvisoNoApp) => void = () => undefined;
+
 function mudarEstado(e: EstadoDoPush) {
   estadoDoPush = e;
   ouvintesDoEstado.forEach((f) => f(e));
@@ -135,9 +144,13 @@ const textoDoErro = (e: unknown) =>
  * registra o celular na conta logada e, ao tocar num aviso, abre a tela dele.
  * Sem permissão, segue tudo igual: os avisos continuam no sino.
  */
-export async function ligarPushNoApp(abrir?: (link: string) => void) {
+export async function ligarPushNoApp(
+  abrir?: (link: string) => void,
+  receber?: (aviso: AvisoNoApp) => void,
+) {
   if (!noApp()) return;
   if (abrir) abrirAviso = abrir;
+  if (receber) receberAviso = receber;
   mudarEstado({ tipo: "registrando" });
   try {
     const { PushNotifications } = await import("@capacitor/push-notifications");
@@ -180,6 +193,15 @@ export async function ligarPushNoApp(abrir?: (link: string) => void) {
     await PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
       const link = (notification.data as { link?: unknown } | undefined)?.link;
       if (typeof link === "string" && link.startsWith("/")) abrirAviso(link);
+    });
+    await PushNotifications.addListener("pushNotificationReceived", (notification) => {
+      const dados = (notification.data ?? {}) as { link?: unknown; chat?: unknown };
+      receberAviso({
+        titulo: notification.title ?? "Goating",
+        corpo: notification.body ?? "",
+        link: typeof dados.link === "string" && dados.link.startsWith("/") ? dados.link : null,
+        chat: typeof dados.chat === "string" ? dados.chat : null,
+      });
     });
     await PushNotifications.register();
   } catch (e) {

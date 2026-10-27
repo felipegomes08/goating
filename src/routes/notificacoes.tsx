@@ -78,6 +78,7 @@ const GRUPOS_DE_AVISO = [
     texto: "Confirmações, pedidos, desistências e lotação",
   },
   { id: "turma", nome: "Turma", texto: "Quem entrou, pedidos e administradores" },
+  { id: "chat", nome: "Chat das turmas", texto: "Mensagens e listas no chat das suas turmas" },
   { id: "avaliacao", nome: "Avaliação e MVP", texto: "Avaliações abertas, prazo e MVP" },
   { id: "conquistas", nome: "Conquistas", texto: "Você ou colegas subindo de nível" },
   { id: "social", nome: "Seguidores e comentários", texto: "Novo seguidor e comentário no perfil" },

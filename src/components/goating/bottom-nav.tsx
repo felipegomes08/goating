@@ -1,11 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { House, Plus, Trophy, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/hooks/use-session";
+import { useChatsNaoLidos } from "@/hooks/use-chat";
 import { vibrar } from "@/lib/placar/alarme";
 
 /** Barra de abas no estilo iOS: fundo translúcido, cinco espaços iguais, criar no meio sem saltar pra fora. */
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { userId } = useSession();
+  const chats = useChatsNaoLidos(userId);
 
   const aba = (ativa: boolean) =>
     cn(
@@ -32,7 +36,15 @@ export function BottomNav() {
         </Link>
 
         <Link to="/turmas" className={aba(nasTurmas)}>
-          <Users className="size-[22px]" strokeWidth={traco(nasTurmas)} />
+          <span className="relative">
+            <Users className="size-[22px]" strokeWidth={traco(nasTurmas)} />
+            {/* mensagens não lidas nos chats das turmas */}
+            {chats.total > 0 && (
+              <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] leading-none font-bold text-white">
+                {chats.total > 99 ? "99+" : chats.total}
+              </span>
+            )}
+          </span>
           Turmas
         </Link>
 

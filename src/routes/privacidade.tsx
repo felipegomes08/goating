@@ -105,6 +105,10 @@ function Privacidade() {
             <li>
               <strong>Rede:</strong> quem você segue e quem segue você.
             </li>
+            <li>
+              <strong>Chat da turma:</strong> as mensagens que você manda no chat das suas turmas.
+              Só quem é da turma lê. Você e os administradores da turma podem apagar as suas.
+            </li>
           </ul>
         </Secao>
 

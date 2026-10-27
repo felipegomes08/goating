@@ -8,6 +8,7 @@ import {
   Link2,
   LogOut,
   Merge,
+  MessageCircle,
   Pencil,
   Plus,
   Settings,
@@ -21,6 +22,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
+import { useChatsNaoLidos } from "@/hooks/use-chat";
 import { PERIODOS, rotuloDoPeriodo, useRankingDaTurma, type Periodo } from "@/hooks/use-turmas";
 import { useVoltar } from "@/hooks/use-voltar";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
@@ -81,6 +83,7 @@ function PaginaDaTurma() {
   const { id } = useParams({ from: "/turma/$id" });
   const { aba: abaDaUrl, c: codigo } = useSearch({ from: "/turma/$id" });
   const { userId, carregando } = useSession();
+  const chats = useChatsNaoLidos(userId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const voltar = useVoltar(() => void navigate({ to: "/turmas" }));
@@ -532,6 +535,22 @@ function PaginaDaTurma() {
       </header>
 
       <div className="space-y-3 p-4">
+        {(souMembro || souDono) && (
+          <Button asChild className="w-full justify-between" variant="outline">
+            <Link to="/turma/$id/chat" params={{ id }}>
+              <span className="flex items-center gap-2 font-bold">
+                <MessageCircle className="size-4 text-primary" /> Chat da turma
+              </span>
+              {chats.naoLidas(id) > 0 ? (
+                <span className="rounded-full bg-mint px-2 py-0.5 text-xs font-extrabold text-mint-foreground">
+                  {chats.naoLidas(id)} {chats.naoLidas(id) === 1 ? "nova" : "novas"}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">Abrir</span>
+              )}
+            </Link>
+          </Button>
+        )}
         {/* com o código do link do organizador entra direto; sem ele, pede e espera aprovação */}
         {!souMembro && !souDono && codigo && (
           <Button
