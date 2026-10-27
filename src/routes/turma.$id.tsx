@@ -119,7 +119,9 @@ function PaginaDaTurma() {
       const [turmaRes, membrosRes, peladasRes] = await Promise.all([
         supabase
           .from("crews")
-          .select("id, nome, dono_id, escudo_url, capa_url, cidade, aceita_pedidos")
+          .select(
+            "id, nome, dono_id, escudo_url, capa_url, cidade, aceita_pedidos, janela_avaliacao_horas",
+          )
           .eq("id", id)
           .maybeSingle(),
         supabase

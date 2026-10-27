@@ -1,76 +1,32 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Check, ChevronDown, ClipboardList, MapPin, X } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  type PessoaDaLista,
+  type RespostaDaLista,
+  useListaDaPelada,
+} from "@/hooks/use-lista-da-pelada";
 import { cn } from "@/lib/utils";
 import { quandoDaPelada } from "@/lib/quando-da-pelada";
 
-type Resposta = "vou" | "pendente" | "nao_vou" | null;
-
-type Pessoa = { user_id: string; nome: string; foto_url: string | null; resposta: Resposta };
-
-type Lista = {
-  pelada: {
-    id: string;
-    titulo: string;
-    data: string;
-    horario: string;
-    local: string;
-    vagas: number;
-    confirmados: number;
-    comecou: boolean;
-  };
-  pessoas: Pessoa[];
-};
-
-/** A lista da pelada (o cartão do chat), atualizada na hora quando alguém responde. */
-function useListaDaPelada(matchId: string) {
-  const queryClient = useQueryClient();
-  const consulta = useQuery({
-    queryKey: ["lista-da-pelada", matchId],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("lista_da_pelada", { p_match_id: matchId });
-      if (error) throw error;
-      return data as unknown as Lista | null;
-    },
-  });
-
-  useEffect(() => {
-    const atualizar = () =>
-      void queryClient.invalidateQueries({ queryKey: ["lista-da-pelada", matchId] });
-    const filtro = `match_id=eq.${matchId}`;
-    const canal = supabase
-      .channel(`lista-${matchId}-${crypto.randomUUID()}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "match_participants", filter: filtro },
-        atualizar,
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "nao_vou", filter: filtro },
-        atualizar,
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(canal);
-    };
-  }, [matchId, queryClient]);
-
-  return consulta;
-}
-
 /**
  * Cartão da lista de confirmação no chat: a pelada, quem vai, quem não vai e quem ainda não
- * respondeu, com os botões "Vou" e "Não vou". O "Vou" já coloca a pessoa na pelada.
+ * respondeu. Quem não respondeu vê "Vou" e "Não vou"; quem já respondeu vê a resposta e
+ * "Mudar resposta". O "Vou" já coloca a pessoa na pelada.
  */
-export function CartaoLista({ matchId, userId }: { matchId: string; userId: string | null }) {
-  const queryClient = useQueryClient();
-  const lista = useListaDaPelada(matchId);
-  const [respondendo, setRespondendo] = useState<boolean | null>(null);
+export function CartaoLista({
+  matchId,
+  userId,
+  encerrada = false,
+}: {
+  matchId: string;
+  userId: string | null;
+  /** o organizador encerrou a lista: fica só pra consulta */
+  encerrada?: boolean;
+}) {
+  const lista = useListaDaPelada(matchId, userId);
   const [abertos, setAbertos] = useState(false);
+  const [mudando, setMudando] = useState(false);
 
   if (lista.isLoading) {
     return <div className="h-40 w-full animate-pulse rounded-2xl bg-card" />;
@@ -84,34 +40,17 @@ export function CartaoLista({ matchId, userId }: { matchId: string; userId: stri
   }
 
   const { pelada, pessoas } = lista.data;
-  const minha = pessoas.find((p) => p.user_id === userId)?.resposta ?? null;
+  const minha = lista.minha;
   const vao = pessoas.filter((p) => p.resposta === "vou");
   const pendentes = pessoas.filter((p) => p.resposta === "pendente");
   const naoVao = pessoas.filter((p) => p.resposta === "nao_vou");
   const semResposta = pessoas.filter((p) => p.resposta === null);
   const lotou = pelada.confirmados >= pelada.vagas;
+  const fechada = pelada.comecou || encerrada;
+  const respondida = minha === "vou" || minha === "nao_vou";
 
   async function responder(vou: boolean) {
-    setRespondendo(vou);
-    const { data, error } = await supabase.rpc("responder_lista", {
-      p_match_id: matchId,
-      p_vou: vou,
-    });
-    setRespondendo(null);
-    if (error) {
-      toast.error(
-        /Lotou|começou|turma/.test(error.message) ? error.message : "Não deu pra responder.",
-      );
-      return;
-    }
-    toast.success(
-      data === "nao_vou" ? "Beleza, fica pra próxima." : "Tá dentro! Seu nome entrou na lista.",
-    );
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["lista-da-pelada", matchId] }),
-      queryClient.invalidateQueries({ queryKey: ["pelada", matchId] }),
-      queryClient.invalidateQueries({ queryKey: ["feed"] }),
-    ]);
+    if (await lista.responder(vou)) setMudando(false);
   }
 
   return (
@@ -119,6 +58,7 @@ export function CartaoLista({ matchId, userId }: { matchId: string; userId: stri
       <div className="bg-primary px-4 py-3">
         <p className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-mint uppercase">
           <ClipboardList className="size-3.5" /> Lista da pelada
+          {encerrada && <span className="ml-1 text-primary-foreground/60">· encerrada</span>}
         </p>
         <Link
           to="/pelada/$id"
@@ -154,43 +94,24 @@ export function CartaoLista({ matchId, userId }: { matchId: string; userId: stri
           </div>
         </div>
 
-        {pelada.comecou ? (
+        {fechada ? (
           <p className="rounded-xl bg-secondary/60 px-3 py-2 text-center text-xs font-semibold text-muted-foreground">
-            A pelada já começou: a lista fechou.
+            {pelada.comecou
+              ? "A pelada já começou: a lista fechou."
+              : "Lista encerrada pelo organizador. Dá pra confirmar na tela da pelada."}
           </p>
+        ) : respondida && !mudando ? (
+          <MinhaResposta resposta={minha} onMudar={() => setMudando(true)} />
         ) : (
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              disabled={respondendo !== null || minha === "vou" || lotou}
-              onClick={() => void responder(true)}
-              className={cn(
-                "flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-extrabold transition-colors",
-                minha === "vou"
-                  ? "bg-mint text-mint-foreground"
-                  : "border border-primary/30 text-primary disabled:opacity-40",
-              )}
-            >
-              <Check className="size-4" strokeWidth={3} />
-              {respondendo === true ? "..." : minha === "vou" ? "Eu vou" : "Vou"}
-            </button>
-            <button
-              type="button"
-              disabled={respondendo !== null || minha === "nao_vou"}
-              onClick={() => void responder(false)}
-              className={cn(
-                "flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-extrabold transition-colors",
-                minha === "nao_vou"
-                  ? "bg-destructive/15 text-destructive"
-                  : "border border-border text-muted-foreground",
-              )}
-            >
-              <X className="size-4" strokeWidth={3} />
-              {respondendo === false ? "..." : minha === "nao_vou" ? "Não vou" : "Não vou"}
-            </button>
-          </div>
+          <BotoesDaResposta
+            minha={minha}
+            lotou={lotou}
+            respondendo={lista.respondendo}
+            onResponder={(vou) => void responder(vou)}
+            onCancelar={mudando ? () => setMudando(false) : undefined}
+          />
         )}
-        {minha === "pendente" && !pelada.comecou && (
+        {minha === "pendente" && !fechada && (
           <p className="text-center text-[11px] text-muted-foreground">
             Seu pedido está esperando o organizador. Toque em "Vou" pra entrar direto.
           </p>
@@ -225,6 +146,101 @@ export function CartaoLista({ matchId, userId }: { matchId: string; userId: stri
   );
 }
 
+/** "✓ Você vai" (ou "Você não vai") com o "Mudar resposta" do lado. */
+export function MinhaResposta({
+  resposta,
+  onMudar,
+  compacta = false,
+}: {
+  resposta: RespostaDaLista;
+  onMudar: () => void;
+  compacta?: boolean;
+}) {
+  const vai = resposta === "vou";
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-2 rounded-xl px-3",
+        compacta ? "py-1.5" : "py-2.5",
+        vai ? "bg-mint-soft text-primary" : "bg-destructive/10 text-destructive",
+      )}
+    >
+      <span className="flex items-center gap-1.5 text-sm font-extrabold">
+        {vai ? (
+          <Check className="size-4" strokeWidth={3} />
+        ) : (
+          <X className="size-4" strokeWidth={3} />
+        )}
+        {vai ? "Você vai" : "Você não vai"}
+      </span>
+      <button
+        type="button"
+        onClick={onMudar}
+        className="text-xs font-semibold text-muted-foreground underline"
+      >
+        Mudar resposta
+      </button>
+    </div>
+  );
+}
+
+export function BotoesDaResposta({
+  minha,
+  lotou,
+  respondendo,
+  onResponder,
+  onCancelar,
+  compacta = false,
+}: {
+  minha: RespostaDaLista;
+  lotou: boolean;
+  respondendo: boolean | null;
+  onResponder: (vou: boolean) => void;
+  onCancelar?: (() => void) | undefined;
+  compacta?: boolean;
+}) {
+  const altura = compacta ? "py-1.5 text-xs" : "py-2.5 text-sm";
+  return (
+    <div className="space-y-1.5">
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          disabled={respondendo !== null || minha === "vou" || lotou}
+          onClick={() => onResponder(true)}
+          className={cn(
+            "flex items-center justify-center gap-1.5 rounded-xl bg-mint font-extrabold text-mint-foreground disabled:opacity-40",
+            altura,
+          )}
+        >
+          <Check className="size-4" strokeWidth={3} />
+          {respondendo === true ? "..." : lotou && minha !== "vou" ? "Lotou" : "Vou"}
+        </button>
+        <button
+          type="button"
+          disabled={respondendo !== null || minha === "nao_vou"}
+          onClick={() => onResponder(false)}
+          className={cn(
+            "flex items-center justify-center gap-1.5 rounded-xl border border-border font-extrabold text-muted-foreground disabled:opacity-40",
+            altura,
+          )}
+        >
+          <X className="size-4" strokeWidth={3} />
+          {respondendo === false ? "..." : "Não vou"}
+        </button>
+      </div>
+      {onCancelar && (
+        <button
+          type="button"
+          onClick={onCancelar}
+          className="w-full text-center text-xs font-semibold text-muted-foreground underline"
+        >
+          Deixar como está
+        </button>
+      )}
+    </div>
+  );
+}
+
 function Grupo({
   titulo,
   pessoas,
@@ -232,7 +248,7 @@ function Grupo({
   cor,
 }: {
   titulo: string;
-  pessoas: Pessoa[];
+  pessoas: PessoaDaLista[];
   userId: string | null;
   cor: string;
 }) {

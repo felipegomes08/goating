@@ -353,7 +353,12 @@ function DetalhePelada() {
 
   async function finalizar() {
     setOcupado(true);
-    const { error } = await supabase.from("matches").update({ status: "finalizada" }).eq("id", id);
+    const { data: finalizou, error } = await supabase
+      .from("matches")
+      .update({ status: "finalizada" })
+      .eq("id", id)
+      .select("avaliacao_ate")
+      .maybeSingle();
     setOcupado(false);
     if (error) {
       // as recusas do banco já vêm em português e dizem o motivo (ex.: ainda não deu o horário)
@@ -362,8 +367,17 @@ function DetalhePelada() {
       );
       return;
     }
+    // o fim da janela vem do banco (as horas que a turma escolheu)
+    const ate = finalizou?.avaliacao_ate
+      ? new Date(finalizou.avaliacao_ate).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : null;
     toast.success(
-      `Pelada finalizada! Agora todo mundo pode avaliar por ${JANELA_AVALIACAO_TEXTO}.`,
+      ate
+        ? `Pelada finalizada! Todo mundo pode avaliar até ${ate}.`
+        : `Pelada finalizada! Agora todo mundo pode avaliar por ${JANELA_AVALIACAO_TEXTO}.`,
     );
     await atualizar();
   }
@@ -621,16 +635,16 @@ function DetalhePelada() {
               const { error } = await supabase.rpc("enviar_lista", { p_match_id: id });
               setOcupado(false);
               if (error) {
-                toast.error("Não deu pra mandar a lista no chat.");
+                toast.error(
+                  /rolando|começou/.test(error.message)
+                    ? error.message
+                    : "Não deu pra mandar a lista no chat.",
+                );
                 return;
               }
-              toast.success("Lista mandada no chat da turma.", {
-                action: {
-                  label: "Ver",
-                  onClick: () =>
-                    void navigate({ to: "/turma/$id/chat", params: { id: pelada.crew_id! } }),
-                },
-              });
+              toast.success("Lista mandada no chat da turma.");
+              // vai direto pro chat: dá pra ver a lista e evita mandar duas vezes
+              void navigate({ to: "/turma/$id/chat", params: { id: pelada.crew_id! } });
             }}
           >
             <ClipboardList className="mr-2 size-4" /> Mandar lista no chat da turma

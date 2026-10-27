@@ -15,6 +15,9 @@ import {
   type TipoDeFoto,
 } from "@/lib/foto-turma";
 
+/** Opções de tempo pra avaliar depois da pelada (o padrão é 2h). */
+const HORAS_DE_AVALIACAO = [1, 2, 3, 6, 12, 24];
+
 /** Folha de configurações da turma: pedidos de entrada, capa, escudo, nome, cidade, convite e (só o dono) excluir. */
 export function ConfigTurma({
   turma,
@@ -30,6 +33,7 @@ export function ConfigTurma({
     capa_url: string | null;
     cidade: string | null;
     aceita_pedidos: boolean;
+    janela_avaliacao_horas: number;
   };
   souDono: boolean;
   /** algo foi salvo: a tela de trás recarrega a turma */
@@ -89,7 +93,11 @@ export function ConfigTurma({
   }
 
   /** Cidade e "aceita pedidos" salvam na hora, sem botão. */
-  async function ajustar(mudanca: { cidade?: string | null; aceita_pedidos?: boolean }) {
+  async function ajustar(mudanca: {
+    cidade?: string | null;
+    aceita_pedidos?: boolean;
+    janela_avaliacao_horas?: number;
+  }) {
     setOcupado("ajuste");
     const { error } = await supabase.from("crews").update(mudanca).eq("id", turma.id);
     setOcupado(null);
@@ -254,6 +262,31 @@ export function ConfigTurma({
             disabled={ocupado !== null}
             onCheckedChange={(ligado) => void ajustar({ aceita_pedidos: ligado })}
           />
+        </div>
+
+        <div className="rounded-2xl border border-border p-3">
+          <p className="text-sm font-semibold text-foreground">Tempo pra avaliar</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Quanto tempo a galera tem pra dar as notas depois que a pelada acaba (ou depois que o
+            placar é encerrado, o que vier por último). Quando fecha, sai o MVP.
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {HORAS_DE_AVALIACAO.map((h) => (
+              <button
+                key={h}
+                type="button"
+                disabled={ocupado !== null}
+                onClick={() => void ajustar({ janela_avaliacao_horas: h })}
+                className={
+                  turma.janela_avaliacao_horas === h
+                    ? "rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground"
+                    : "rounded-full bg-muted px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+                }
+              >
+                {h}h
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="rounded-2xl border border-border p-3">

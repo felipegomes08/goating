@@ -58,8 +58,11 @@ export function CartaoCobranca({
   valor,
   pix,
   userId,
+  encerrada = false,
 }: {
   matchId: string;
+  /** o organizador encerrou a cobrança: fica só pra consulta */
+  encerrada?: boolean;
   /** em centavos */
   valor: number;
   pix: string | null;
@@ -80,7 +83,8 @@ export function CartaoCobranca({
     );
   }
 
-  const { pelada, pode_marcar: podeMarcar, pessoas } = cobranca.data;
+  const { pelada, pessoas } = cobranca.data;
+  const podeMarcar = cobranca.data.pode_marcar && !encerrada;
   const pagos = pessoas.filter((p) => p.pago_em).length;
   const eu = pessoas.find((p) => p.user_id === userId);
 
@@ -104,6 +108,7 @@ export function CartaoCobranca({
       <div className="bg-gradient-to-br from-tier-ouro/25 to-tier-ouro/5 px-4 py-3">
         <p className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-amber-700 uppercase">
           <Wallet className="size-3.5" /> Cobrança da pelada
+          {encerrada && <span className="ml-1 text-muted-foreground">· encerrada</span>}
         </p>
         <Link
           to="/pelada/$id"

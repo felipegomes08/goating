@@ -6,11 +6,11 @@ import {
   ArrowLeft,
   Bell,
   BellOff,
+  CircleSlash,
   ClipboardList,
   Clock,
   Copy,
   MoreHorizontal,
-  Pin,
   Plus,
   SendHorizontal,
   Trash2,
@@ -27,6 +27,7 @@ import { marcarChatLido, useChat, useChatsNaoLidos, type Mensagem } from "@/hook
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CartaoLista } from "@/components/goating/chat/cartao-lista";
+import { ListaFixa } from "@/components/goating/chat/lista-fixa";
 import { CartaoCobranca } from "@/components/goating/chat/cartao-cobranca";
 import { FolhaCobranca } from "@/components/goating/chat/folha-cobranca";
 import { quandoDaPelada } from "@/lib/quando-da-pelada";
@@ -62,6 +63,9 @@ function rotuloDoDia(iso: string) {
     ...(data.getFullYear() !== hoje.getFullYear() ? { year: "numeric" } : {}),
   });
 }
+
+/** lista ou cobrança que o organizador encerrou */
+const encerrada = (m: Mensagem) => !!(m.dados as { encerrada_em?: string } | null)?.encerrada_em;
 
 const hora = (iso: string) =>
   new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -179,22 +183,31 @@ function ChatDaTurma() {
   const [mais, setMais] = useState(false);
   const [cobrando, setCobrando] = useState(false);
 
-  // a lista fixada no topo: a mais nova mandada no chat de uma pelada que ainda não começou
+  // a lista que está rolando (fixa embaixo): a mais nova, não encerrada, de pelada por vir
   const ultimaLista = chat.mensagens.find((m) => m.tipo === "lista")?.id;
+  const mexidas = chat.mensagens.filter((m) => m.apagada_em || encerrada(m)).length;
   const fixada = useQuery({
-    queryKey: ["lista-fixada", id, ultimaLista, chat.mensagens.filter((m) => m.apagada_em).length],
+    queryKey: ["lista-fixada", id, ultimaLista, mexidas],
     enabled: souMembro,
     queryFn: async () => {
       const { data: listas, error } = await supabase
         .from("mensagens_da_turma")
-        .select("match_id")
+        .select("match_id, dados")
         .eq("crew_id", id)
         .eq("tipo", "lista")
         .is("apagada_em", null)
         .order("criado_em", { ascending: false })
         .limit(10);
       if (error) throw error;
-      const ids = [...new Set(listas.flatMap((l) => (l.match_id ? [l.match_id] : [])))];
+      const ids = [
+        ...new Set(
+          listas.flatMap((l) =>
+            l.match_id && !(l.dados as { encerrada_em?: string } | null)?.encerrada_em
+              ? [l.match_id]
+              : [],
+          ),
+        ),
+      ];
       if (ids.length === 0) return null;
       const { data: peladas } = await supabase
         .from("matches")
@@ -318,26 +331,6 @@ function ChatDaTurma() {
         </div>
       ) : (
         <>
-          {fixada.data && (
-            <button
-              type="button"
-              onClick={() => setListaAberta(fixada.data!.id)}
-              className="flex items-center gap-2 border-b border-border bg-card px-3 py-2 text-left"
-            >
-              <Pin className="size-4 shrink-0 rotate-45 text-primary" />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-extrabold text-foreground">
-                  Lista: {fixada.data.titulo}
-                </span>
-                <span className="block text-[11px] text-muted-foreground">
-                  {quandoDaPelada(fixada.data.data, fixada.data.horario)}
-                </span>
-              </span>
-              <span className="shrink-0 rounded-full bg-mint px-2.5 py-1 text-[11px] font-extrabold text-mint-foreground">
-                Responder
-              </span>
-            </button>
-          )}
           <div className="relative min-h-0 flex-1">
             <div
               ref={rolagem}
@@ -413,6 +406,7 @@ function ChatDaTurma() {
                             </p>
                           ) : (
                             <CartaoCobranca
+                              encerrada={encerrada(m)}
                               matchId={m.match_id}
                               valor={Number((m.dados as { valor?: number } | null)?.valor ?? 0)}
                               pix={(m.dados as { pix?: string | null } | null)?.pix ?? null}
@@ -444,7 +438,11 @@ function ChatDaTurma() {
                               Lista apagada
                             </p>
                           ) : (
-                            <CartaoLista matchId={m.match_id} userId={userId} />
+                            <CartaoLista
+                              matchId={m.match_id}
+                              userId={userId}
+                              encerrada={encerrada(m)}
+                            />
                           )}
                         </div>
                       ) : (
@@ -483,6 +481,13 @@ function ChatDaTurma() {
             )}
           </div>
 
+          {fixada.data && (
+            <ListaFixa
+              matchId={fixada.data.id}
+              userId={userId}
+              onAbrir={() => setListaAberta(fixada.data!.id)}
+            />
+          )}
           <CampoDeMensagem
             onEnviar={chat.enviar}
             onLista={turma.data?.souGestor ? () => setMais(true) : undefined}
@@ -558,6 +563,17 @@ function ChatDaTurma() {
             (menu.autor_id === userId || !!turma.data?.souGestor)
           }
           onApagar={() => void chat.apagar(menu.id)}
+          podeEncerrar={
+            menu.tipo !== "texto" &&
+            !menu.apagada_em &&
+            !encerrada(menu) &&
+            (menu.autor_id === userId || !!turma.data?.souGestor)
+          }
+          onEncerrar={async () => {
+            const { error } = await supabase.rpc("encerrar_mensagem", { p_id: menu.id });
+            if (error) return void toast.error("Não deu pra encerrar.");
+            toast.success(menu.tipo === "lista" ? "Lista encerrada." : "Cobrança encerrada.");
+          }}
           onFechar={() => setMenu(null)}
         />
       )}
@@ -737,11 +753,16 @@ function MenuDaMensagem({
   mensagem,
   podeApagar,
   onApagar,
+  podeEncerrar,
+  onEncerrar,
   onFechar,
 }: {
   mensagem: Mensagem;
   podeApagar: boolean;
   onApagar: () => void;
+  /** lista ou cobrança: fecha pra novas respostas e libera mandar outra */
+  podeEncerrar: boolean;
+  onEncerrar: () => Promise<void>;
   onFechar: () => void;
 }) {
   const [confirmando, setConfirmando] = useState(false);
@@ -774,6 +795,19 @@ function MenuDaMensagem({
             }}
           >
             <Copy className="mr-2 size-4" /> Copiar
+          </Button>
+        )}
+        {podeEncerrar && (
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => {
+              void onEncerrar();
+              onFechar();
+            }}
+          >
+            <CircleSlash className="mr-2 size-4" />{" "}
+            {mensagem.tipo === "lista" ? "Encerrar lista" : "Encerrar cobrança"}
           </Button>
         )}
         {podeApagar &&
@@ -866,7 +900,9 @@ function FolhaEnviarLista({ crewId, onFechar }: { crewId: string; onFechar: () =
     setEnviando(null);
     if (error) {
       toast.error(
-        /começou|organizador/.test(error.message) ? error.message : "Não deu pra mandar a lista.",
+        /começou|organizador|rolando/.test(error.message)
+          ? error.message
+          : "Não deu pra mandar a lista.",
       );
       return;
     }

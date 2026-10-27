@@ -68,7 +68,7 @@ export function FolhaCobranca({
     setEnviando(false);
     if (error) {
       toast.error(
-        /R\$|termina|Ninguém|Pix|organizador/.test(error.message)
+        /R\$|termina|Ninguém|Pix|organizador|rolando/.test(error.message)
           ? error.message
           : "Não deu pra mandar a cobrança.",
       );

@@ -104,6 +104,7 @@ export type Database = {
       crews: {
         Row: {
           aceita_pedidos: boolean;
+          janela_avaliacao_horas: number;
           avaliacoes: number;
           capa_url: string | null;
           cidade: string | null;
@@ -117,6 +118,7 @@ export type Database = {
         };
         Insert: {
           aceita_pedidos?: boolean;
+          janela_avaliacao_horas?: number;
           avaliacoes?: number;
           capa_url?: string | null;
           cidade?: string | null;
@@ -130,6 +132,7 @@ export type Database = {
         };
         Update: {
           aceita_pedidos?: boolean;
+          janela_avaliacao_horas?: number;
           avaliacoes?: number;
           capa_url?: string | null;
           cidade?: string | null;
@@ -1153,6 +1156,7 @@ export type Database = {
       enviar_lista: { Args: { p_match_id: string }; Returns: string };
       responder_lista: { Args: { p_match_id: string; p_vou: boolean }; Returns: string };
       lista_da_pelada: { Args: { p_match_id: string }; Returns: Json };
+      encerrar_mensagem: { Args: { p_id: string }; Returns: undefined };
       enviar_cobranca: {
         Args: { p_match_id: string; p_valor: number; p_pix?: string | null };
         Returns: string;
