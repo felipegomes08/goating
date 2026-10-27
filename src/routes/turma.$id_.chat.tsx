@@ -207,7 +207,14 @@ function ChatDaTurma() {
         <button type="button" aria-label="Voltar" onClick={voltar} className="p-1">
           <ArrowLeft className="size-5 text-primary-foreground" />
         </button>
-        <Link to="/turma/$id" params={{ id }} className="flex min-w-0 flex-1 items-center gap-2.5">
+        {/* abre os jogadores da turma no lugar do chat: o "voltar" de lá não volta pro chat */}
+        <Link
+          to="/turma/$id"
+          params={{ id }}
+          search={{ aba: "membros" }}
+          replace
+          className="flex min-w-0 flex-1 items-center gap-2.5"
+        >
           <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-mint/15">
             {escudo ? (
               <img src={escudo} alt="" className="size-full object-cover" />
@@ -508,7 +515,7 @@ function CampoDeMensagem({ onEnviar }: { onEnviar: (texto: string) => Promise<bo
         }}
         placeholder="Mensagem"
         aria-label="Mensagem"
-        className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl border border-input bg-background px-3.5 py-2 text-sm leading-snug outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        className="max-h-32 min-h-10 flex-1 resize-none rounded-2xl border border-input bg-background px-3.5 py-2 text-base leading-snug outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       />
       <button
         type="submit"
