@@ -814,6 +814,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      nao_vou: {
+        Row: { criado_em: string; match_id: string; user_id: string };
+        Insert: { criado_em?: string; match_id: string; user_id: string };
+        Update: { criado_em?: string; match_id?: string; user_id?: string };
+        Relationships: [];
+      };
       chat_da_turma_leitura: {
         Row: { crew_id: string; lida_ate: string; silenciado: boolean; user_id: string };
         Insert: { crew_id: string; lida_ate?: string; silenciado?: boolean; user_id: string };
@@ -1128,6 +1134,9 @@ export type Database = {
         }[];
       };
       membro_da_turma: { Args: { p_crew_id: string }; Returns: boolean };
+      enviar_lista: { Args: { p_match_id: string }; Returns: string };
+      responder_lista: { Args: { p_match_id: string; p_vou: boolean }; Returns: string };
+      lista_da_pelada: { Args: { p_match_id: string }; Returns: Json };
       marcar_chat_lido: { Args: { p_crew_id: string }; Returns: undefined };
       silenciar_chat: { Args: { p_crew_id: string; p_silenciar: boolean }; Returns: undefined };
       apagar_mensagem: { Args: { p_id: string }; Returns: undefined };

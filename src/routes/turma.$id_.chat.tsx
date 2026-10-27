@@ -6,11 +6,16 @@ import {
   ArrowLeft,
   Bell,
   BellOff,
+  ClipboardList,
   Clock,
   Copy,
+  MoreHorizontal,
+  Pin,
+  Plus,
   SendHorizontal,
   Trash2,
   Users,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +25,8 @@ import { useAvatarUrl } from "@/hooks/use-avatar";
 import { marcarChatLido, useChat, useChatsNaoLidos, type Mensagem } from "@/hooks/use-chat";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CartaoLista } from "@/components/goating/chat/cartao-lista";
+import { quandoDaPelada } from "@/lib/quando-da-pelada";
 import { urlDaFotoDaTurma } from "@/lib/foto-turma";
 import { abrirForaDoApp, noApp } from "@/lib/nativo";
 import { cn } from "@/lib/utils";
@@ -164,6 +171,38 @@ function ChatDaTurma() {
   const [longe, setLonge] = useState(false);
   const [novasAbaixo, setNovasAbaixo] = useState(false);
   const [menu, setMenu] = useState<Mensagem | null>(null);
+  const [listaAberta, setListaAberta] = useState<string | null>(null);
+  const [escolhendoPelada, setEscolhendoPelada] = useState(false);
+
+  // a lista fixada no topo: a mais nova mandada no chat de uma pelada que ainda não começou
+  const ultimaLista = chat.mensagens.find((m) => m.tipo === "lista")?.id;
+  const fixada = useQuery({
+    queryKey: ["lista-fixada", id, ultimaLista, chat.mensagens.filter((m) => m.apagada_em).length],
+    enabled: souMembro,
+    queryFn: async () => {
+      const { data: listas, error } = await supabase
+        .from("mensagens_da_turma")
+        .select("match_id")
+        .eq("crew_id", id)
+        .eq("tipo", "lista")
+        .is("apagada_em", null)
+        .order("criado_em", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      const ids = [...new Set(listas.flatMap((l) => (l.match_id ? [l.match_id] : [])))];
+      if (ids.length === 0) return null;
+      const { data: peladas } = await supabase
+        .from("matches")
+        .select("id, titulo, data, horario, status")
+        .in("id", ids);
+      const agora = Date.now();
+      const futuras = (peladas ?? []).filter(
+        (p) => p.status === "agendada" && new Date(`${p.data}T${p.horario}`).getTime() > agora,
+      );
+      // a que foi mandada por último entre as que ainda vão acontecer
+      return ids.map((i) => futuras.find((p) => p.id === i)).find(Boolean) ?? null;
+    },
+  });
 
   // mensagem nova de outra pessoa com a tela rolada pra cima: mostra o "↓ novas mensagens"
   const ultimaVista = useRef<string | undefined>(undefined);
@@ -274,6 +313,26 @@ function ChatDaTurma() {
         </div>
       ) : (
         <>
+          {fixada.data && (
+            <button
+              type="button"
+              onClick={() => setListaAberta(fixada.data!.id)}
+              className="flex items-center gap-2 border-b border-border bg-card px-3 py-2 text-left"
+            >
+              <Pin className="size-4 shrink-0 rotate-45 text-primary" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-extrabold text-foreground">
+                  Lista: {fixada.data.titulo}
+                </span>
+                <span className="block text-[11px] text-muted-foreground">
+                  {quandoDaPelada(fixada.data.data, fixada.data.horario)}
+                </span>
+              </span>
+              <span className="shrink-0 rounded-full bg-mint px-2.5 py-1 text-[11px] font-extrabold text-mint-foreground">
+                Responder
+              </span>
+            </button>
+          )}
           <div className="relative min-h-0 flex-1">
             <div
               ref={rolagem}
@@ -324,15 +383,44 @@ function ChatDaTurma() {
                           </span>
                         </div>
                       )}
-                      <Balao
-                        mensagem={m}
-                        meu={m.autor_id === userId}
-                        autor={m.autor_id ? mapa.get(m.autor_id) : undefined}
-                        mostraNome={comecaGrupo}
-                        mostraFoto={fechaGrupo}
-                        juntoDoAnterior={!comecaGrupo}
-                        onMenu={() => setMenu(m)}
-                      />
+                      {m.tipo === "lista" && m.match_id ? (
+                        <div className="mt-3 mb-1 space-y-1">
+                          <p className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+                            <ClipboardList className="size-3.5" />
+                            {m.autor_id === userId
+                              ? "Você"
+                              : (mapa.get(m.autor_id ?? "")?.nome.split(" ")[0] ?? "Alguém")}{" "}
+                            mandou a lista · {hora(m.criado_em)}
+                            {!m.apagada_em && (m.autor_id === userId || turma.data?.souGestor) && (
+                              <button
+                                type="button"
+                                aria-label="Opções da lista"
+                                onClick={() => setMenu(m)}
+                                className="ml-1 p-0.5"
+                              >
+                                <MoreHorizontal className="size-3.5" />
+                              </button>
+                            )}
+                          </p>
+                          {m.apagada_em ? (
+                            <p className="text-center text-xs text-muted-foreground italic">
+                              Lista apagada
+                            </p>
+                          ) : (
+                            <CartaoLista matchId={m.match_id} userId={userId} />
+                          )}
+                        </div>
+                      ) : (
+                        <Balao
+                          mensagem={m}
+                          meu={m.autor_id === userId}
+                          autor={m.autor_id ? mapa.get(m.autor_id) : undefined}
+                          mostraNome={comecaGrupo}
+                          mostraFoto={fechaGrupo}
+                          juntoDoAnterior={!comecaGrupo}
+                          onMenu={() => setMenu(m)}
+                        />
+                      )}
                     </div>
                   );
                 })
@@ -358,8 +446,21 @@ function ChatDaTurma() {
             )}
           </div>
 
-          <CampoDeMensagem onEnviar={chat.enviar} />
+          <CampoDeMensagem
+            onEnviar={chat.enviar}
+            onLista={turma.data?.souGestor ? () => setEscolhendoPelada(true) : undefined}
+          />
         </>
+      )}
+
+      {listaAberta && (
+        <Folha titulo="Lista da pelada" onFechar={() => setListaAberta(null)}>
+          <CartaoLista matchId={listaAberta} userId={userId} />
+        </Folha>
+      )}
+
+      {escolhendoPelada && (
+        <FolhaEnviarLista crewId={id} onFechar={() => setEscolhendoPelada(false)} />
       )}
 
       {menu && (
@@ -469,7 +570,14 @@ function Balao({
   );
 }
 
-function CampoDeMensagem({ onEnviar }: { onEnviar: (texto: string) => Promise<boolean> }) {
+function CampoDeMensagem({
+  onEnviar,
+  onLista,
+}: {
+  onEnviar: (texto: string) => Promise<boolean>;
+  /** só pro organizador ou ADM: abre a escolha da pelada pra mandar a lista */
+  onLista?: (() => void) | undefined;
+}) {
   const [texto, setTexto] = useState("");
   const campo = useRef<HTMLTextAreaElement>(null);
   // no computador o Enter manda (Shift+Enter quebra a linha); no celular o Enter quebra a linha
@@ -501,6 +609,16 @@ function CampoDeMensagem({ onEnviar }: { onEnviar: (texto: string) => Promise<bo
       }}
       className="flex items-end gap-2 border-t border-border bg-card px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)]"
     >
+      {onLista && (
+        <button
+          type="button"
+          aria-label="Mandar lista da pelada"
+          onClick={onLista}
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-mint-soft text-primary"
+        >
+          <Plus className="size-5" strokeWidth={2.5} />
+        </button>
+      )}
       <textarea
         ref={campo}
         value={texto}
@@ -598,5 +716,114 @@ function MenuDaMensagem({
         </Button>
       </div>
     </div>
+  );
+}
+
+function Folha({
+  titulo,
+  children,
+  onFechar,
+}: {
+  titulo: string;
+  children: ReactNode;
+  onFechar: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/55"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onFechar();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-label={titulo}
+        className="max-h-[88dvh] w-full max-w-[480px] space-y-3 overflow-y-auto rounded-t-3xl bg-background p-4 pb-[max(env(safe-area-inset-bottom),1.5rem)]"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-extrabold text-foreground">{titulo}</h2>
+          <button type="button" aria-label="Fechar" onClick={onFechar} className="p-1">
+            <X className="size-5 text-muted-foreground" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** O organizador ou ADM escolhe uma das próximas peladas da turma e manda a lista no chat. */
+function FolhaEnviarLista({ crewId, onFechar }: { crewId: string; onFechar: () => void }) {
+  const [enviando, setEnviando] = useState<string | null>(null);
+  const peladas = useQuery({
+    queryKey: ["proximas-da-turma", crewId],
+    queryFn: async () => {
+      const hoje = new Date();
+      const dia = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+      const { data, error } = await supabase
+        .from("matches")
+        .select("id, titulo, data, horario, local")
+        .eq("crew_id", crewId)
+        .eq("status", "agendada")
+        .gte("data", dia)
+        .order("data")
+        .order("horario")
+        .limit(10);
+      if (error) throw error;
+      return data.filter((p) => new Date(`${p.data}T${p.horario}`).getTime() > Date.now());
+    },
+  });
+
+  async function enviar(matchId: string) {
+    setEnviando(matchId);
+    const { error } = await supabase.rpc("enviar_lista", { p_match_id: matchId });
+    setEnviando(null);
+    if (error) {
+      toast.error(
+        /começou|organizador/.test(error.message) ? error.message : "Não deu pra mandar a lista.",
+      );
+      return;
+    }
+    toast.success("Lista mandada no chat.");
+    onFechar();
+  }
+
+  return (
+    <Folha titulo="Mandar lista de presença" onFechar={onFechar}>
+      <p className="text-xs text-muted-foreground">
+        A galera recebe o aviso e responde "Vou" ou "Não vou" ali mesmo. Quem vai já entra na
+        pelada.
+      </p>
+      {peladas.isLoading ? (
+        <Skeleton className="h-24 w-full rounded-2xl" />
+      ) : (peladas.data ?? []).length === 0 ? (
+        <p className="rounded-2xl bg-card p-4 text-center text-sm text-muted-foreground">
+          Nenhuma pelada marcada nessa turma. Crie uma no + da barra de baixo.
+        </p>
+      ) : (
+        <div className="divide-y divide-border rounded-2xl bg-card shadow-sm">
+          {(peladas.data ?? []).map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              disabled={!!enviando}
+              onClick={() => void enviar(p.id)}
+              className="flex w-full items-center gap-3 px-3 py-3 text-left disabled:opacity-50"
+            >
+              <ClipboardList className="size-5 shrink-0 text-primary" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-bold text-foreground">{p.titulo}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {quandoDaPelada(p.data, p.horario)} · {p.local}
+                </span>
+              </span>
+              <span className="text-xs font-bold text-primary">
+                {enviando === p.id ? "Mandando..." : "Mandar"}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </Folha>
   );
 }

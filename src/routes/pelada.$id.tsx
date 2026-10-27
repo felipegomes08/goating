@@ -17,6 +17,7 @@ import {
   Star,
   Trophy,
   Pencil,
+  ClipboardList,
   Trash2,
   Users,
   X,
@@ -604,6 +605,33 @@ function DetalhePelada() {
               ))}
             </div>
           </section>
+        )}
+
+        {/* pelada da turma ainda por vir: o organizador ou ADM manda a lista no chat da turma */}
+        {podeGerir && pelada.crew_id && pelada.status === "agendada" && !jaComecou && (
+          <Button
+            variant="outline"
+            className="w-full"
+            disabled={ocupado}
+            onClick={async () => {
+              setOcupado(true);
+              const { error } = await supabase.rpc("enviar_lista", { p_match_id: id });
+              setOcupado(false);
+              if (error) {
+                toast.error("Não deu pra mandar a lista no chat.");
+                return;
+              }
+              toast.success("Lista mandada no chat da turma.", {
+                action: {
+                  label: "Ver",
+                  onClick: () =>
+                    void navigate({ to: "/turma/$id/chat", params: { id: pelada.crew_id! } }),
+                },
+              });
+            }}
+          >
+            <ClipboardList className="mr-2 size-4" /> Mandar lista no chat da turma
+          </Button>
         )}
 
         {(souOrganizador || (podeGerir && pelada.status === "agendada")) && (
