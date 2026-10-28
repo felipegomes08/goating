@@ -180,6 +180,8 @@ export function useChatsNaoLidos(userId: string | null) {
   });
   const lista = consulta.data ?? [];
   return {
+    /** turmas em que a pessoa está no chat */
+    turmas: lista.map((c) => c.crew_id),
     naoLidas: (crewId: string) => lista.find((c) => c.crew_id === crewId)?.nao_lidas ?? 0,
     silenciado: (crewId: string) => lista.find((c) => c.crew_id === crewId)?.silenciado ?? false,
     /** total pra aba Turmas: chat silenciado não conta */

@@ -5,6 +5,7 @@ import { Camera, Crown, Info, LogOut, Pencil, Share2, Sparkles, Users } from "lu
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { esquecerPushNoApp } from "@/lib/nativo";
+import { trocarFotoDePerfil } from "@/lib/foto-de-perfil";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { salvarCelular, useCelular } from "@/hooks/use-celular";
 import { useNumerosDoJogador } from "@/hooks/use-numeros-do-jogador";
@@ -232,15 +233,12 @@ function Perfil() {
 
   async function trocarFoto(arquivo: File) {
     if (!userId) return;
-    const caminho = `${userId}/avatar-${Date.now()}.${arquivo.name.split(".").pop() ?? "jpg"}`;
-    const { error } = await supabase.storage.from("avatars").upload(caminho, arquivo, {
-      upsert: true,
-    });
-    if (error) {
+    try {
+      await trocarFotoDePerfil(userId, arquivo, perfil?.foto_url);
+    } catch {
       toast.error("Não consegui enviar a foto.");
       return;
     }
-    await supabase.from("profiles").update({ foto_url: caminho }).eq("id", userId);
     toast.success("Foto atualizada!");
     await queryClient.invalidateQueries({ queryKey: ["perfil", userId] });
   }
