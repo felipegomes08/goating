@@ -5,6 +5,7 @@ import { Camera, Crown, Info, LogOut, Pencil, Share2, Sparkles, Users } from "lu
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { esquecerPushNoApp } from "@/lib/nativo";
+import { sairDasCompras } from "@/lib/compras";
 import { trocarFotoDePerfil } from "@/lib/foto-de-perfil";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { salvarCelular, useCelular } from "@/hooks/use-celular";
@@ -246,6 +247,7 @@ function Perfil() {
   async function sair() {
     // este celular para de receber os avisos da conta que está saindo
     await esquecerPushNoApp();
+    await sairDasCompras();
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();

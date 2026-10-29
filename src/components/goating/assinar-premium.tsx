@@ -6,7 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { usePremium } from "@/hooks/use-premium";
 import { Button } from "@/components/ui/button";
-import { abrirForaDoApp } from "@/lib/nativo";
+import { abrirForaDoApp, noApp } from "@/lib/nativo";
+import { compraPelaLoja } from "@/lib/compras";
+import { AssinarNaLoja } from "@/components/goating/assinar-na-loja";
 import { PRECOS_PREMIUM, promocaoNoAr } from "@/lib/premium";
 import { origemDoSite } from "@/lib/site";
 import { cn } from "@/lib/utils";
@@ -14,9 +16,10 @@ import { cn } from "@/lib/utils";
 type Plano = "mensal" | "anual";
 
 /**
- * Cartão de assinatura da tela do Premium. Quem não é Premium escolhe mensal ou anual e vai
- * pro pagamento do Stripe; quem voltou do pagamento vê o Premium ativando; quem já assina vê
- * quando renova e o botão de gerenciar (cancelar, trocar cartão).
+ * Cartão de assinatura da tela do Premium. No site, quem não é Premium escolhe mensal ou anual
+ * e vai pro pagamento do Stripe; quem voltou do pagamento vê o Premium ativando; quem já assina
+ * vê quando renova e o botão de gerenciar (cancelar, trocar cartão). Dentro do app a compra é
+ * pela loja do celular (AssinarNaLoja): as lojas não deixam o app abrir outro pagamento.
  */
 export function AssinarPremium({ voltouDoPagamento }: { voltouDoPagamento: boolean }) {
   const queryClient = useQueryClient();
@@ -73,6 +76,24 @@ export function AssinarPremium({ voltouDoPagamento }: { voltouDoPagamento: boole
     return () => clearInterval(id);
   }, [esperando, premium, queryClient, userId]);
 
+  // assinatura feita no app (Google Play / App Store), se tiver
+  const assinaturaLoja = useQuery({
+    queryKey: ["assinatura-loja", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("assinaturas_lojas")
+        .select("loja, expira_em, renova")
+        .eq("user_id", userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const pelaLoja =
+    !!assinaturaLoja.data?.expira_em &&
+    new Date(assinaturaLoja.data.expira_em).getTime() > Date.now();
+
   const comPromocao = plano === "mensal" && promocaoNoAr() && !assinatura.data?.usou_promocao;
   const assina =
     !!assinatura.data && ["active", "trialing", "past_due"].includes(assinatura.data.status);
@@ -91,6 +112,18 @@ export function AssinarPremium({ voltouDoPagamento }: { voltouDoPagamento: boole
     } finally {
       setAbrindo(false);
     }
+  }
+
+  if (noApp()) {
+    if (compraPelaLoja()) {
+      return <AssinarNaLoja assinaturaDaLoja={pelaLoja ? (assinaturaLoja.data ?? null) : null} />;
+    }
+    // app sem a loja configurada: nunca abre o pagamento do site (as lojas não deixam)
+    return (
+      <p className="rounded-2xl bg-tier-ouro/15 p-4 text-center text-sm font-semibold text-foreground">
+        {premium ? "Você é Premium 👑" : "A assinatura pelo app chega em breve."}
+      </p>
+    );
   }
 
   if (esperando && !premium) {
@@ -117,6 +150,13 @@ export function AssinarPremium({ voltouDoPagamento }: { voltouDoPagamento: boole
             {assinatura.data?.cancela_no_fim ? "Seu Premium termina em " : "Renova em "}
             {new Date(fim).toLocaleDateString("pt-BR")}
             {assinatura.data?.plano === "anual" ? " · plano anual" : " · plano mensal"}
+          </p>
+        )}
+        {pelaLoja && !assina && (
+          <p className="text-xs text-muted-foreground">
+            Assinatura feita pelo app (
+            {assinaturaLoja.data?.loja === "app_store" ? "App Store" : "Google Play"}). Pra cancelar
+            ou trocar de plano, use as assinaturas da loja no celular.
           </p>
         )}
         {assina && (

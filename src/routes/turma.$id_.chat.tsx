@@ -6,7 +6,9 @@ import {
   ArrowLeft,
   Bell,
   BellOff,
+  Ban,
   CircleSlash,
+  Flag,
   ClipboardList,
   Clock,
   Copy,
@@ -136,6 +138,33 @@ function ChatDaTurma() {
   const souMembro = !!turma.data?.souMembro;
 
   const chat = useChat(id, userId, souMembro);
+
+  // quem eu bloqueei: as mensagens dessas pessoas ficam escondidas pra mim
+  const bloqueios = useQuery({
+    queryKey: ["bloqueios", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("bloqueios").select("bloqueado_id");
+      if (error) throw error;
+      return new Set(data.map((b) => b.bloqueado_id));
+    },
+  });
+  const bloqueados = bloqueios.data ?? new Set<string>();
+  const [denunciando, setDenunciando] = useState<Mensagem | null>(null);
+
+  async function bloquear(pessoa: string, bloquear: boolean) {
+    const { error } = bloquear
+      ? await supabase.from("bloqueios").insert({ user_id: userId!, bloqueado_id: pessoa })
+      : await supabase.from("bloqueios").delete().eq("bloqueado_id", pessoa);
+    if (error) return void toast.error("Não deu pra fazer isso agora.");
+    await queryClient.invalidateQueries({ queryKey: ["bloqueios", userId] });
+    await queryClient.invalidateQueries({ queryKey: ["chats-nao-lidos"] });
+    toast.success(
+      bloquear
+        ? "Pessoa bloqueada. As mensagens dela não aparecem mais pra você."
+        : "Pessoa desbloqueada.",
+    );
+  }
   const naoLidos = useChatsNaoLidos(userId);
   const silenciado = naoLidos.silenciado(id);
 
@@ -445,6 +474,17 @@ function ChatDaTurma() {
                             />
                           )}
                         </div>
+                      ) : m.autor_id && bloqueados.has(m.autor_id) ? (
+                        <p className="mt-1.5 text-center text-[11px] text-muted-foreground">
+                          Mensagem de pessoa bloqueada ·{" "}
+                          <button
+                            type="button"
+                            onClick={() => void bloquear(m.autor_id!, false)}
+                            className="font-semibold underline"
+                          >
+                            Desbloquear
+                          </button>
+                        </p>
                       ) : (
                         <Balao
                           mensagem={m}
@@ -574,8 +614,16 @@ function ChatDaTurma() {
             if (error) return void toast.error("Não deu pra encerrar.");
             toast.success(menu.tipo === "lista" ? "Lista encerrada." : "Cobrança encerrada.");
           }}
+          podeDenunciar={!menu.apagada_em && !!menu.autor_id && menu.autor_id !== userId}
+          onDenunciar={() => setDenunciando(menu)}
+          nomeDoAutor={menu.autor_id ? mapa.get(menu.autor_id)?.nome.split(" ")[0] : undefined}
+          onBloquear={() => menu.autor_id && void bloquear(menu.autor_id, true)}
           onFechar={() => setMenu(null)}
         />
+      )}
+
+      {denunciando && (
+        <FolhaDenuncia mensagem={denunciando} onFechar={() => setDenunciando(null)} />
       )}
     </div>
   );
@@ -755,6 +803,10 @@ function MenuDaMensagem({
   onApagar,
   podeEncerrar,
   onEncerrar,
+  podeDenunciar,
+  onDenunciar,
+  nomeDoAutor,
+  onBloquear,
   onFechar,
 }: {
   mensagem: Mensagem;
@@ -763,9 +815,15 @@ function MenuDaMensagem({
   /** lista ou cobrança: fecha pra novas respostas e libera mandar outra */
   podeEncerrar: boolean;
   onEncerrar: () => Promise<void>;
+  /** mensagem de outra pessoa: denunciar e bloquear quem mandou */
+  podeDenunciar: boolean;
+  onDenunciar: () => void;
+  nomeDoAutor: string | undefined;
+  onBloquear: () => void;
   onFechar: () => void;
 }) {
   const [confirmando, setConfirmando] = useState(false);
+  const [confirmandoBloqueio, setConfirmandoBloqueio] = useState(false);
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/55"
@@ -797,6 +855,39 @@ function MenuDaMensagem({
             <Copy className="mr-2 size-4" /> Copiar
           </Button>
         )}
+        {podeDenunciar && (
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => {
+              onDenunciar();
+              onFechar();
+            }}
+          >
+            <Flag className="mr-2 size-4" /> Denunciar mensagem
+          </Button>
+        )}
+        {podeDenunciar &&
+          (confirmandoBloqueio ? (
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => {
+                onBloquear();
+                onFechar();
+              }}
+            >
+              <Ban className="mr-2 size-4" /> Bloquear {nomeDoAutor ?? "essa pessoa"} mesmo
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-full justify-start"
+              onClick={() => setConfirmandoBloqueio(true)}
+            >
+              <Ban className="mr-2 size-4" /> Bloquear {nomeDoAutor ?? "essa pessoa"}
+            </Button>
+          ))}
         {podeEncerrar && (
           <Button
             variant="outline"
@@ -946,6 +1037,64 @@ function FolhaEnviarLista({ crewId, onFechar }: { crewId: string; onFechar: () =
           ))}
         </div>
       )}
+    </Folha>
+  );
+}
+
+const MOTIVOS = ["Ofensa ou xingamento", "Assédio ou ameaça", "Spam ou golpe", "Outro motivo"];
+
+/** Denunciar uma mensagem: os administradores da turma ficam sabendo; com 3 denúncias, ela some. */
+function FolhaDenuncia({ mensagem, onFechar }: { mensagem: Mensagem; onFechar: () => void }) {
+  const [motivo, setMotivo] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  async function enviar() {
+    if (!motivo) return;
+    setEnviando(true);
+    const { error } = await supabase.rpc("denunciar_mensagem", {
+      p_id: mensagem.id,
+      p_motivo: motivo,
+    });
+    setEnviando(false);
+    if (error) {
+      toast.error(/[áéíóúãõç]/i.test(error.message) ? error.message : "Não deu pra denunciar.");
+      return;
+    }
+    toast.success("Denúncia enviada. Os administradores da turma vão olhar.");
+    onFechar();
+  }
+
+  return (
+    <Folha titulo="Denunciar mensagem" onFechar={onFechar}>
+      {mensagem.texto && (
+        <p className="line-clamp-3 rounded-2xl bg-card px-3 py-2 text-sm text-foreground">
+          {mensagem.texto}
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground">
+        A denúncia é anônima. Os administradores da turma recebem o aviso, e com 3 denúncias a
+        mensagem some pra todo mundo.
+      </p>
+      <div className="grid gap-2">
+        {MOTIVOS.map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMotivo(m)}
+            className={cn(
+              "rounded-xl border px-3 py-2.5 text-left text-sm font-semibold",
+              motivo === m
+                ? "border-primary bg-mint-soft text-primary"
+                : "border-border bg-card text-foreground",
+            )}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+      <Button className="w-full" disabled={!motivo || enviando} onClick={() => void enviar()}>
+        {enviando ? "Enviando..." : "Enviar denúncia"}
+      </Button>
     </Folha>
   );
 }

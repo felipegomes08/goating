@@ -26,6 +26,7 @@ const GRUPO: Record<string, string> = {
   pedido_turma: "turma",
   pedido_aceito_turma: "turma",
   admin: "turma",
+  denuncia_chat: "turma",
   avaliar: "avaliacao",
   avaliar_fim: "avaliacao",
   mvp: "avaliacao",
@@ -189,6 +190,17 @@ async function avisoDoChat(banco: Banco, mensagemId: string) {
     ),
   );
   if (destino.size === 0) return "ninguém pra avisar";
+
+  // quem bloqueou o autor não recebe aviso das mensagens dele
+  if (msg.autor_id) {
+    const { data: bloquearam } = await banco
+      .from("bloqueios")
+      .select("user_id")
+      .eq("bloqueado_id", msg.autor_id)
+      .in("user_id", [...destino]);
+    for (const b of bloquearam ?? []) destino.delete(b.user_id as string);
+    if (destino.size === 0) return "ninguém pra avisar";
+  }
 
   // quem desligou "Chat das turmas" nos avisos do celular fica de fora
   const { data: perfis } = await banco

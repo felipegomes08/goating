@@ -833,6 +833,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      assinaturas_lojas: {
+        Row: {
+          atualizado_em: string;
+          expira_em: string | null;
+          loja: string;
+          problema_no_pagamento: boolean;
+          produto: string | null;
+          renova: boolean;
+          teste: boolean;
+          user_id: string;
+        };
+        Insert: {
+          atualizado_em?: string;
+          expira_em?: string | null;
+          loja: string;
+          problema_no_pagamento?: boolean;
+          produto?: string | null;
+          renova?: boolean;
+          teste?: boolean;
+          user_id: string;
+        };
+        Update: {
+          atualizado_em?: string;
+          expira_em?: string | null;
+          loja?: string;
+          problema_no_pagamento?: boolean;
+          produto?: string | null;
+          renova?: boolean;
+          teste?: boolean;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      bloqueios: {
+        Row: { bloqueado_id: string; criado_em: string; user_id: string };
+        Insert: { bloqueado_id: string; criado_em?: string; user_id: string };
+        Update: { bloqueado_id?: string; criado_em?: string; user_id?: string };
+        Relationships: [];
+      };
       nao_vou: {
         Row: { criado_em: string; match_id: string; user_id: string };
         Insert: { criado_em?: string; match_id: string; user_id: string };
@@ -1157,6 +1196,7 @@ export type Database = {
       responder_lista: { Args: { p_match_id: string; p_vou: boolean }; Returns: string };
       lista_da_pelada: { Args: { p_match_id: string }; Returns: Json };
       encerrar_mensagem: { Args: { p_id: string }; Returns: undefined };
+      denunciar_mensagem: { Args: { p_id: string; p_motivo?: string | null }; Returns: undefined };
       enviar_cobranca: {
         Args: { p_match_id: string; p_valor: number; p_pix?: string | null };
         Returns: string;
