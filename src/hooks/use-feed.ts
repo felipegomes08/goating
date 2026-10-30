@@ -85,11 +85,10 @@ export function useFeed(userId: string | null, cidade: string | null) {
         match_id: string;
         matches: { status: string; data: string };
       }[];
-      const idsAbertas = meus
-        .filter((v) => v.matches.status !== "finalizada")
-        .map((v) => v.match_id);
+      const encerrada = (status: string) => status === "finalizada" || status === "cancelada";
+      const idsAbertas = meus.filter((v) => !encerrada(v.matches.status)).map((v) => v.match_id);
       const idsFinalizadas = meus
-        .filter((v) => v.matches.status === "finalizada")
+        .filter((v) => encerrada(v.matches.status))
         .sort((a, b) => b.matches.data.localeCompare(a.matches.data))
         .slice(0, FINALIZADAS_NO_FEED)
         .map((v) => v.match_id);
@@ -102,12 +101,12 @@ export function useFeed(userId: string | null, cidade: string | null) {
         supabase
           .from("matches")
           .select(CAMPOS)
-          .neq("status", "finalizada")
+          .in("status", ["agendada", "em_andamento"])
           .or(filtroMinhas(idsAbertas)),
         supabase
           .from("matches")
           .select(CAMPOS)
-          .eq("status", "finalizada")
+          .in("status", ["finalizada", "cancelada"])
           .or(filtroMinhas(idsFinalizadas))
           .order("data", { ascending: false })
           .limit(FINALIZADAS_NO_FEED),
@@ -206,7 +205,9 @@ export function useFeed(userId: string | null, cidade: string | null) {
 
       const proximas = soProximaDeCadaSerie(
         todas
-          .filter((p) => p.status === "em_andamento" || (p.status === "agendada" && p.data >= hoje))
+          // agendada que já passou da hora e ninguém iniciou (pendente) continua aqui até
+          // alguém iniciar, finalizar ou cancelar
+          .filter((p) => p.status === "em_andamento" || p.status === "agendada")
           .sort(porData),
       );
 
@@ -217,7 +218,9 @@ export function useFeed(userId: string | null, cidade: string | null) {
         // quem já avaliou alguém não volta pro topo nem pro contador se entrar gente depois
         p.avaliados.feitos === 0;
       const finalizadas = todas
-        .filter((p) => p.status === "finalizada" && minhasIds.has(p.id))
+        .filter(
+          (p) => (p.status === "finalizada" || p.status === "cancelada") && minhasIds.has(p.id),
+        )
         .sort((a, b) => Number(esperaMinhaNota(b)) - Number(esperaMinhaNota(a)) || porData(b, a))
         .slice(0, FINALIZADAS_NO_FEED);
 

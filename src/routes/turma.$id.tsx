@@ -454,7 +454,8 @@ function PaginaDaTurma() {
 
   const hoje = new Date().toLocaleDateString("sv-SE");
   const proximas = dados.peladas
-    .filter((p) => p.status !== "finalizada" && p.status !== "cancelada" && p.data >= hoje)
+    // agendada que já passou da hora (pendente) continua aqui até alguém decidir
+    .filter((p) => p.status === "agendada" || p.status === "em_andamento")
     .reverse();
   const passadas = dados.peladas.filter((p) => p.status === "finalizada");
 

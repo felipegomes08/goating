@@ -27,6 +27,7 @@ const GRUPO: Record<string, string> = {
   pedido_aceito_turma: "turma",
   admin: "turma",
   denuncia_chat: "turma",
+  pendente: "organizador",
   avaliar: "avaliacao",
   avaliar_fim: "avaliacao",
   mvp: "avaliacao",

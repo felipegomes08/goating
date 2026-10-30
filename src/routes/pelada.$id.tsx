@@ -19,7 +19,8 @@ import {
   Pencil,
   ClipboardList,
   Wallet,
-  Trash2,
+  Ban,
+  Clock,
   Users,
   X,
 } from "lucide-react";
@@ -248,10 +249,13 @@ function DetalhePelada() {
   const lotado = aprovados.length >= pelada.quantidade_vagas;
   const finalizada = pelada.status === "finalizada";
   const emAndamento = pelada.status === "em_andamento";
+  const cancelada = pelada.status === "cancelada";
   const temPlacar = !!pelada.placar_finalizado_em;
   const destinos = destinosDoLocal(pelada);
   // finalizar só faz sentido depois que a pelada começou
   const jaComecou = new Date(`${pelada.data}T${pelada.horario}`).getTime() <= Date.now();
+  // passou do horário e ninguém iniciou o placar nem finalizou: espera o organizador decidir
+  const pendente = pelada.status === "agendada" && jaComecou;
   const dentroDaJanela = janelaAberta(pelada);
   const avaliados = contarAvaliados(participantes, avaliadosPorMim, userId);
   const jaAvaliei = avaliados.total > 0 && avaliados.feitos === avaliados.total;
@@ -324,31 +328,22 @@ function DetalhePelada() {
     await atualizar();
   }
 
-  async function apagar() {
+  /** Cancela em vez de apagar: a pelada fica no histórico como cancelada e não conta. */
+  async function cancelar() {
     setOcupado(true);
-    const { data: apagadas, error } = await supabase
-      .from("matches")
-      .delete()
-      .eq("id", id)
-      .select("id");
+    const { error } = await supabase.from("matches").update({ status: "cancelada" }).eq("id", id);
     setOcupado(false);
     if (error) {
-      toast.error("Não deu pra apagar a pelada.");
-      return;
-    }
-    if (apagadas.length === 0) {
-      // o banco recusa em silêncio: a pelada foi finalizada com mais gente com conta nela
       toast.error(
-        "Essa pelada já foi finalizada com outros jogadores. Apagar tiraria o XP e as notas deles.",
+        /[áéíóúãõç]/i.test(error.message) ? error.message : "Não deu pra cancelar a pelada.",
       );
-      setConfirmandoApagar(false);
       return;
     }
-    toast.success("Pelada apagada.");
-    await queryClient.invalidateQueries({ queryKey: ["feed"] });
+    setConfirmandoApagar(false);
+    toast.success("Pelada cancelada. Quem confirmou recebe o aviso.");
+    await atualizar();
     await queryClient.invalidateQueries({ queryKey: ["turma"] });
     await queryClient.invalidateQueries({ queryKey: ["minhas-turmas-resumo"] });
-    await navigate({ to: "/", replace: true });
   }
 
   async function finalizar() {
@@ -384,7 +379,12 @@ function DetalhePelada() {
 
   return (
     <div className="app-shell flex min-h-dvh flex-col">
-      <header className={cn("px-4 pt-4 pb-5", finalizada ? "bg-neutral-900" : "bg-primary")}>
+      <header
+        className={cn(
+          "px-4 pt-4 pb-5",
+          finalizada ? "bg-neutral-900" : cancelada ? "bg-neutral-600" : "bg-primary",
+        )}
+      >
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Voltar" onClick={voltar}>
             <ArrowLeft className="size-5 text-primary-foreground" />
@@ -392,6 +392,14 @@ function DetalhePelada() {
           {finalizada ? (
             <span className="flex items-center gap-1 text-xs font-bold tracking-wide text-destructive uppercase">
               <Flag className="size-3.5" /> Pelada finalizada
+            </span>
+          ) : cancelada ? (
+            <span className="flex items-center gap-1 text-xs font-bold tracking-wide text-white/80 uppercase">
+              <Ban className="size-3.5" /> Pelada cancelada
+            </span>
+          ) : pendente ? (
+            <span className="flex items-center gap-1 text-xs font-bold tracking-wide text-tier-ouro uppercase">
+              <Clock className="size-3.5" /> Pendente · ninguém iniciou ainda
             </span>
           ) : (
             <span className="text-xs font-semibold tracking-wide text-mint uppercase">
@@ -661,7 +669,19 @@ function DetalhePelada() {
           <FolhaCobranca crewId={pelada.crew_id} matchId={id} onFechar={() => setCobrando(false)} />
         )}
 
-        {(souOrganizador || (podeGerir && pelada.status === "agendada")) && (
+        {/* passou da hora e ninguém iniciou: o organizador decide se rolou */}
+        {pendente && podeGerir && (
+          <div className="rounded-2xl border border-tier-ouro/40 bg-tier-ouro/10 p-4 text-sm">
+            <p className="font-extrabold text-foreground">A pelada rolou?</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Já passou do horário e ninguém iniciou. Se rolou, inicie a partida ou finalize sem
+              placar. Se não rolou, cancele. Sem nada disso, ela é cancelada sozinha quando acabar o
+              tempo de avaliação depois do horário de fim, e não conta pra ninguém.
+            </p>
+          </div>
+        )}
+
+        {podeGerir && (pelada.status === "agendada" || emAndamento) && (
           <div className="flex items-center justify-center gap-6">
             {podeGerir && pelada.status === "agendada" && (
               <Link
@@ -672,15 +692,13 @@ function DetalhePelada() {
                 <Pencil className="size-3.5" /> Editar pelada
               </Link>
             )}
-            {souOrganizador && (
-              <button
-                type="button"
-                onClick={() => setConfirmandoApagar(true)}
-                className="flex items-center gap-1.5 py-2 text-xs font-semibold text-destructive"
-              >
-                <Trash2 className="size-3.5" /> Apagar pelada
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setConfirmandoApagar(true)}
+              className="flex items-center gap-1.5 py-2 text-xs font-semibold text-destructive"
+            >
+              <Ban className="size-3.5" /> Cancelar pelada
+            </button>
           </div>
         )}
       </div>
@@ -705,7 +723,11 @@ function DetalhePelada() {
             <Share2 className="mr-2 size-4" /> Chamar a galera pra avaliar
           </Button>
         )}
-        {finalizada ? (
+        {cancelada ? (
+          <p className="text-center text-xs text-muted-foreground">
+            Essa pelada foi cancelada. Fica no histórico e não conta pra ninguém.
+          </p>
+        ) : finalizada ? (
           dentroDaJanela && eu?.status === "aprovado" && souConvidado ? (
             <p className="text-center text-xs text-muted-foreground">
               Pra avaliar a galera você precisa de uma conta. Convidado só joga.
@@ -919,20 +941,24 @@ function DetalhePelada() {
         >
           <div
             role="dialog"
-            aria-label="Apagar pelada"
+            aria-label="Cancelar pelada"
             className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
           >
-            <h2 className="text-lg font-extrabold text-foreground">Apagar essa pelada?</h2>
+            <h2 className="text-lg font-extrabold text-foreground">Cancelar essa pelada?</h2>
             <p className="text-sm text-muted-foreground">
-              Isso não tem volta. Some a pelada, a lista de confirmados e o link de convite.
-              {temPlacar &&
-                " O placar e as avaliações dela também: gols e vitórias desse dia saem do ranking da turma."}
+              Ela fica no histórico como cancelada e não conta pra ninguém: nada de gols, vitórias,
+              XP ou avaliação desse dia. Quem confirmou recebe o aviso. Não dá pra desfazer.
             </p>
             <p className="text-xs text-muted-foreground">
-              Se for uma pelada recorrente, só esta data é apagada.
+              Se for uma pelada recorrente, só esta data é cancelada.
             </p>
-            <Button variant="destructive" className="w-full" disabled={ocupado} onClick={apagar}>
-              {ocupado ? "Apagando…" : "Apagar pelada"}
+            <Button
+              variant="destructive"
+              className="w-full"
+              disabled={ocupado}
+              onClick={() => void cancelar()}
+            >
+              {ocupado ? "Cancelando…" : "Cancelar pelada"}
             </Button>
             <Button
               variant="outline"

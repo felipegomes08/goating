@@ -82,6 +82,11 @@ function partesDaData(data: string) {
 export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
   const finalizada = pelada.status === "finalizada";
   const emAndamento = pelada.status === "em_andamento";
+  const cancelada = pelada.status === "cancelada";
+  // passou da hora e ninguém iniciou: espera o organizador decidir se rolou
+  const pendente =
+    pelada.status === "agendada" &&
+    new Date(`${pelada.data}T${pelada.horario}`).getTime() <= Date.now();
   const pendenteAvaliacao = estaPendenteAvaliacao(pelada);
   const aberta = pelada.tipo === "aberta";
   const lotado = pelada.confirmados >= pelada.quantidade_vagas;
@@ -99,39 +104,55 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
     : pelada.horario.slice(0, 5);
 
   // um selo só por card: o que mais importa pra mim naquela pelada
-  const selo = avaliacaoPendente
-    ? { texto: "AVALIAR", icone: Star, classe: "bg-tier-ouro/15 text-tier-ouro" }
-    : jaAvaliada
-      ? { texto: "AVALIADA", icone: CheckCheck, classe: "bg-mint-soft text-primary" }
-      : avaliacaoParcial
-        ? {
-            texto: `AVALIOU ${pelada.avaliados.feitos} DE ${pelada.avaliados.total}`,
-            icone: CheckCheck,
-            classe: "bg-mint-soft text-primary",
-          }
-        : emAndamento
-          ? { texto: "ROLANDO", icone: null, classe: "bg-destructive/10 text-destructive" }
-          : finalizada
-            ? null
-            : pelada.souOrganizador
-              ? { texto: "ORGANIZADOR", icone: null, classe: "bg-primary text-primary-foreground" }
-              : pelada.minhaSituacao === "aprovado"
-                ? { texto: "VOCÊ VAI", icone: CheckCheck, classe: "bg-mint text-mint-foreground" }
-                : pelada.minhaSituacao === "pendente"
+  const selo = cancelada
+    ? { texto: "CANCELADA", icone: null, classe: "bg-secondary text-muted-foreground" }
+    : pendente
+      ? { texto: "PENDENTE", icone: null, classe: "bg-tier-ouro/15 text-amber-700" }
+      : avaliacaoPendente
+        ? { texto: "AVALIAR", icone: Star, classe: "bg-tier-ouro/15 text-tier-ouro" }
+        : jaAvaliada
+          ? { texto: "AVALIADA", icone: CheckCheck, classe: "bg-mint-soft text-primary" }
+          : avaliacaoParcial
+            ? {
+                texto: `AVALIOU ${pelada.avaliados.feitos} DE ${pelada.avaliados.total}`,
+                icone: CheckCheck,
+                classe: "bg-mint-soft text-primary",
+              }
+            : emAndamento
+              ? { texto: "ROLANDO", icone: null, classe: "bg-destructive/10 text-destructive" }
+              : finalizada
+                ? null
+                : pelada.souOrganizador
                   ? {
-                      texto: "AGUARDANDO",
+                      texto: "ORGANIZADOR",
                       icone: null,
-                      classe: "bg-secondary text-muted-foreground",
+                      classe: "bg-primary text-primary-foreground",
                     }
-                  : lotado
-                    ? { texto: "LOTADA", icone: null, classe: "bg-destructive/10 text-destructive" }
-                    : aberta
-                      ? null
-                      : {
-                          texto: "FECHADA",
-                          icone: Lock,
+                  : pelada.minhaSituacao === "aprovado"
+                    ? {
+                        texto: "VOCÊ VAI",
+                        icone: CheckCheck,
+                        classe: "bg-mint text-mint-foreground",
+                      }
+                    : pelada.minhaSituacao === "pendente"
+                      ? {
+                          texto: "AGUARDANDO",
+                          icone: null,
                           classe: "bg-secondary text-muted-foreground",
-                        };
+                        }
+                      : lotado
+                        ? {
+                            texto: "LOTADA",
+                            icone: null,
+                            classe: "bg-destructive/10 text-destructive",
+                          }
+                        : aberta
+                          ? null
+                          : {
+                              texto: "FECHADA",
+                              icone: Lock,
+                              classe: "bg-secondary text-muted-foreground",
+                            };
 
   return (
     <article
