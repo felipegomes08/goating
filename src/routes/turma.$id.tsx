@@ -24,7 +24,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useChatsNaoLidos } from "@/hooks/use-chat";
 import { AbaLiga } from "@/components/goating/liga/aba-liga";
-import { PERIODOS, rotuloDoPeriodo, useRankingDaTurma, type Periodo } from "@/hooks/use-turmas";
+import {
+  PERIODOS,
+  rotuloDoPeriodo,
+  useRankingAntesDaUltima,
+  useRankingDaTurma,
+  type Periodo,
+} from "@/hooks/use-turmas";
 import { useVoltar } from "@/hooks/use-voltar";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
 import { AvaliacoesDaTurma, type ResumoDaTurma } from "@/components/goating/avaliacoes-da-turma";
@@ -39,6 +45,7 @@ import {
   TabelaRanking,
   formatarMedia,
   type ColunaRanking,
+  type LinhaRanking,
 } from "@/components/goating/tabela-ranking";
 import { FolhaPremium } from "@/components/goating/cadeado";
 import { usePremium } from "@/hooks/use-premium";
@@ -162,6 +169,7 @@ function PaginaDaTurma() {
   });
 
   const ranking = useRankingDaTurma(id, periodo, !!userId && aba === "ranking");
+  const rankingAntes = useRankingAntesDaUltima(id, periodo, !!userId && aba === "ranking");
 
   // nota da turma, minha avaliação e a situação do meu pedido de entrada
   const resumo = useQuery({
@@ -235,6 +243,7 @@ function PaginaDaTurma() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["turma", id] }),
       queryClient.invalidateQueries({ queryKey: ["turma-ranking", id] }),
+      queryClient.invalidateQueries({ queryKey: ["turma-ranking-anterior", id] }),
       queryClient.invalidateQueries({ queryKey: ["minhas-turmas-resumo"] }),
       queryClient.invalidateQueries({ queryKey: ["turma-resumo", id] }),
       queryClient.invalidateQueries({ queryKey: ["turma-convite", id] }),
@@ -380,14 +389,20 @@ function PaginaDaTurma() {
     if (resultado === "copiado") toast.success("Link copiado. Manda no grupo!");
   }
 
-  const linhas = [...(ranking.data ?? [])].sort(
-    (a, b) =>
-      b[ordem] - a[ordem] ||
-      // desempate: vitórias, depois gols
-      b.vitorias - a.vitorias ||
-      b.gols - a.gols ||
-      a.nome.localeCompare(b.nome),
-  );
+  const ordenar = <T extends LinhaRanking>(lista: T[]) =>
+    [...lista].sort(
+      (a, b) =>
+        b[ordem] - a[ordem] ||
+        // desempate: vitórias, depois gols
+        b.vitorias - a.vitorias ||
+        b.gols - a.gols ||
+        a.nome.localeCompare(b.nome),
+    );
+  const linhas = ordenar(ranking.data ?? []);
+  // posições antes da última pelada, na mesma ordem: viram as setinhas de subiu/caiu
+  const posicoesAntes = rankingAntes.data
+    ? new Map(ordenar(rankingAntes.data).map((l, i) => [l.member_id, i + 1]))
+    : null;
   const rotuloPeriodo = rotuloDoPeriodo(periodo);
   const colunaOrdenada = COLUNAS_RANKING.find((c) => c.id === ordem);
 
@@ -638,6 +653,7 @@ function PaginaDaTurma() {
                 userId={userId}
                 premium={premium}
                 onBloqueado={() => setBloqueio("Ordenar o ranking")}
+                posicoesAntes={posicoesAntes}
               />
             )}
             {bloqueio && <FolhaPremium recurso={bloqueio} onFechar={() => setBloqueio(null)} />}

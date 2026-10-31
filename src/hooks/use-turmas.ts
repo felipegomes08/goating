@@ -59,6 +59,51 @@ export function rotuloDoPeriodo(periodo: Periodo) {
       : "desde o começo";
 }
 
+type LinhaDoCrewStats = { jogos: number; vitorias: number; empates: number; gols: number };
+
+const comMedias = <T extends LinhaDoCrewStats>(l: T) => ({
+  ...l,
+  // 3 pontos por vitória, 1 por empate, sobre o máximo possível
+  aproveitamento:
+    l.jogos > 0 ? Math.round(((l.vitorias * 3 + l.empates) / (l.jogos * 3)) * 100) : 0,
+  media: l.jogos > 0 ? l.gols / l.jogos : 0,
+});
+
+/**
+ * Ranking da turma no período antes da última pelada com placar (pra setinha de subiu/caiu).
+ * Nulo quando não tem pelada anterior no período pra comparar.
+ */
+export function useRankingAntesDaUltima(crewId: string | null, periodo: Periodo, ligado = true) {
+  return useQuery({
+    queryKey: ["turma-ranking-anterior", crewId, periodo],
+    enabled: !!crewId && ligado,
+    queryFn: async () => {
+      const desde = inicioDoPeriodo(periodo);
+      const { data: ultima, error: erroUltima } = await supabase
+        .from("matches")
+        .select("data")
+        .eq("crew_id", crewId!)
+        .not("placar_finalizado_em", "is", null)
+        .order("data", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (erroUltima) throw erroUltima;
+      if (!ultima) return null;
+      const vespera = new Date(`${ultima.data}T12:00:00`);
+      vespera.setDate(vespera.getDate() - 1);
+      const ate = vespera.toLocaleDateString("sv-SE");
+      if (desde && ate < desde) return null;
+      const { data, error } = await supabase.rpc("crew_stats", {
+        p_crew_id: crewId!,
+        p_ate: ate,
+        ...(desde ? { p_desde: desde } : {}),
+      });
+      if (error) throw error;
+      return data.length ? data.map(comMedias) : null;
+    },
+  });
+}
+
 /** Números de cada jogador da turma no período, já com média de gols e aproveitamento. */
 export function useRankingDaTurma(crewId: string | null, periodo: Periodo, ligado = true) {
   return useQuery({
@@ -71,13 +116,7 @@ export function useRankingDaTurma(crewId: string | null, periodo: Periodo, ligad
         ...(desde ? { p_desde: desde } : {}),
       });
       if (error) throw error;
-      return data.map((l) => ({
-        ...l,
-        // 3 pontos por vitória, 1 por empate, sobre o máximo possível
-        aproveitamento:
-          l.jogos > 0 ? Math.round(((l.vitorias * 3 + l.empates) / (l.jogos * 3)) * 100) : 0,
-        media: l.jogos > 0 ? l.gols / l.jogos : 0,
-      }));
+      return data.map(comMedias);
     },
   });
 }

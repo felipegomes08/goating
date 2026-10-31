@@ -49,6 +49,7 @@ export function TabelaRanking({
   userId,
   premium = true,
   onBloqueado,
+  posicoesAntes,
 }: {
   linhas: LinhaRanking[];
   ordem: ColunaRanking;
@@ -56,6 +57,8 @@ export function TabelaRanking({
   userId: string | null;
   premium?: boolean;
   onBloqueado?: () => void;
+  /** posição de cada jogador (member_id) antes da última pelada: vira a setinha de subiu/caiu */
+  posicoesAntes?: Map<string, number> | null | undefined;
 }) {
   return (
     <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)]">
@@ -111,13 +114,46 @@ export function TabelaRanking({
         <tbody className="divide-y divide-border">
           {linhas.map((l, i) => {
             const eu = !!userId && l.user_id === userId;
+            const antes = posicoesAntes?.get(l.member_id);
+            const variacao = posicoesAntes ? (antes ? antes - (i + 1) : null) : undefined;
             return (
               <tr key={l.member_id} className={cn(eu && "bg-mint-soft/60")}>
                 <td className="py-2.5 pl-2 text-center">
                   {i === 0 ? (
                     <Crown className="mx-auto size-4 text-tier-ouro" aria-label="1º" />
                   ) : (
-                    <span className="text-xs font-bold text-muted-foreground">{i + 1}</span>
+                    <span className="block text-xs font-bold text-muted-foreground">{i + 1}</span>
+                  )}
+                  {variacao !== undefined && (
+                    <span
+                      className={cn(
+                        "block text-[9px] leading-none font-extrabold",
+                        variacao === null
+                          ? "text-primary"
+                          : variacao > 0
+                            ? "text-emerald-600"
+                            : variacao < 0
+                              ? "text-destructive"
+                              : "text-muted-foreground",
+                      )}
+                      aria-label={
+                        variacao === null
+                          ? "novo no ranking"
+                          : variacao > 0
+                            ? `subiu ${variacao}`
+                            : variacao < 0
+                              ? `caiu ${-variacao}`
+                              : "manteve"
+                      }
+                    >
+                      {variacao === null
+                        ? "novo"
+                        : variacao > 0
+                          ? `▲${variacao}`
+                          : variacao < 0
+                            ? `▼${-variacao}`
+                            : "–"}
+                    </span>
                   )}
                 </td>
                 <td className="py-2.5 pr-1 pl-1">
@@ -156,6 +192,7 @@ export function TabelaRanking({
       </table>
       <p className="border-t border-border px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
         {COLUNAS_RANKING.map((c) => `${c.sigla} ${c.nome}`).join(" · ")}.{" "}
+        {posicoesAntes && "Setinhas: comparando com antes da última pelada. "}
         {premium ? (
           "Toque numa coluna pra ordenar."
         ) : (
