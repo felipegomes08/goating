@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, Users } from "lucide-react";
+import { Plus, Shield, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession, usePerfil } from "@/hooks/use-session";
@@ -12,6 +12,7 @@ import { Sino } from "@/components/goating/sino";
 import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
 import { CartaoTurma } from "@/components/goating/cartao-turma";
 import { RedeDeJogadores } from "@/components/goating/rede-de-jogadores";
+import { EmBreve } from "@/components/goating/em-breve";
 import { Segmentos, TituloGrande, classeSegmento } from "@/components/goating/titulo-grande";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,9 +20,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/turmas")({
   ssr: false,
-  // a mesma tela mostra as turmas (padrão) ou os jogadores que a pessoa segue
-  validateSearch: (search: Record<string, unknown>): { ver?: "jogadores" | undefined } => ({
-    ver: search["ver"] === "jogadores" ? "jogadores" : undefined,
+  // a mesma tela mostra as turmas (padrão), os times (em breve) ou os jogadores que a pessoa segue
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { ver?: "jogadores" | "times" | undefined } => ({
+    ver: search["ver"] === "jogadores" || search["ver"] === "times" ? search["ver"] : undefined,
   }),
   head: () => ({
     meta: [
@@ -40,6 +43,7 @@ function MinhasTurmas() {
   const queryClient = useQueryClient();
   const { ver } = useSearch({ from: "/turmas" });
   const vendoJogadores = ver === "jogadores";
+  const vendoTimes = ver === "times";
   const { userId, carregando } = useSession();
   const { data: perfil } = usePerfil(userId);
   const turmas = useMinhasTurmas(userId);
@@ -80,15 +84,17 @@ function MinhasTurmas() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
       <TituloGrande
-        titulo={vendoJogadores ? "Jogadores" : "Turmas"}
+        titulo={vendoJogadores ? "Jogadores" : vendoTimes ? "Times" : "Turmas"}
         subtitulo={
           vendoJogadores
             ? "Quem você segue e quem vale a pena seguir."
-            : "O futebol fixo da galera, com placar e ranking."
+            : vendoTimes
+              ? "O seu time fixo, pra disputar campeonatos."
+              : "O futebol fixo da galera, com placar e ranking."
         }
         acao={
           <span className="flex shrink-0 items-center gap-2">
-            {!criando && !vendoJogadores && (
+            {!criando && !vendoJogadores && !vendoTimes && (
               <Button size="sm" className="shrink-0" onClick={() => setCriando(true)}>
                 <Plus /> Criar
               </Button>
@@ -97,9 +103,17 @@ function MinhasTurmas() {
           </span>
         }
       >
-        <Segmentos colunas={2}>
-          <Link to="/turmas" replace className={classeSegmento(!vendoJogadores)}>
+        <Segmentos colunas={3}>
+          <Link to="/turmas" replace className={classeSegmento(!vendoJogadores && !vendoTimes)}>
             Turmas
+          </Link>
+          <Link
+            to="/turmas"
+            search={{ ver: "times" }}
+            replace
+            className={classeSegmento(vendoTimes)}
+          >
+            Times
           </Link>
           <Link
             to="/turmas"
@@ -113,7 +127,13 @@ function MinhasTurmas() {
       </TituloGrande>
 
       <main className="flex-1 space-y-3 px-4 py-4">
-        {vendoJogadores ? (
+        {vendoTimes ? (
+          <EmBreve
+            icone={Shield}
+            titulo="Times"
+            texto="Monte o seu time fixo, com escudo, elenco e uniforme, pra disputar campeonatos."
+          />
+        ) : vendoJogadores ? (
           userId ? (
             <RedeDeJogadores userId={userId} cidade={perfil?.cidade ?? null} />
           ) : null

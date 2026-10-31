@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { CalendarPlus, Flag, MapPin, Search } from "lucide-react";
+import { CalendarPlus, Flag, MapPin, Search, Trophy } from "lucide-react";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { DIAS_NO_FEED, useFeed } from "@/hooks/use-feed";
 import { GoatingLogo } from "@/components/goating/logo";
@@ -10,17 +10,23 @@ import { BottomNav } from "@/components/goating/bottom-nav";
 import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
 import { CAMPO_NO_VERDE, Segmentos, classeSegmento } from "@/components/goating/titulo-grande";
 import { MatchCard } from "@/components/goating/match-card";
+import { EmBreve } from "@/components/goating/em-breve";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 
 type Aba = "proximas" | "finalizadas";
+/** as duas seções do feed: as peladas (padrão) e os campeonatos (em breve) */
+type Secao = "peladas" | "campeonatos";
 
 export const Route = createFileRoute("/")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): { aba?: Aba | undefined } => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { aba?: Aba | undefined; secao?: Secao | undefined } => ({
     aba:
       search["aba"] === "finalizadas" || search["aba"] === "proximas" ? search["aba"] : undefined,
+    secao: search["secao"] === "campeonatos" ? "campeonatos" : undefined,
   }),
   head: () => ({
     meta: [
@@ -44,7 +50,8 @@ export const Route = createFileRoute("/")({
 
 function Feed() {
   const navigate = useNavigate();
-  const { aba: abaDaUrl } = useSearch({ from: "/" });
+  const { aba: abaDaUrl, secao } = useSearch({ from: "/" });
+  const vendoCampeonatos = secao === "campeonatos";
   const { userId, carregando } = useSession();
   const { data: perfil, isLoading: carregandoPerfil } = usePerfil(userId);
   const [busca, setBusca] = useState("");
@@ -83,43 +90,79 @@ function Feed() {
 
       {/* busca e abas acompanham a rolagem; a base arredondada fecha o bloco verde */}
       <div className="sticky top-0 z-20 -mt-px space-y-2 rounded-b-3xl bg-primary px-4 pt-2 pb-4">
-        <div className="relative">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-primary-foreground/55" />
-          <Input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por pelada, quadra ou turma"
-            className={CAMPO_NO_VERDE}
-          />
-        </div>
-        <Segmentos colunas={2}>
+        {/* seções do feed: abas grandes com traço embaixo, pra não confundir com as de baixo */}
+        <div className="flex gap-5 border-b border-white/10">
           {(
             [
-              ["proximas", "Próximas"],
-              ["finalizadas", "Finalizadas"],
+              ["peladas", "Peladas"],
+              ["campeonatos", "Campeonatos"],
             ] as const
-          ).map(([a, rotulo]) => (
-            <Link
-              key={a}
-              to="/"
-              // a escolha vai pra URL nos dois casos: tocar em "Próximas" tem que valer
-              search={{ aba: a }}
-              replace
-              className={classeSegmento(aba === a)}
-            >
-              {rotulo}
-              {a === "finalizadas" && aAvaliar > 0 && (
-                <span className="ml-1.5 rounded-full bg-tier-ouro px-1.5 py-px text-[10px] font-extrabold text-primary">
-                  {aAvaliar}
-                </span>
-              )}
-            </Link>
-          ))}
-        </Segmentos>
+          ).map(([s, rotulo]) => {
+            const ativa = (s === "campeonatos") === vendoCampeonatos;
+            return (
+              <Link
+                key={s}
+                to="/"
+                search={s === "campeonatos" ? { secao: s } : {}}
+                replace
+                className={
+                  ativa
+                    ? "-mb-px border-b-2 border-mint pb-1.5 text-sm font-extrabold text-primary-foreground"
+                    : "pb-1.5 text-sm font-semibold text-primary-foreground/60"
+                }
+              >
+                {rotulo}
+              </Link>
+            );
+          })}
+        </div>
+        {!vendoCampeonatos && (
+          <>
+            <div className="relative">
+              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-primary-foreground/55" />
+              <Input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar por pelada, quadra ou turma"
+                className={CAMPO_NO_VERDE}
+              />
+            </div>
+            <Segmentos colunas={2}>
+              {(
+                [
+                  ["proximas", "Próximas"],
+                  ["finalizadas", "Finalizadas"],
+                ] as const
+              ).map(([a, rotulo]) => (
+                <Link
+                  key={a}
+                  to="/"
+                  // a escolha vai pra URL nos dois casos: tocar em "Próximas" tem que valer
+                  search={{ aba: a }}
+                  replace
+                  className={classeSegmento(aba === a)}
+                >
+                  {rotulo}
+                  {a === "finalizadas" && aAvaliar > 0 && (
+                    <span className="ml-1.5 rounded-full bg-tier-ouro px-1.5 py-px text-[10px] font-extrabold text-primary">
+                      {aAvaliar}
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </Segmentos>
+          </>
+        )}
       </div>
 
       <main className="flex-1 space-y-3 px-4 py-4">
-        {carregando || carregandoPerfil || (!!userId && feed.isLoading) ? (
+        {vendoCampeonatos ? (
+          <EmBreve
+            icone={Trophy}
+            titulo="Campeonatos"
+            texto="Torneios entre times da sua cidade, com tabela, chaveamento e artilharia."
+          />
+        ) : carregando || carregandoPerfil || (!!userId && feed.isLoading) ? (
           [0, 1, 2].map((i) => <Skeleton key={i} className="h-36 w-full rounded-3xl" />)
         ) : !userId ? (
           <div className="mt-16 text-center">
