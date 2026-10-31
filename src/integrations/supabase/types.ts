@@ -833,6 +833,84 @@ export type Database = {
         };
         Relationships: [];
       };
+      ligas: {
+        Row: {
+          crew_id: string;
+          criada_por: string | null;
+          criado_em: string;
+          descricao: string | null;
+          encerrada_em: string | null;
+          fim: string;
+          id: string;
+          inicio: string;
+          nome: string;
+          pts_empate: number;
+          pts_gol: number;
+          pts_mvp: number;
+          pts_presenca: number;
+          pts_vitoria: number;
+        };
+        Insert: {
+          crew_id: string;
+          criada_por?: string | null;
+          criado_em?: string;
+          descricao?: string | null;
+          encerrada_em?: string | null;
+          fim: string;
+          id?: string;
+          inicio: string;
+          nome: string;
+          pts_empate?: number;
+          pts_gol?: number;
+          pts_mvp?: number;
+          pts_presenca?: number;
+          pts_vitoria?: number;
+        };
+        Update: {
+          crew_id?: string;
+          criada_por?: string | null;
+          criado_em?: string;
+          descricao?: string | null;
+          encerrada_em?: string | null;
+          fim?: string;
+          id?: string;
+          inicio?: string;
+          nome?: string;
+          pts_empate?: number;
+          pts_gol?: number;
+          pts_mvp?: number;
+          pts_presenca?: number;
+          pts_vitoria?: number;
+        };
+        Relationships: [];
+      };
+      premios_de_liga: {
+        Row: {
+          categoria: string;
+          liga_id: string;
+          member_id: string;
+          nome: string;
+          user_id: string | null;
+          valor: number;
+        };
+        Insert: {
+          categoria: string;
+          liga_id: string;
+          member_id: string;
+          nome: string;
+          user_id?: string | null;
+          valor: number;
+        };
+        Update: {
+          categoria?: string;
+          liga_id?: string;
+          member_id?: string;
+          nome?: string;
+          user_id?: string | null;
+          valor?: number;
+        };
+        Relationships: [];
+      };
       assinaturas_lojas: {
         Row: {
           atualizado_em: string;
@@ -1196,6 +1274,57 @@ export type Database = {
       responder_lista: { Args: { p_match_id: string; p_vou: boolean }; Returns: string };
       lista_da_pelada: { Args: { p_match_id: string }; Returns: Json };
       encerrar_mensagem: { Args: { p_id: string }; Returns: undefined };
+      tabela_da_liga: {
+        Args: { p_liga_id: string };
+        Returns: {
+          assistencias: number;
+          defesas: number;
+          derrotas: number;
+          empates: number;
+          foto_url: string | null;
+          gols: number;
+          jogos: number;
+          member_id: string;
+          mvps: number;
+          nome: string;
+          peladas: number;
+          pontos: number;
+          posicao: number;
+          user_id: string | null;
+          vitorias: number;
+        }[];
+      };
+      criar_liga: {
+        Args: {
+          p_crew_id: string;
+          p_nome: string;
+          p_descricao: string | null;
+          p_inicio: string;
+          p_fim: string;
+          p_pts_vitoria?: number;
+          p_pts_empate?: number;
+          p_pts_presenca?: number;
+          p_pts_gol?: number;
+          p_pts_mvp?: number;
+        };
+        Returns: string;
+      };
+      editar_liga: {
+        Args: {
+          p_liga_id: string;
+          p_nome: string;
+          p_descricao: string | null;
+          p_fim: string;
+          p_pts_vitoria: number;
+          p_pts_empate: number;
+          p_pts_presenca: number;
+          p_pts_gol: number;
+          p_pts_mvp: number;
+        };
+        Returns: undefined;
+      };
+      apagar_liga: { Args: { p_liga_id: string }; Returns: undefined };
+      encerrar_liga: { Args: { p_liga_id: string }; Returns: undefined };
       denunciar_mensagem: { Args: { p_id: string; p_motivo?: string | null }; Returns: undefined };
       enviar_cobranca: {
         Args: { p_match_id: string; p_valor: number; p_pix?: string | null };

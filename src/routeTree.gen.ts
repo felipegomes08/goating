@@ -25,6 +25,7 @@ import { Route as RedefinirSenhaRouteImport } from './routes/redefinir-senha'
 import { Route as SobreRouteImport } from './routes/sobre'
 import { Route as TurmasRouteImport } from './routes/turmas'
 import { Route as JogadorIdRouteImport } from './routes/jogador.$id'
+import { Route as LigaIdRouteImport } from './routes/liga.$id'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PeladaIdRouteImport } from './routes/pelada.$id'
 import { Route as TurmaIdRouteImport } from './routes/turma.$id'
@@ -115,6 +116,11 @@ const JogadorIdRoute = JogadorIdRouteImport.update({
   path: '/jogador/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LigaIdRoute = LigaIdRouteImport.update({
+  id: '/liga/$id',
+  path: '/liga/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PTokenRoute = PTokenRouteImport.update({
   id: '/p/$token',
   path: '/p/$token',
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/sobre': typeof SobreRoute
   '/turmas': typeof TurmasRoute
   '/jogador/$id': typeof JogadorIdRoute
+  '/liga/$id': typeof LigaIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRoute
   '/turma/$id': typeof TurmaIdRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/sobre': typeof SobreRoute
   '/turmas': typeof TurmasRoute
   '/jogador/$id': typeof JogadorIdRoute
+  '/liga/$id': typeof LigaIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRoute
   '/turma/$id': typeof TurmaIdRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/sobre': typeof SobreRoute
   '/turmas': typeof TurmasRoute
   '/jogador/$id': typeof JogadorIdRoute
+  '/liga/$id': typeof LigaIdRoute
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRoute
   '/turma/$id': typeof TurmaIdRoute
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/turmas'
     | '/jogador/$id'
+    | '/liga/$id'
     | '/p/$token'
     | '/pelada/$id'
     | '/turma/$id'
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/turmas'
     | '/jogador/$id'
+    | '/liga/$id'
     | '/p/$token'
     | '/pelada/$id'
     | '/turma/$id'
@@ -316,6 +327,7 @@ export interface FileRouteTypes {
     | '/sobre'
     | '/turmas'
     | '/jogador/$id'
+    | '/liga/$id'
     | '/p/$token'
     | '/pelada/$id'
     | '/turma/$id'
@@ -344,6 +356,7 @@ export interface RootRouteChildren {
   SobreRoute: typeof SobreRoute
   TurmasRoute: typeof TurmasRoute
   JogadorIdRoute: typeof JogadorIdRoute
+  LigaIdRoute: typeof LigaIdRoute
   PTokenRoute: typeof PTokenRoute
   PeladaIdRoute: typeof PeladaIdRoute
   TurmaIdRoute: typeof TurmaIdRoute
@@ -469,6 +482,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof JogadorIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/liga/$id': {
+      id: '/liga/$id'
+      path: '/liga/$id'
+      fullPath: '/liga/$id'
+      preLoaderRoute: typeof LigaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/p/$token': {
       id: '/p/$token'
       path: '/p/$token'
@@ -552,6 +572,7 @@ const rootRouteChildren: RootRouteChildren = {
   SobreRoute: SobreRoute,
   TurmasRoute: TurmasRoute,
   JogadorIdRoute: JogadorIdRoute,
+  LigaIdRoute: LigaIdRoute,
   PTokenRoute: PTokenRoute,
   PeladaIdRoute: PeladaIdRoute,
   TurmaIdRoute: TurmaIdRoute,

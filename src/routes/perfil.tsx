@@ -20,6 +20,7 @@ import { FolhaCartao } from "@/components/goating/folha-cartao";
 import { AuraTier } from "@/components/goating/aura-tier";
 import { GaleriaDeMvps } from "@/components/goating/galeria-de-mvps";
 import { ConquistasDoJogador } from "@/components/goating/conquistas";
+import { Trofeus } from "@/components/goating/trofeus";
 import { FolhaXp } from "@/components/goating/folha-xp";
 import { FolhaPersonalizar, type Previa } from "@/components/goating/folha-personalizar";
 import { capaDe, capaPorId, type CapaId } from "@/lib/capas";
@@ -474,6 +475,8 @@ function Perfil() {
           avaliacoes={perfil.avaliacoes_recebidas}
           recompensaPendente={!!perfil.tier_pendente}
         />
+
+        {userId && <Trofeus userId={userId} />}
 
         {userId && <ConquistasDoJogador userId={userId} proprio premiumDono={premium} />}
 

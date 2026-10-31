@@ -86,6 +86,12 @@ const FRENTES: { titulo: string; itens: Beneficio[] }[] = [
         titulo: "Ranking da turma do seu jeito",
         texto: "Ordene por gols, assistências e MVPs, e veja o mês ou o ano.",
       },
+      {
+        icone: Trophy,
+        titulo: "Ligas pra sua turma",
+        texto:
+          "Crie temporadas com tabela e pontos próprios. No fim, campeão, artilheiro e troféus no perfil. A turma toda participa de graça.",
+      },
     ],
   },
   {

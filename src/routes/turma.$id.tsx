@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/use-session";
 import { useChatsNaoLidos } from "@/hooks/use-chat";
+import { AbaLiga } from "@/components/goating/liga/aba-liga";
 import { PERIODOS, rotuloDoPeriodo, useRankingDaTurma, type Periodo } from "@/hooks/use-turmas";
 import { useVoltar } from "@/hooks/use-voltar";
 import { BuscaJogador, type PerfilAchado } from "@/components/goating/busca-jogador";
@@ -50,7 +51,7 @@ import { compartilharRanking } from "@/lib/placar/poster";
 import { urlDaFotoDaTurma } from "@/lib/foto-turma";
 import { origemDoSite } from "@/lib/site";
 
-type Aba = "ranking" | "peladas" | "membros" | "notas";
+type Aba = "ranking" | "liga" | "peladas" | "membros" | "notas";
 
 export const Route = createFileRoute("/turma/$id")({
   ssr: false,
@@ -58,13 +59,15 @@ export const Route = createFileRoute("/turma/$id")({
     search: Record<string, unknown>,
   ): { aba?: Aba | undefined; c?: string | undefined } => ({
     aba:
-      search["aba"] === "peladas"
-        ? "peladas"
-        : search["aba"] === "membros"
-          ? "membros"
-          : search["aba"] === "notas"
-            ? "notas"
-            : undefined,
+      search["aba"] === "liga"
+        ? "liga"
+        : search["aba"] === "peladas"
+          ? "peladas"
+          : search["aba"] === "membros"
+            ? "membros"
+            : search["aba"] === "notas"
+              ? "notas"
+              : undefined,
     // código do link de convite: com ele a pessoa entra direto, sem ele vira pedido
     c: typeof search["c"] === "string" ? search["c"] : undefined,
   }),
@@ -74,6 +77,7 @@ export const Route = createFileRoute("/turma/$id")({
 
 const ABAS: { id: Aba; rotulo: string }[] = [
   { id: "ranking", rotulo: "Ranking" },
+  { id: "liga", rotulo: "Liga" },
   { id: "peladas", rotulo: "Peladas" },
   { id: "membros", rotulo: "Jogadores" },
   { id: "notas", rotulo: "Notas" },
@@ -639,6 +643,8 @@ function PaginaDaTurma() {
             {bloqueio && <FolhaPremium recurso={bloqueio} onFechar={() => setBloqueio(null)} />}
           </>
         )}
+
+        {aba === "liga" && <AbaLiga crewId={id} souGestor={souGestor} userId={userId} />}
 
         {aba === "notas" &&
           (resumo.data ? (

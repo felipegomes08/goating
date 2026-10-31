@@ -18,6 +18,7 @@ import { usePremium } from "@/hooks/use-premium";
 import { SeloPremium } from "@/components/goating/selo-premium";
 import { GaleriaDeMvps } from "@/components/goating/galeria-de-mvps";
 import { ConquistasDoJogador } from "@/components/goating/conquistas";
+import { Trofeus } from "@/components/goating/trofeus";
 import { capaDe } from "@/lib/capas";
 import { molduraDe } from "@/lib/molduras";
 import { ehPremium } from "@/lib/premium";
@@ -295,6 +296,8 @@ function JogadorPublico() {
         </section>
 
         {/* a galeria aparece pra visitantes só quando o dono é Premium */}
+        <Trofeus userId={perfil.id} />
+
         <ConquistasDoJogador userId={perfil.id} proprio={false} premiumDono={ehPremium(perfil)} />
 
         {ehPremium(perfil) && <GaleriaDeMvps userId={perfil.id} total={perfil.vezes_mvp} premium />}

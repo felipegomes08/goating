@@ -31,6 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CartaoLista } from "@/components/goating/chat/cartao-lista";
 import { ListaFixa } from "@/components/goating/chat/lista-fixa";
 import { CartaoCobranca } from "@/components/goating/chat/cartao-cobranca";
+import { CartaoLiga } from "@/components/goating/chat/cartao-liga";
 import { FolhaCobranca } from "@/components/goating/chat/folha-cobranca";
 import { quandoDaPelada } from "@/lib/quando-da-pelada";
 import { urlDaFotoDaTurma } from "@/lib/foto-turma";
@@ -410,7 +411,14 @@ function ChatDaTurma() {
                           </span>
                         </div>
                       )}
-                      {m.tipo === "pagamento" && m.match_id ? (
+                      {m.tipo === "liga" ? (
+                        <div className="mt-3 mb-1 space-y-1">
+                          <p className="text-center text-[11px] text-muted-foreground">
+                            Liga da turma · {hora(m.criado_em)}
+                          </p>
+                          <CartaoLiga dados={m.dados} />
+                        </div>
+                      ) : m.tipo === "pagamento" && m.match_id ? (
                         <div className="mt-3 mb-1 space-y-1">
                           <p className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
                             <Wallet className="size-3.5" />

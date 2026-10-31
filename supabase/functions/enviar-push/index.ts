@@ -28,6 +28,7 @@ const GRUPO: Record<string, string> = {
   admin: "turma",
   denuncia_chat: "turma",
   pendente: "organizador",
+  liga: "turma",
   avaliar: "avaliacao",
   avaliar_fim: "avaliacao",
   mvp: "avaliacao",
@@ -157,7 +158,7 @@ async function avisoDoChat(banco: Banco, mensagemId: string) {
     .is("push_enviado_em", null)
     .is("apagada_em", null)
     .gt("criado_em", new Date(Date.now() - 5 * 60_000).toISOString())
-    .select("crew_id, autor_id, tipo, texto, match_id")
+    .select("crew_id, autor_id, tipo, texto, match_id, dados")
     .maybeSingle();
   if (!msg) return "nada a enviar";
 
@@ -221,12 +222,23 @@ async function avisoDoChat(banco: Banco, mensagemId: string) {
 
   const autor = (autorRes.data?.nome_exibicao as string | undefined)?.split(" ")[0] ?? "Alguém";
   const pelada = (peladaRes.data?.titulo as string | undefined) ?? "pelada";
+  const liga = (msg.dados ?? {}) as {
+    evento?: string;
+    liga?: string;
+    rodada?: number;
+    lider?: string | null;
+    pontos?: number;
+  };
   const corpo =
-    msg.tipo === "lista"
-      ? `📋 Lista: ${pelada}. Toque pra dizer se vai.`
-      : msg.tipo === "pagamento"
-        ? `💰 Cobrança: ${pelada}. Veja quem já pagou.`
-        : `${autor}: ${limitar((msg.texto as string | null) ?? "", 180)}`;
+    msg.tipo === "liga"
+      ? liga.evento === "fim"
+        ? `🏆 ${liga.liga} acabou${liga.lider ? `: ${liga.lider} campeão` : ""}!`
+        : `🏆 ${liga.liga} · Rodada ${liga.rodada}${liga.lider ? `: ${liga.lider.split(" ")[0]} lidera com ${liga.pontos} pontos` : ""}`
+      : msg.tipo === "lista"
+        ? `📋 Lista: ${pelada}. Toque pra dizer se vai.`
+        : msg.tipo === "pagamento"
+          ? `💰 Cobrança: ${pelada}. Veja quem já pagou.`
+          : `${autor}: ${limitar((msg.texto as string | null) ?? "", 180)}`;
 
   await enviarParaCelulares(
     banco,
