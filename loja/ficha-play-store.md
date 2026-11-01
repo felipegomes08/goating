@@ -13,8 +13,8 @@ algo que ainda vai mudar (domínio, e-mail) ou de uma decisão dele.
 | Categoria | Esportes |
 | Idioma padrão | Português (Brasil) |
 | E-mail de contato | **(conferir)** hoje `felipecgomes02@gmail.com`; trocar pelo do Goating quando existir |
-| Site | **(conferir)** `https://goating.com.br`; trocar por `https://goating.com.br` |
-| Política de privacidade | `https://goating.com.br/privacidade` **(conferir domínio)** |
+| Site | `https://goating.com.br/sobre` |
+| Política de privacidade | `https://goating.com.br/privacidade` |
 
 ## Descrição curta (até 80 caracteres)
 
@@ -78,7 +78,22 @@ SUA TURMA, DO SEU JEITO
 • Jogador sem conta também entra na lista e no ranking; quando ele criar a conta, o histórico vai junto.
 • Avalie a turma e encontre as melhores turmas da sua cidade no ranking de turmas.
 
-O Goating é gratuito e não tem anúncios.
+CHAT DA TURMA
+• Converse com a turma sem sair do app, com aviso no celular a cada mensagem.
+• Lista de presença no chat: cada um toca em Vou ou Não vou.
+• Cobrança da pelada: veja quem já pagou e quem está devendo.
+
+LIGAS DA TURMA
+• Crie uma liga com começo e fim e escolha quanto vale vitória, empate, presença, gol e MVP.
+• A tabela atualiza a cada pelada e vai pro chat da turma.
+• No fim saem o campeão, o artilheiro, o garçom, o paredão e o rei do MVP, com troféu no perfil e cartão do campeão pra compartilhar.
+
+GOATING PREMIUM (OPCIONAL)
+• Organizar, confirmar presença, sortear, marcar o placar, avaliar e o chat são de graça, sempre.
+• O Premium libera extras: criar ligas, ranking da turma por mês e por ano, ordenar por qualquer estatística, ver suas notas em detalhe, quem te avaliou, molduras e capa de perfil.
+• Assinatura mensal ou anual, cancelável quando quiser pela própria loja.
+
+O Goating não tem anúncios.
 ```
 
 ## Capturas de tela (mínimo 2, recomendado 6 a 8)
@@ -90,12 +105,12 @@ Tiradas no celular, em pé. Sugestão de ordem e do texto que acompanha cada uma
 3. **Placar ao vivo com os lances**: "Gol, assistência, defesa épica e cartão num toque"
 4. **Pôster do resultado**: "O resultado pronto pra mandar no grupo"
 5. **Cartão do MVP**: "O craque da pelada ganha o cartão dele"
-6. **Ranking da turma**: "Quem é o artilheiro da turma?"
-7. **Perfil com a cartinha**: "Sua carta de jogador evolui a cada pelada"
-8. **Página da turma com capa e escudo**: "A turma com a cara do seu futebol"
+6. **Chat da turma com a lista de presença**: "Lista, cobrança e resenha no chat da turma"
+7. **Liga da turma com a tabela**: "Monte a liga da sua turma"
+8. **Perfil com a cartinha**: "Sua carta de jogador evolui a cada pelada"
 
-A loja aceita no máximo 8. Se preferir mostrar a disputa de pênaltis ("Empatou? Decide nos
-pênaltis"), ela entra no lugar da página da turma.
+A loja aceita no máximo 8. Ficaram de fora o ranking da turma ("Quem é o artilheiro da turma?")
+e a página da turma com capa e escudo; qualquer um deles pode trocar de lugar com outra.
 
 Além das capturas, a loja pede:
 - **Ícone de 512 x 512**: sai de `assets/icon-only.png`.
@@ -105,10 +120,10 @@ Além das capturas, a loja pede:
 
 Respostas esperadas:
 - Violência, sexo, linguagem imprópria, drogas, jogos de azar: **não**.
-- O app permite interação entre usuários: **sim** (perfis visíveis, seguir jogadores, avaliações).
-- Usuários compartilham conteúdo que outros veem: **sim** (nome, foto de perfil, bio, escudo e capa da turma, comentários anônimos nas avaliações). Comentário pode ser denunciado, e com 3 denúncias some sozinho.
+- O app permite interação entre usuários: **sim** (perfis visíveis, seguir jogadores, avaliações, chat da turma).
+- Usuários compartilham conteúdo que outros veem: **sim** (nome, foto de perfil, bio, escudo e capa da turma, comentários anônimos nas avaliações, mensagens no chat da turma). Comentário e mensagem do chat podem ser denunciados e somem sozinhos com 3 denúncias; dá para bloquear uma pessoa no chat.
 - Compartilha a localização do usuário com outros: **não**.
-- Compras dentro do app: **não**.
+- Compras dentro do app: **sim** (assinatura Goating Premium, pelo faturamento do Google Play).
 
 Resultado provável: Livre ou 10+, por causa da interação entre usuários.
 
@@ -131,11 +146,18 @@ Resultado provável: Livre ou 10+, por causa da interação entre usuários.
 | Nome | Sim | Sim | Funcionamento do app |
 | Identificador do usuário (nick) | Sim | Sim | Funcionamento do app |
 | Fotos (perfil, escudo e capa da turma) | Sim | Não | Funcionamento do app |
-| Outros conteúdos do usuário (bio, avaliações, comentários anônimos, peladas, gols e lances) | Sim | Não | Funcionamento do app |
+| Número de telefone (celular, opcional no cadastro) | Sim | Não | Funcionamento do app |
+| Mensagens no app (chat da turma) | Sim | Não | Funcionamento do app |
+| Outros conteúdos do usuário (bio, cidade, posição, avaliações, comentários anônimos, peladas, gols e lances) | Sim | Não | Funcionamento do app |
+| Histórico de compras (assinatura Premium) | Sim | Não | Funcionamento do app (liberar o Premium) |
+| Identificadores do dispositivo (token de notificação do Firebase) | Sim | Não | Funcionamento do app (avisos no celular) |
 | Interações no app | Não | | |
 | Localização | Não | | O "Onde estou" usa a posição só no aparelho, para centralizar o mapa |
-| Contatos, mensagens, áudio, arquivos | Não | | |
-| Dados financeiros, de saúde | Não | | |
+| Contatos, áudio, arquivos | Não | | |
+| Dados de pagamento, de saúde | Não | | O pagamento é feito pelo Google Play; o Goating não vê cartão |
+
+A assinatura passa pelo RevenueCat, que processa a compra em nome do Goating (prestador de
+serviço, não conta como compartilhamento).
 
 **(conferir)** A verificação "não sou um robô" da Cloudflare analisa sinais do navegador para barrar robôs. Na hora de preencher, vale ler a opção "Identificadores do dispositivo ou outros" e marcar se a descrição do Google encaixar; a finalidade seria "Prevenção de fraude e segurança".
 
@@ -143,7 +165,7 @@ Resultado provável: Livre ou 10+, por causa da interação entre usuários.
 
 O Google pede um endereço na internet onde a pessoa consegue pedir a exclusão da conta sem precisar do app.
 
-- Endereço: `https://goating.com.br/privacidade` **(conferir domínio)**
+- Endereço: `https://goating.com.br/privacidade`
 - A página explica o caminho: entrar na conta, abrir **Perfil** e tocar em **Excluir minha conta**. Como o Goating também funciona pelo navegador, dá para fazer tudo pelo site.
 - O que é apagado: perfil, foto, avaliações e seguidores. Gols e vitórias continuam no ranking da turma só com o nome, sem ligação com a pessoa.
 

@@ -1,0 +1,43 @@
+# Build do app de iPhone no Codemagic (não temos Mac): gera o .ipa assinado e manda pro TestFlight.
+#
+# Antes de rodar, no painel do Codemagic (Teams > Integrations > Developer Portal):
+#   ligar a integração com o App Store Connect com o nome "Goating ASC" (chave de API da Apple,
+#   criada pelo Felipe no App Store Connect > Users and Access > Integrations).
+# A assinatura (certificado e perfil) o Codemagic busca ou cria sozinho por essa integração.
+workflows:
+  ios-testflight:
+    name: iPhone para o TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: Goating ASC
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: br.com.goating.app
+      node: 22
+      xcode: latest
+    triggering:
+      events: []
+    scripts:
+      - name: Dependências
+        script: npm ci
+      - name: Site estático do app
+        script: npm run build:nativo
+      - name: Copiar pro projeto do iPhone
+        script: npx cap sync ios
+      - name: Número do build
+        script: |
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/" \
+            ios/App/App.xcodeproj/project.pbxproj
+      - name: Assinatura
+        script: xcode-project use-profiles
+      - name: Gerar o .ipa
+        script: xcode-project build-ipa --project ios/App/App.xcodeproj --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

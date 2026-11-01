@@ -1,12 +1,15 @@
-// Manda avisos pros celulares pelo Firebase (FCM). É chamada pelo banco de dois jeitos:
+// Manda avisos pros celulares: Android pelo Firebase (FCM), iPhone direto pela Apple (APNs).
+// É chamada pelo banco de dois jeitos:
 //   { id }          uma notificação nova do sino, pro celular de quem recebeu;
 //   { mensagem_id } uma mensagem nova no chat da turma, pros celulares dos outros membros.
 //
 // Não precisa de login: a função lê com a chave de serviço e só envia se o aviso acabou de ser
 // criado e ainda não foi enviado (quem chamar de novo com o mesmo id não consegue reenviar).
 //
-// Segredo necessário (painel do Supabase > Edge Functions > Secrets):
-//   FCM_SERVICE_ACCOUNT = o JSON da conta de serviço do Firebase.
+// Segredos (painel do Supabase > Edge Functions > Secrets):
+//   FCM_SERVICE_ACCOUNT = o JSON da conta de serviço do Firebase;
+//   APNS_KEY            = o conteúdo do arquivo AuthKey_XXXX.p8 da Apple (chave "Goating APNs");
+//   APNS_KEY_ID         = o Key ID dessa chave (os 10 caracteres do nome do arquivo).
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 /** Cada tipo de aviso pertence a um grupo que a pessoa pode desligar no perfil. */
@@ -41,6 +44,10 @@ const GRUPO: Record<string, string> = {
 };
 
 type ContaDeServico = { client_email: string; private_key: string; project_id: string };
+
+/** Equipe da conta de desenvolvedor da Apple e o app (o "topic" do APNs). */
+const APPLE_TEAM_ID = "JNWJTQ4898";
+const APP_IOS = "br.com.goating.app";
 
 const base64url = (dados: ArrayBuffer | string) =>
   btoa(typeof dados === "string" ? dados : String.fromCharCode(...new Uint8Array(dados)))
@@ -89,6 +96,34 @@ async function tokenDoGoogle(conta: ContaDeServico) {
   return ((await resposta.json()) as { access_token: string }).access_token;
 }
 
+/** Token do APNs (assinado com a chave .p8): vale até 1 hora, a Apple recusa se for gerado toda hora. */
+let tokenDaApple: { valor: string; criado: number } | null = null;
+
+async function tokenDoApns() {
+  const agora = Math.floor(Date.now() / 1000);
+  if (tokenDaApple && agora - tokenDaApple.criado < 40 * 60) return tokenDaApple.valor;
+  const chavePem = Deno.env.get("APNS_KEY");
+  const keyId = Deno.env.get("APNS_KEY_ID");
+  if (!chavePem || !keyId) throw new Error("faltam os segredos APNS_KEY e APNS_KEY_ID");
+  const cabecalho = base64url(JSON.stringify({ alg: "ES256", kid: keyId }));
+  const corpo = base64url(JSON.stringify({ iss: APPLE_TEAM_ID, iat: agora }));
+  const pem = chavePem.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----|\s/g, "");
+  const chave = await crypto.subtle.importKey(
+    "pkcs8",
+    Uint8Array.from(atob(pem), (c) => c.charCodeAt(0)),
+    { name: "ECDSA", namedCurve: "P-256" },
+    false,
+    ["sign"],
+  );
+  const assinatura = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    chave,
+    new TextEncoder().encode(`${cabecalho}.${corpo}`),
+  );
+  tokenDaApple = { valor: `${cabecalho}.${corpo}.${base64url(assinatura)}`, criado: agora };
+  return tokenDaApple.valor;
+}
+
 type Aviso = {
   titulo: string;
   corpo: string;
@@ -101,8 +136,58 @@ type Aviso = {
 
 type Banco = ReturnType<typeof createClient>;
 
-/** Envia o mesmo aviso pra uma lista de celulares e tira da lista os que não existem mais. */
-async function enviarParaCelulares(banco: Banco, tokens: string[], aviso: Aviso) {
+type Celular = { token: string; plataforma: string | null };
+
+/** Envia o mesmo aviso pra uma lista de celulares (Android e iPhone). */
+async function enviarParaCelulares(banco: Banco, celulares: Celular[], aviso: Aviso) {
+  const iphones = celulares.filter((c) => c.plataforma === "ios").map((c) => c.token);
+  const androids = celulares.filter((c) => c.plataforma !== "ios").map((c) => c.token);
+  await Promise.all([
+    enviarPeloFirebase(banco, androids, aviso),
+    enviarPelaApple(banco, iphones, aviso),
+  ]);
+}
+
+/** iPhones: direto pela Apple, e tira da lista os que não existem mais. */
+async function enviarPelaApple(banco: Banco, tokens: string[], aviso: Aviso) {
+  if (tokens.length === 0) return;
+  const jwt = await tokenDoApns();
+  await Promise.all(
+    tokens.map(async (token) => {
+      const resposta = await fetch(`https://api.push.apple.com/3/device/${token}`, {
+        method: "POST",
+        headers: {
+          authorization: `bearer ${jwt}`,
+          "apns-topic": APP_IOS,
+          "apns-push-type": "alert",
+          "apns-priority": "10",
+          ...(aviso.etiqueta ? { "apns-collapse-id": aviso.etiqueta } : {}),
+        },
+        body: JSON.stringify({
+          aps: {
+            alert: { title: aviso.titulo, body: aviso.corpo },
+            sound: "default",
+            ...(aviso.etiqueta ? { "thread-id": aviso.etiqueta } : {}),
+          },
+          link: aviso.link,
+          ...(aviso.chat ? { chat: aviso.chat } : {}),
+        }),
+      });
+      // celular que desinstalou o app ou token inválido: sai da lista (outros erros não apagam)
+      if (resposta.status === 410 || resposta.status === 400) {
+        const erro = await resposta.text();
+        if (/Unregistered|BadDeviceToken/.test(erro)) {
+          await banco.from("dispositivos").delete().eq("token", token);
+        }
+      } else {
+        await resposta.body?.cancel();
+      }
+    }),
+  );
+}
+
+/** Androids: pelo Firebase, e tira da lista os que não existem mais. */
+async function enviarPeloFirebase(banco: Banco, tokens: string[], aviso: Aviso) {
   if (tokens.length === 0) return;
   const segredo = Deno.env.get("FCM_SERVICE_ACCOUNT");
   if (!segredo) throw new Error("falta o segredo FCM_SERVICE_ACCOUNT");
@@ -216,7 +301,7 @@ async function avisoDoChat(banco: Banco, mensagemId: string) {
 
   const { data: celulares } = await banco
     .from("dispositivos")
-    .select("token")
+    .select("token, plataforma")
     .in("user_id", [...destino]);
   if (!celulares?.length) return "sem celular";
 
@@ -240,17 +325,13 @@ async function avisoDoChat(banco: Banco, mensagemId: string) {
           ? `💰 Cobrança: ${pelada}. Veja quem já pagou.`
           : `${autor}: ${limitar((msg.texto as string | null) ?? "", 180)}`;
 
-  await enviarParaCelulares(
-    banco,
-    celulares.map((c) => c.token as string),
-    {
-      titulo: turma.nome as string,
-      corpo,
-      link: `/turma/${msg.crew_id}/chat`,
-      etiqueta: `chat-${msg.crew_id}`,
-      chat: msg.crew_id as string,
-    },
-  );
+  await enviarParaCelulares(banco, celulares as Celular[], {
+    titulo: turma.nome as string,
+    corpo,
+    link: `/turma/${msg.crew_id}/chat`,
+    etiqueta: `chat-${msg.crew_id}`,
+    chat: msg.crew_id as string,
+  });
   return "ok";
 }
 
@@ -277,19 +358,15 @@ async function avisoDoSino(banco: Banco, id: string) {
 
   const { data: celulares } = await banco
     .from("dispositivos")
-    .select("token")
+    .select("token, plataforma")
     .eq("user_id", aviso.user_id);
   if (!celulares?.length) return "sem celular";
 
-  await enviarParaCelulares(
-    banco,
-    celulares.map((c) => c.token as string),
-    {
-      titulo: aviso.titulo as string,
-      corpo: (aviso.corpo as string | null) ?? "",
-      link: (aviso.link as string | null) ?? "/notificacoes",
-    },
-  );
+  await enviarParaCelulares(banco, celulares as Celular[], {
+    titulo: aviso.titulo as string,
+    corpo: (aviso.corpo as string | null) ?? "",
+    link: (aviso.link as string | null) ?? "/notificacoes",
+  });
   return "ok";
 }
 

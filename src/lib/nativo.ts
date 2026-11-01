@@ -242,6 +242,10 @@ export async function abrirForaDoApp(url: string) {
 const GOOGLE_WEB_CLIENT_ID =
   "583778341603-6g00f6jivv35cjgp1dqki5ihs0quls3u.apps.googleusercontent.com";
 
+/** ID do cliente OAuth "iOS" do mesmo projeto (pacote br.com.goating.app). Também não é segredo. */
+const GOOGLE_IOS_CLIENT_ID =
+  "583778341603-6o6u9ras9ep5egv631lgb32027kpog41.apps.googleusercontent.com";
+
 /**
  * Entrar com Google dentro do app: o Google não aceita login por página web dentro de app, então
  * abre a janelinha de contas do próprio celular e o token dela vira a sessão no Supabase.
@@ -249,7 +253,14 @@ const GOOGLE_WEB_CLIENT_ID =
 export async function entrarComGoogleNoApp() {
   if (!GOOGLE_WEB_CLIENT_ID) throw new Error("Login com Google ainda não configurado no app.");
   const { SocialLogin } = await import("@capgo/capacitor-social-login");
-  await SocialLogin.initialize({ google: { webClientId: GOOGLE_WEB_CLIENT_ID, mode: "online" } });
+  await SocialLogin.initialize({
+    google: {
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      iOSClientId: GOOGLE_IOS_CLIENT_ID,
+      iOSServerClientId: GOOGLE_WEB_CLIENT_ID,
+      mode: "online",
+    },
+  });
   const { result } = await SocialLogin.login({
     provider: "google",
     options: { scopes: ["email", "profile"] },

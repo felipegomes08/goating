@@ -17,20 +17,20 @@ com as diferenças anotadas aqui.
 | Categoria principal | Esportes |
 | Categoria secundária | Redes sociais |
 | Idioma principal | Português (Brasil) |
-| URL de suporte | **(conferir)** `https://goating.com.br/privacidade`; trocar por uma página do `goating.com.br` |
-| URL da política de privacidade | `https://goating.com.br/privacidade` **(conferir domínio)** |
+| URL de suporte | `https://goating.com.br/sobre` |
+| URL da política de privacidade | `https://goating.com.br/privacidade` |
 | Direitos autorais | `2026 Felipe Gomes` **(conferir: nome ou empresa)** |
 
 ## Texto promocional (até 170 caracteres, muda sem nova versão)
 
 ```
-Novo: disputa de pênaltis, assistências, defesas épicas e cartões no placar ao vivo. E o cartão do MVP pronto pra mandar no grupo.
+Novo: ligas da turma com tabela, campeão e troféus no perfil. E o chat da turma com lista de presença e cobrança da pelada.
 ```
 
 ## Palavras-chave (até 100 caracteres, separadas por vírgula, sem espaço)
 
 ```
-pelada,futebol,racha,sorteio,times,placar,artilharia,ranking,futsal,society,várzea,resenha
+pelada,futebol,racha,sorteio,placar,artilharia,liga,futsal,society,várzea,resenha,chat
 ```
 
 A Apple já usa o nome e o subtítulo na busca: não precisa repetir "goating", "times" nem "ranking"
@@ -56,12 +56,12 @@ Play Store.
 ## Classificação etária (questionário)
 
 - Violência, conteúdo sexual, palavrões, drogas, jogos de azar, terror: **nenhum**.
-- Conteúdo gerado por usuários / interação: **sim** (comentários anônimos nas avaliações, perfis, turmas).
+- Conteúdo gerado por usuários / interação: **sim** (comentários anônimos nas avaliações, perfis, turmas, chat da turma).
 - Acesso irrestrito à internet: **não** (o app não é um navegador).
 
 Resultado provável: **12+**, por causa do conteúdo gerado pelos usuários. A Apple exige, nesses
-casos, um jeito de denunciar conteúdo (o Goating já tem o "Denunciar" nos comentários) e de
-bloquear quem abusa (hoje 3 denúncias escondem o comentário).
+casos (regra 1.2), um jeito de denunciar conteúdo e de bloquear quem abusa. O Goating já atende:
+"Denunciar" nos comentários e nas mensagens do chat (3 denúncias escondem), e "Bloquear" no chat.
 
 ## Privacidade do app ("rótulo de privacidade")
 
@@ -75,13 +75,27 @@ Dados coletados, todos **ligados à identidade** e **não usados para rastreamen
 | Informações de contato | Nome | Funcionalidade do app |
 | Identificadores | ID do usuário | Funcionalidade do app |
 | Conteúdo do usuário | Fotos | Funcionalidade do app |
-| Conteúdo do usuário | Outros conteúdos (bio, avaliações, comentários, peladas) | Funcionalidade do app |
+| Informações de contato | Número de telefone (opcional) | Funcionalidade do app |
+| Conteúdo do usuário | Outros conteúdos (bio, cidade, posição, avaliações, comentários, peladas) | Funcionalidade do app |
+| Conteúdo do usuário | Outros conteúdos do usuário: mensagens do chat da turma | Funcionalidade do app |
+| Compras | Histórico de compras (assinatura Premium) | Funcionalidade do app |
+| Identificadores | ID do dispositivo (token de notificação) | Funcionalidade do app |
 
 Não coletados: localização (o "Onde estou" fica só no aparelho), contatos, histórico de navegação,
-compras, dados financeiros e de saúde.
+dados financeiros (o pagamento é da Apple) e de saúde.
 
 **(conferir)** A verificação "não sou um robô" da Cloudflare: se a Apple perguntar por dados de
 diagnóstico ou do dispositivo, a finalidade é "Prevenção de fraude e segurança".
+
+## Compras dentro do app (Goating Premium)
+
+- Assinaturas auto-renováveis num grupo `Goating Premium`: mensal (R$ 9,90) e anual (R$ 79,90),
+  com oferta introdutória de R$ 0,99 no 1º mês do mensal.
+- O app mostra preço, período e renovação automática antes de comprar, e tem "Restaurar compras"
+  (regra 3.1.2). Termos de uso: o padrão da Apple (EULA) ou `https://goating.com.br/privacidade`.
+- O dinheiro passa pelo RevenueCat, que libera o Premium no Goating.
+- Antes de vender: aceitar o "Paid Apps Agreement" e preencher banco e impostos (W-8BEN) no
+  App Store Connect.
 
 ## Exclusão de conta
 
