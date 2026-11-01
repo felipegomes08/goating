@@ -17,6 +17,12 @@ workflows:
         bundle_identifier: br.com.goating.app
       node: 22
       xcode: latest
+      # o .env não vai pro git: o build do app precisa destes valores públicos (já ficam no site)
+      vars:
+        VITE_SUPABASE_PROJECT_ID: ewyxbdjeblgbfrsjicti
+        VITE_SUPABASE_URL: https://ewyxbdjeblgbfrsjicti.supabase.co
+        VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_lQgl6RusMD9uv0KLH-Or2g_DmHgqqeO
+        VITE_TURNSTILE_SITE_KEY: 0x4AAAAAAFSzKAOK84jrCZ90
     triggering:
       events: []
     scripts:
