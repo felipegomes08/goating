@@ -1,3 +1,4 @@
+import "@/lib/polyfills";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -19,7 +20,7 @@ import { CadastroObrigatorio } from "@/components/goating/cadastro-obrigatorio";
 import { ChatAoVivo } from "@/components/goating/chat/chat-ao-vivo";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { iniciarApp } from "@/lib/nativo";
+import { iniciarApp, noApp } from "@/lib/nativo";
 
 function NotFoundComponent() {
   return (
@@ -59,6 +60,12 @@ function ErrorComponent({ error, reset }: { error: unknown; reset: () => void })
         <p className="mt-2 text-sm text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
+        {/* no app de celular não dá pra abrir o console: o erro aparece aqui pra ser mandado */}
+        {noApp() && (
+          <p className="mt-3 text-xs break-words text-muted-foreground/80 select-text">
+            {error instanceof Error ? `${error.name}: ${error.message}` : String(error)}
+          </p>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
