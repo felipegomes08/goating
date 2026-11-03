@@ -12,7 +12,7 @@ import { abrirForaDoApp, noApp } from "@/lib/nativo";
  */
 const CHAVES_REVENUECAT = {
   android: "",
-  ios: "",
+  ios: "appl_tqnXKCLYwEtmaQGOLommnlRAhSQ",
 };
 
 const chave = () =>
