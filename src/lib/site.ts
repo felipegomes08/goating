@@ -15,3 +15,14 @@ export const origemDoSite = () => (Capacitor.isNativePlatform() ? SITE : window.
 /** Só o nome do site, pro rodapé dos pôsteres e cartões. */
 export const hostDoSite = () =>
   Capacitor.isNativePlatform() ? new URL(SITE).host : window.location.host;
+
+/**
+ * Páginas do Goating nas lojas, pros botões de baixar no site. Vazio = o botão não aparece:
+ * preencher quando cada loja publicar o app.
+ */
+export const LOJAS = {
+  /** https://play.google.com/store/apps/details?id=br.com.goating.app */
+  playStore: "",
+  /** https://apps.apple.com/br/app/id... (o número sai no App Store Connect) */
+  appStore: "",
+};

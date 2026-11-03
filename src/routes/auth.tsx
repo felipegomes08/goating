@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { origemDoSite } from "@/lib/site";
-import { entrarComGoogleNoApp, noApp } from "@/lib/nativo";
+import { entrarComAppleNoApp, entrarComGoogleNoApp, noApp, temLoginApple } from "@/lib/nativo";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -97,6 +97,23 @@ function AuthPage() {
     } catch (err) {
       toast.error(
         err instanceof Error && err.message ? err.message : "Não deu pra entrar com Google agora.",
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  /** Entrar (ou criar conta) com a Apple: só no app do iPhone, com a janela da Apple. */
+  async function entrarComApple() {
+    setCarregando(true);
+    try {
+      await entrarComAppleNoApp();
+      irParaDestino();
+    } catch (err) {
+      // fechar a janela da Apple sem entrar não é erro
+      if (err instanceof Error && /cancel/i.test(err.message)) return;
+      toast.error(
+        err instanceof Error && err.message ? err.message : "Não deu pra entrar com a Apple agora.",
       );
     } finally {
       setCarregando(false);
@@ -316,6 +333,17 @@ function AuthPage() {
             <LogoGoogle />
             {modo === "criar" ? "Criar conta com Google" : "Entrar com Google"}
           </button>
+          {temLoginApple() && (
+            <button
+              type="button"
+              disabled={carregando}
+              onClick={() => void entrarComApple()}
+              className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-black text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+            >
+              <LogoApple />
+              {modo === "criar" ? "Criar conta com a Apple" : "Entrar com a Apple"}
+            </button>
+          )}
           <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             ou com e-mail
@@ -422,6 +450,15 @@ function LogoGoogle() {
         fill="#1976D2"
         d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.2-.1-2.3-.4-3.5z"
       />
+    </svg>
+  );
+}
+
+/** A maçã branca do botão "Entrar com a Apple". */
+function LogoApple() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-[18px] fill-current" aria-hidden>
+      <path d="M16.37 12.6c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.7-3.19-1.72-1.36-.14-2.65.8-3.34.8-.69 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.61 2.19-1.54 2.67-.39 6.63 1.11 8.8.73 1.06 1.6 2.25 2.75 2.21 1.1-.05 1.52-.71 2.85-.71s1.71.71 2.88.69c1.19-.02 1.94-1.08 2.67-2.15.84-1.23 1.19-2.42 1.21-2.48-.03-.01-2.32-.89-2.33-3.56zM14.18 6.13c.61-.74 1.02-1.76.91-2.78-.88.04-1.94.59-2.57 1.32-.56.65-1.06 1.69-.92 2.69.98.08 1.98-.5 2.58-1.23z" />
     </svg>
   );
 }

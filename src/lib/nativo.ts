@@ -272,3 +272,52 @@ export async function entrarComGoogleNoApp() {
   const { error } = await supabase.auth.signInWithIdToken({ provider: "google", token: idToken });
   if (error) throw error;
 }
+
+/** O botão "Entrar com a Apple" aparece só no app do iPhone (a App Store exige ao lado do Google). */
+export const temLoginApple = () => noApp() && Capacitor.getPlatform() === "ios";
+
+async function sha256Hex(texto: string) {
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto));
+  return Array.from(new Uint8Array(hash), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Entrar com a Apple no iPhone: a janela da Apple (com Face ID) devolve um token que vira a
+ * sessão no Supabase. A Apple recebe o nonce já embaralhado (sha256) e o Supabase o original,
+ * pra conferir que o token foi feito pra este login.
+ */
+export async function entrarComAppleNoApp() {
+  const { SocialLogin } = await import("@capgo/capacitor-social-login");
+  await SocialLogin.initialize({ apple: {} });
+  const nonce = crypto.randomUUID();
+  const { result } = await SocialLogin.login({
+    provider: "apple",
+    options: { scopes: ["name", "email"], nonce: await sha256Hex(nonce) },
+  });
+  const idToken = "idToken" in result ? result.idToken : null;
+  if (!idToken) throw new Error("A Apple não devolveu o login.");
+  const { data, error } = await supabase.auth.signInWithIdToken({
+    provider: "apple",
+    token: idToken,
+    nonce,
+  });
+  if (error) throw error;
+
+  // a Apple só manda o nome na primeira vez e não o põe no token: a conta nova nasce com o começo
+  // do e-mail como nome, e aqui ele vira o nome de verdade
+  const perfil = "profile" in result ? result.profile : null;
+  const nome = [perfil?.givenName, perfil?.familyName].filter(Boolean).join(" ").trim();
+  const user = data.user;
+  if (!nome || !user) return;
+  const { data: atual } = await supabase
+    .from("profiles")
+    .select("nome_exibicao")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (atual && atual.nome_exibicao === (user.email ?? "").split("@")[0]) {
+    await supabase
+      .from("profiles")
+      .update({ nome_exibicao: nome.slice(0, 40) })
+      .eq("id", user.id);
+  }
+}
