@@ -290,7 +290,7 @@ function ChatDaTurma() {
 
   return (
     <div className="mx-auto flex h-dvh w-full max-w-[480px] flex-col bg-background">
-      <header className="flex items-center gap-3 bg-primary px-3 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3">
+      <header className="flex items-center gap-3 bg-primary px-3 pt-[max(calc(env(safe-area-inset-top)-var(--topo)),0.75rem)] pb-3">
         <button type="button" aria-label="Voltar" onClick={voltar} className="p-1">
           <ArrowLeft className="size-5 text-primary-foreground" />
         </button>

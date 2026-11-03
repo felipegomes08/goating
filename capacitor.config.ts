@@ -10,9 +10,9 @@ const config: CapacitorConfig = {
   // verde do Goating enquanto o app carrega, em vez de um clarão branco
   backgroundColor: "#0F3D2E",
   ios: {
-    // no iPhone o conteúdo começa abaixo do entalhe e acaba acima da barra de gestos,
-    // e o espaço em volta fica com o verde do Goating
-    contentInset: "always",
+    // o app ocupa a tela toda e o CSS desconta o entalhe e a barra de gestos (env(safe-area-*));
+    // com "always" o iPhone ajustava a margem só depois de arrastar e a tela ficava solta
+    contentInset: "never",
   },
   plugins: {
     // login com Google (e Apple no iPhone, quando a conta da Apple entrar); o resto fica de fora

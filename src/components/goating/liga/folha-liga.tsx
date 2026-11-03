@@ -164,7 +164,7 @@ export function FolhaLiga({
             </div>
           )}
           <div className="grid grid-cols-2 gap-2">
-            <label className="space-y-1 text-xs text-muted-foreground">
+            <label className="block min-w-0 space-y-1 text-xs text-muted-foreground">
               Começa
               <Input
                 type="date"
@@ -173,7 +173,7 @@ export function FolhaLiga({
                 onChange={(e) => setInicio(e.target.value)}
               />
             </label>
-            <label className="space-y-1 text-xs text-muted-foreground">
+            <label className="block min-w-0 space-y-1 text-xs text-muted-foreground">
               Termina
               <Input
                 type="date"

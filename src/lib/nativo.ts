@@ -91,6 +91,8 @@ export async function iniciarApp() {
   if (Capacitor.getPlatform() === "android") {
     void StatusBar.setBackgroundColor({ color: "#0F3D2E" }).catch(() => undefined);
   }
+  // no iPhone o app ocupa a tela toda: o CSS desconta a barra de status (veja .ios-app)
+  if (Capacitor.getPlatform() === "ios") document.documentElement.classList.add("ios-app");
   await App.addListener("backButton", ({ canGoBack }) => {
     if (canGoBack) window.history.back();
     else void App.exitApp();

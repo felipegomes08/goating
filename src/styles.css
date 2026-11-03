@@ -184,6 +184,49 @@
     /* a página para no fim em vez de esticar pro vazio; a barra de baixo fica no lugar */
     overscroll-behavior-y: none;
   }
+
+  /* altura da barra de status que o app do iPhone desconta da tela (0 no site e no Android) */
+  :root {
+    --topo: 0px;
+  }
+
+  /* campo de data/hora do iPhone tem largura mínima própria e passava por cima do vizinho */
+  input[type="date"],
+  input[type="time"] {
+    min-width: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
+}
+
+/*
+ * App do iPhone (classe posta por iniciarApp): a página começa abaixo da barra de status, que
+ * fica verde e parada por cima de tudo, e as telas de altura cheia descontam essa faixa.
+ */
+.ios-app {
+  --topo: env(safe-area-inset-top);
+  background-color: #0f3d2e;
+}
+.ios-app body {
+  padding-top: var(--topo);
+}
+.ios-app body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--topo);
+  background-color: #0f3d2e;
+  z-index: 60;
+}
+.ios-app .min-h-dvh {
+  min-height: calc(100dvh - var(--topo));
+}
+.ios-app .h-dvh {
+  height: calc(100dvh - var(--topo));
 }
 
 /* Troca de tela: esmaecimento curto, como nos apps nativos. */

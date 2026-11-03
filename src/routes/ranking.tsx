@@ -411,7 +411,7 @@ function Ranking() {
                   )}
 
                 {euApareco && disputa && (
-                  <div className="sticky bottom-20 z-10 pt-2">
+                  <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-10 pt-2">
                     <div className="flex items-center gap-3 rounded-2xl bg-primary px-4 py-3 text-primary-foreground shadow-lg">
                       <span className="text-2xl font-black tabular-nums">{minhaPosicao}º</span>
                       <span className="min-w-0 flex-1">

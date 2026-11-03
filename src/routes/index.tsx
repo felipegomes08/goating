@@ -89,7 +89,7 @@ function Feed() {
       </header>
 
       {/* busca e abas acompanham a rolagem; a base arredondada fecha o bloco verde */}
-      <div className="sticky top-0 z-20 -mt-px space-y-2 rounded-b-3xl bg-primary px-4 pt-2 pb-4">
+      <div className="sticky top-[var(--topo)] z-20 -mt-px space-y-2 rounded-b-3xl bg-primary px-4 pt-2 pb-4">
         {/* seções do feed: abas grandes com traço embaixo, pra não confundir com as de baixo */}
         <div className="flex gap-5 border-b border-white/10">
           {(
