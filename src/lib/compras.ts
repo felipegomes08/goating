@@ -11,7 +11,7 @@ import { abrirForaDoApp, noApp } from "@/lib/nativo";
  * começam com "goog_" e "appl_"). Podem ficar no código. Vazia = compra no app desligada.
  */
 const CHAVES_REVENUECAT = {
-  android: "",
+  android: "goog_YFPMHhdRdnvUfOZEHQrsMJkCcnh",
   ios: "appl_tqnXKCLYwEtmaQGOLommnlRAhSQ",
 };
 
