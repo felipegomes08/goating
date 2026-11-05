@@ -263,9 +263,11 @@ export async function entrarComGoogleNoApp() {
       mode: "online",
     },
   });
+  // e-mail e perfil já vêm por padrão. No Android, passar "scopes" exige mexer na MainActivity
+  // (o plugin dá erro "You CANNOT use scopes without modifying the main activity").
   const { result } = await SocialLogin.login({
     provider: "google",
-    options: { scopes: ["email", "profile"] },
+    options: Capacitor.getPlatform() === "ios" ? { scopes: ["email", "profile"] } : {},
   });
   const idToken = "idToken" in result ? result.idToken : null;
   if (!idToken) throw new Error("O Google não devolveu o login.");
