@@ -1,6 +1,6 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { CalendarPlus, Flag, MapPin, Search, Trophy } from "lucide-react";
+import { CalendarDays, CalendarPlus, Flag, MapPin, Trophy } from "lucide-react";
 import { useSession, usePerfil } from "@/hooks/use-session";
 import { DIAS_NO_FEED, useFeed } from "@/hooks/use-feed";
 import { GoatingLogo } from "@/components/goating/logo";
@@ -8,12 +8,12 @@ import { Apresentacao } from "@/components/goating/apresentacao";
 import { Sino } from "@/components/goating/sino";
 import { BottomNav } from "@/components/goating/bottom-nav";
 import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
-import { CAMPO_NO_VERDE, Segmentos, classeSegmento } from "@/components/goating/titulo-grande";
+import { Segmentos, classeSegmento } from "@/components/goating/titulo-grande";
 import { MatchCard } from "@/components/goating/match-card";
 import { EmBreve } from "@/components/goating/em-breve";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 type Aba = "proximas" | "finalizadas";
 /** as duas seções do feed: as peladas (padrão) e os campeonatos (em breve) */
@@ -54,20 +54,14 @@ function Feed() {
   const vendoCampeonatos = secao === "campeonatos";
   const { userId, carregando } = useSession();
   const { data: perfil, isLoading: carregandoPerfil } = usePerfil(userId);
-  const [busca, setBusca] = useState("");
 
   const cidade = perfil?.cidade ?? null;
   const feed = useFeed(carregandoPerfil ? null : userId, cidade);
   // sem aba escolhida: quem tem avaliação pendente já cai nas finalizadas, pra não esquecer
   const aba: Aba = abaDaUrl ?? (feed.data?.temPendencia ? "finalizadas" : "proximas");
 
-  const termo = busca.trim().toLowerCase();
-  const daAba = (aba === "finalizadas" ? feed.data?.finalizadas : feed.data?.proximas) ?? [];
-  const lista = termo
-    ? daAba.filter((p) =>
-        [p.titulo, p.cidade, p.local, p.turma ?? ""].some((c) => c.toLowerCase().includes(termo)),
-      )
-    : daAba;
+  // a busca saiu do feed por enquanto (pouco usada); a lista é a da aba inteira
+  const lista = (aba === "finalizadas" ? feed.data?.finalizadas : feed.data?.proximas) ?? [];
   const aAvaliar = feed.data?.aAvaliar ?? 0;
 
   // quem não entrou vê a apresentação do app (o que é, entrar, política de privacidade)
@@ -75,29 +69,23 @@ function Feed() {
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col bg-background">
-      <header className="bg-primary px-4 pt-5 pb-1">
+      <header className="bg-primary px-4 pt-3">
         <div className="flex items-center justify-between">
-          <GoatingLogo withWordmark iconTone="light" wordmarkTone="dark" />
+          <GoatingLogo size={26} withWordmark iconTone="light" wordmarkTone="dark" />
           <Sino />
         </div>
-        {cidade && (
-          <p className="mt-2 flex items-center gap-1 text-xs font-medium text-mint">
-            <MapPin className="size-3.5" />
-            {cidade}
-          </p>
-        )}
       </header>
 
-      {/* busca e abas acompanham a rolagem; a base arredondada fecha o bloco verde */}
-      <div className="sticky top-[var(--topo)] z-20 -mt-px space-y-2 rounded-b-3xl bg-primary px-4 pt-2 pb-4">
-        {/* seções do feed: abas grandes com traço embaixo, pra não confundir com as de baixo */}
-        <div className="flex gap-5 border-b border-white/10">
+      {/* seções e abas acompanham a rolagem; a base arredondada fecha o bloco verde */}
+      <div className="sticky top-[var(--topo)] z-20 -mt-px space-y-3 rounded-b-3xl bg-primary px-4 pt-3 pb-3">
+        {/* as duas seções do feed, bem à vista: peladas e campeonatos */}
+        <div className="grid grid-cols-2 gap-2">
           {(
             [
-              ["peladas", "Peladas"],
-              ["campeonatos", "Campeonatos"],
+              ["peladas", "Peladas", CalendarDays],
+              ["campeonatos", "Campeonatos", Trophy],
             ] as const
-          ).map(([s, rotulo]) => {
+          ).map(([s, rotulo, Icone]) => {
             const ativa = (s === "campeonatos") === vendoCampeonatos;
             return (
               <Link
@@ -105,27 +93,45 @@ function Feed() {
                 to="/"
                 search={s === "campeonatos" ? { secao: s } : {}}
                 replace
-                className={
+                aria-current={ativa ? "page" : undefined}
+                className={cn(
+                  "flex items-center justify-center gap-2 rounded-2xl py-2.5 text-sm font-extrabold transition-colors",
                   ativa
-                    ? "-mb-px border-b-2 border-mint pb-1.5 text-sm font-extrabold text-primary-foreground"
-                    : "pb-1.5 text-sm font-semibold text-primary-foreground/60"
-                }
+                    ? "bg-card text-primary shadow-sm"
+                    : "bg-white/10 text-primary-foreground/80",
+                )}
               >
+                <Icone className="size-4" />
                 {rotulo}
+                {s === "campeonatos" && (
+                  <span className="rounded-full bg-tier-ouro px-1.5 py-px text-[9px] font-extrabold text-primary uppercase">
+                    breve
+                  </span>
+                )}
               </Link>
             );
           })}
         </div>
+
         {!vendoCampeonatos && (
           <>
-            <div className="relative">
-              <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-primary-foreground/55" />
-              <Input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar por pelada, quadra ou turma"
-                className={CAMPO_NO_VERDE}
-              />
+            {/* o que é essa lista, em uma frase */}
+            <div>
+              <h1 className="flex items-center gap-1.5 text-lg leading-tight font-extrabold text-primary-foreground">
+                {cidade ? (
+                  <>
+                    <MapPin className="size-4 shrink-0 text-mint" />
+                    <span className="truncate">Peladas em {cidade}</span>
+                  </>
+                ) : (
+                  "Suas peladas"
+                )}
+              </h1>
+              <p className="mt-0.5 text-xs text-primary-foreground/70">
+                {aba === "finalizadas"
+                  ? "As que você jogou, com placar, MVP e as notas pra dar."
+                  : `As suas e as abertas na cidade nos próximos ${DIAS_NO_FEED} dias. Toque numa pra ver e entrar.`}
+              </p>
             </div>
             <Segmentos colunas={2}>
               {(
@@ -180,13 +186,7 @@ function Feed() {
             texto="Confere a internet e puxa a tela pra baixo pra tentar de novo."
           />
         ) : lista.length === 0 ? (
-          termo ? (
-            <Vazio
-              icone={<Search className="size-7 text-primary" strokeWidth={1.8} />}
-              titulo="Nada com esse nome"
-              texto="Tenta outro nome de pelada, quadra ou turma."
-            />
-          ) : aba === "finalizadas" ? (
+          aba === "finalizadas" ? (
             <Vazio
               icone={<Flag className="size-7 text-primary" strokeWidth={1.8} />}
               titulo="Nenhuma pelada finalizada ainda"

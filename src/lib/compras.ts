@@ -65,7 +65,10 @@ async function plugin(userId: string) {
     console.error("RevenueCat: não deu pra preparar as compras", e);
     throw e;
   }
-  return Purchases;
+  // embrulhado de propósito: o plugin do Capacitor responde a qualquer nome de método, inclusive
+  // "then". Devolvido solto de uma função async, o JS o trata como promessa, chama Purchases.then
+  // no nativo e a chamada nunca volta: era o carregando infinito da tela Premium.
+  return { Purchases };
 }
 
 export type PlanoDaLoja = {
@@ -79,7 +82,7 @@ export type PlanoDaLoja = {
 
 /** Os planos à venda na loja (mensal e anual), com o preço e a promoção de quem está vendo. */
 export async function planosDaLoja(userId: string): Promise<PlanoDaLoja[]> {
-  const Purchases = await plugin(userId);
+  const { Purchases } = await plugin(userId);
   // a loja às vezes não responde (ex.: logo depois do app sair na App Store): sem limite de tempo
   // a tela ficava carregando pra sempre
   const { current } = await comLimiteDeTempo(Purchases.getOfferings(), 15_000).catch((e) => {
@@ -111,7 +114,7 @@ export async function planosDaLoja(userId: string): Promise<PlanoDaLoja[]> {
 
 /** Abre a compra da loja. "cancelou" quando a pessoa fechou a janela da loja sem comprar. */
 export async function comprarNaLoja(userId: string, plano: PlanoDaLoja) {
-  const Purchases = await plugin(userId);
+  const { Purchases } = await plugin(userId);
   try {
     await Purchases.purchasePackage({ aPackage: plano.pacote });
     return "comprou" as const;
@@ -123,7 +126,7 @@ export async function comprarNaLoja(userId: string, plano: PlanoDaLoja) {
 
 /** "Restaurar compras": a loja reenvia as assinaturas dessa conta da loja pro servidor. */
 export async function restaurarCompras(userId: string) {
-  const Purchases = await plugin(userId);
+  const { Purchases } = await plugin(userId);
   await Purchases.restorePurchases();
 }
 
@@ -131,7 +134,7 @@ export async function restaurarCompras(userId: string) {
 export async function gerenciarNaLoja(userId: string) {
   let url: string | null = null;
   try {
-    const Purchases = await plugin(userId);
+    const { Purchases } = await plugin(userId);
     url = (await Purchases.getCustomerInfo()).customerInfo.managementURL;
   } catch {
     // sem resposta do RevenueCat: cai na página padrão da loja

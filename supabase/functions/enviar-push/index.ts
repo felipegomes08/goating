@@ -36,6 +36,7 @@ const GRUPO: Record<string, string> = {
   avaliar_fim: "avaliacao",
   mvp: "avaliacao",
   mvp_voce: "avaliacao",
+  quem_avaliou: "avaliacao",
   subiu: "conquistas",
   colega_subiu: "conquistas",
   conquista: "conquistas",

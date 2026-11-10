@@ -21,13 +21,16 @@ export function DestaqueDoMvp({
   matchId,
   mvpId,
   pelada,
+  abrirAvaliacoes = false,
 }: {
   matchId: string;
   mvpId: string;
+  /** já abre a folha de avaliações (vem do aviso "N pessoas te avaliaram") */
+  abrirAvaliacoes?: boolean;
   pelada: { titulo: string; data: string; crew_id: string | null; temPlacar: boolean };
 }) {
   const [compartilhando, setCompartilhando] = useState(false);
-  const [vendoAvaliacoes, setVendoAvaliacoes] = useState(false);
+  const [vendoAvaliacoes, setVendoAvaliacoes] = useState(abrirAvaliacoes);
 
   const consulta = useQuery({
     queryKey: ["mvp-da-partida", matchId, mvpId],

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -51,6 +51,10 @@ import {
 
 export const Route = createFileRoute("/pelada/$id")({
   ssr: false,
+  // ?avaliacoes=1 (aviso "N pessoas te avaliaram"): abre direto a folha de quem te avaliou
+  validateSearch: (search: Record<string, unknown>): { avaliacoes?: boolean | undefined } => ({
+    avaliacoes: search["avaliacoes"] === 1 || search["avaliacoes"] === "1" ? true : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Detalhes da pelada · Goating" },
@@ -118,6 +122,7 @@ function dataLonga(data: string, horario: string, horarioFim?: string | null) {
 
 function DetalhePelada() {
   const { id } = useParams({ from: "/pelada/$id" });
+  const { avaliacoes: abrirAvaliacoes } = useSearch({ from: "/pelada/$id" });
   const { userId, carregando } = useSession();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -464,6 +469,7 @@ function DetalhePelada() {
           </div>
         ) : finalizada && pelada.mvp_id ? (
           <DestaqueDoMvp
+            abrirAvaliacoes={!!abrirAvaliacoes}
             matchId={id}
             mvpId={pelada.mvp_id}
             pelada={{
