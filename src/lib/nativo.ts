@@ -91,8 +91,9 @@ export async function iniciarApp() {
   if (Capacitor.getPlatform() === "android") {
     void StatusBar.setBackgroundColor({ color: "#0F3D2E" }).catch(() => undefined);
   }
-  // no iPhone o app ocupa a tela toda: o CSS desconta a barra de status (veja .ios-app)
-  if (Capacitor.getPlatform() === "ios") document.documentElement.classList.add("ios-app");
+  // o app ocupa a tela toda (iPhone e Android com WebView novo): o CSS desconta a barra de status
+  // (veja .app-nativo). No Android com WebView antigo o próprio sistema afasta e a faixa fica 0.
+  document.documentElement.classList.add("app-nativo");
   await App.addListener("backButton", ({ canGoBack }) => {
     if (canGoBack) window.history.back();
     else void App.exitApp();

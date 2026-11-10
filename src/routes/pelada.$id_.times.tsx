@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -82,6 +82,9 @@ function TimesDaPelada() {
   const [editandoTimes, setEditandoTimes] = useState(false);
   const [vinculando, setVinculando] = useState<{ memberId: string; nome: string } | null>(null);
   const [selecionado, setSelecionado] = useState<string | null>(null);
+  // a cada sorteio o quadro desce pra vista e entra com um destaque rápido
+  const [sorteios, setSorteios] = useState(0);
+  const quadroRef = useRef<HTMLDivElement>(null);
   const [base, setBase] = useState<BaseDoSorteio>(() => {
     try {
       return localStorage.getItem(CHAVE_BASE) === "overall" ? "overall" : "estrelas";
@@ -224,6 +227,11 @@ function TimesDaPelada() {
       jogadores
         .map((j) => ({ ...j, time: sorteio.findIndex((t) => t.includes(j.memberId)) }))
         .sort((a, b) => lugar(a.posicao) - lugar(b.posicao) || a.nome.localeCompare(b.nome)),
+    );
+    setSorteios((n) => n + 1);
+    // espera o quadro aparecer na tela antes de rolar até ele
+    requestAnimationFrame(() =>
+      quadroRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
     );
   }
 
@@ -677,22 +685,31 @@ function TimesDaPelada() {
             </Button>
 
             {(temTimes || selecionado) && (
-              <QuadroTimes
-                jogadores={jogadores}
-                numTimes={numTimes}
-                nomes={nomes}
-                cores={cores}
-                base={base}
-                selecionado={selecionado}
-                onTocar={tocarJogador}
-                onMover={moverJogador}
-              />
+              <div
+                ref={quadroRef}
+                key={sorteios}
+                className={cn(
+                  "scroll-mt-4 space-y-3",
+                  sorteios > 0 && "animate-in fade-in zoom-in-95 duration-500",
+                )}
+              >
+                <QuadroTimes
+                  jogadores={jogadores}
+                  numTimes={numTimes}
+                  nomes={nomes}
+                  cores={cores}
+                  base={base}
+                  selecionado={selecionado}
+                  onTocar={tocarJogador}
+                  onMover={moverJogador}
+                />
+              </div>
             )}
           </section>
         )}
       </div>
 
-      <div className="sticky bottom-0 mt-auto flex gap-2 border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto flex gap-2 border-t border-border bg-card p-4 pb-[max(var(--sa-bottom),1rem)]">
         <Button
           variant="outline"
           className="flex-1"

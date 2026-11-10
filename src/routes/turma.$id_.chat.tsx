@@ -290,7 +290,7 @@ function ChatDaTurma() {
 
   return (
     <div className="mx-auto flex h-dvh w-full max-w-[480px] flex-col bg-background">
-      <header className="flex items-center gap-3 bg-primary px-3 pt-[max(calc(env(safe-area-inset-top)-var(--topo)),0.75rem)] pb-3">
+      <header className="flex items-center gap-3 bg-primary px-3 pt-[max(calc(var(--sa-top)-var(--topo)),0.75rem)] pb-3">
         <button type="button" aria-label="Voltar" onClick={voltar} className="p-1">
           <ArrowLeft className="size-5 text-primary-foreground" />
         </button>
@@ -765,7 +765,7 @@ function CampoDeMensagem({
         e.preventDefault();
         mandar();
       }}
-      className="flex items-end gap-2 border-t border-border bg-card px-3 pt-2 pb-[max(env(safe-area-inset-bottom),0.5rem)]"
+      className="flex items-end gap-2 border-t border-border bg-card px-3 pt-2 pb-[max(var(--sa-bottom),0.5rem)]"
     >
       {onLista && (
         <button
@@ -842,7 +842,7 @@ function MenuDaMensagem({
       <div
         role="dialog"
         aria-label="Opções da mensagem"
-        className="w-full max-w-[480px] space-y-2 rounded-t-3xl bg-card p-4 pb-[max(env(safe-area-inset-bottom),1.5rem)]"
+        className="w-full max-w-[480px] space-y-2 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         {mensagem.texto && !mensagem.apagada_em && (
           <p className="line-clamp-3 rounded-2xl bg-secondary/60 px-3 py-2 text-sm text-foreground">
@@ -957,7 +957,7 @@ function Folha({
       <div
         role="dialog"
         aria-label={titulo}
-        className="max-h-[88dvh] w-full max-w-[480px] space-y-3 overflow-y-auto rounded-t-3xl bg-background p-4 pb-[max(env(safe-area-inset-bottom),1.5rem)]"
+        className="max-h-[88dvh] w-full max-w-[480px] space-y-3 overflow-y-auto rounded-t-3xl bg-background p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-extrabold text-foreground">{titulo}</h2>

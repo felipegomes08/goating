@@ -21,6 +21,11 @@ const config: CapacitorConfig = {
       providers: { google: true, apple: true, facebook: false, twitter: false },
       logLevel: 1,
     },
+    // Android: a página já declara viewport-fit=cover; avisando antes, a tela não pula ao abrir.
+    // As medidas das barras chegam no CSS como --safe-area-inset-* (veja --sa-top em styles.css).
+    SystemBars: {
+      initialViewportFitValueHint: "cover",
+    },
     // tela de abertura: verde do Goating, some sozinha assim que o app carrega
     SplashScreen: {
       launchShowDuration: 600,

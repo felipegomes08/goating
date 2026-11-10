@@ -42,7 +42,7 @@ export function FolhaNome({
       <div
         role="dialog"
         aria-label="Corrigir nome"
-        className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+        className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <h2 className="text-lg font-extrabold text-foreground">Corrigir nome</h2>
         <Input

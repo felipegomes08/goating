@@ -41,6 +41,7 @@ import { chaveNome } from "@/lib/placar/lista";
 import {
   COLUNA_GRATIS,
   COLUNAS_RANKING,
+  NavegadorDoPeriodo,
   PeriodosDoRanking,
   TabelaRanking,
   formatarMedia,
@@ -105,6 +106,9 @@ function PaginaDaTurma() {
   const [bloqueio, setBloqueio] = useState<string | null>(null);
   // sem Premium o ranking fica em vitórias, desde o começo
   const periodo: Periodo = premium ? periodoEscolhido : "tudo";
+  // mês/ano passado do ranking (0 = o atual); volta pro atual ao trocar de Mês pra Ano
+  const [recuo, setRecuo] = useState(0);
+  const recuoAtivo = periodo === "tudo" ? 0 : recuo;
   const ordem: ColunaRanking = premium ? ordemEscolhida : COLUNA_GRATIS;
   const [gerandoImagem, setGerandoImagem] = useState(false);
   const [ocupado, setOcupado] = useState(false);
@@ -168,8 +172,13 @@ function PaginaDaTurma() {
     },
   });
 
-  const ranking = useRankingDaTurma(id, periodo, !!userId && aba === "ranking");
-  const rankingAntes = useRankingAntesDaUltima(id, periodo, !!userId && aba === "ranking");
+  const ranking = useRankingDaTurma(id, periodo, !!userId && aba === "ranking", recuoAtivo);
+  // setinhas de subiu/caiu só no período atual
+  const rankingAntes = useRankingAntesDaUltima(
+    id,
+    periodo,
+    !!userId && aba === "ranking" && recuoAtivo === 0,
+  );
 
   // nota da turma, minha avaliação e a situação do meu pedido de entrada
   const resumo = useQuery({
@@ -400,10 +409,21 @@ function PaginaDaTurma() {
     );
   const linhas = ordenar(ranking.data ?? []);
   // posições antes da última pelada, na mesma ordem: viram as setinhas de subiu/caiu
-  const posicoesAntes = rankingAntes.data
-    ? new Map(ordenar(rankingAntes.data).map((l, i) => [l.member_id, i + 1]))
-    : null;
-  const rotuloPeriodo = rotuloDoPeriodo(periodo);
+  const posicoesAntes =
+    recuoAtivo === 0 && rankingAntes.data
+      ? new Map(ordenar(rankingAntes.data).map((l, i) => [l.member_id, i + 1]))
+      : null;
+  const rotuloPeriodo = rotuloDoPeriodo(periodo, recuoAtivo);
+  // até onde dá pra voltar: o mês/ano da pelada mais antiga da turma
+  const maisAntiga = turma.data?.peladas.at(-1)?.data;
+  const maximoRecuo = (() => {
+    if (!maisAntiga || periodo === "tudo") return 0;
+    const [a, m] = maisAntiga.split("-").map(Number);
+    const hoje = new Date();
+    return periodo === "ano"
+      ? Math.max(0, hoje.getFullYear() - a!)
+      : Math.max(0, (hoje.getFullYear() - a!) * 12 + hoje.getMonth() + 1 - m!);
+  })();
   const colunaOrdenada = COLUNAS_RANKING.find((c) => c.id === ordem);
 
   /** Texto pro WhatsApp: um jogador por bloco, com todos os números. */
@@ -636,11 +656,22 @@ function PaginaDaTurma() {
             <PeriodosDoRanking
               opcoes={PERIODOS}
               valor={periodo}
-              onMudar={setPeriodo}
+              onMudar={(p) => {
+                setPeriodo(p);
+                setRecuo(0);
+              }}
               premium={premium}
               livre="tudo"
               onBloqueado={() => setBloqueio("Ranking do mês e do ano")}
             />
+            {periodo !== "tudo" && (
+              <NavegadorDoPeriodo
+                rotulo={rotuloPeriodo}
+                voltar={recuoAtivo}
+                onMudar={setRecuo}
+                maximo={maximoRecuo}
+              />
+            )}
             {ranking.isLoading ? (
               <Skeleton className="h-64 w-full rounded-2xl" />
             ) : linhas.length === 0 ? (
@@ -837,7 +868,7 @@ function PaginaDaTurma() {
       </div>
 
       {aba === "ranking" && linhas.length > 0 && (
-        <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
+        <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4 pb-[max(var(--sa-bottom),1rem)]">
           <div className="flex gap-2">
             <Button variant="outline" className="flex-1" onClick={compartilharTexto}>
               <Share2 className="mr-2 size-4" /> Texto
@@ -1152,7 +1183,7 @@ function Folha({
       <div
         role="dialog"
         aria-label={titulo}
-        className="max-h-[85dvh] w-full max-w-[480px] space-y-3 overflow-auto rounded-t-3xl bg-card p-4 pb-6"
+        className="max-h-[85dvh] w-full max-w-[480px] space-y-3 overflow-auto rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <h2 className="text-lg font-extrabold text-foreground">{titulo}</h2>
         {children}

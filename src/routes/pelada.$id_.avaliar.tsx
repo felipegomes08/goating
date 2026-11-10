@@ -8,7 +8,15 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, ChevronDown, ChevronLeft, Share2, Star } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  Share2,
+  SlidersHorizontal,
+  Star,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAvatarUrl } from "@/hooks/use-avatar";
@@ -360,6 +368,7 @@ function Avaliar() {
     setEnviando(false);
 
     if (erro) {
+      console.error("avaliação não salva", erro);
       toast.error(
         erro.code === "sem_permissao"
           ? "Não deu pra atualizar: a janela de avaliação pode ter fechado."
@@ -493,17 +502,37 @@ function Avaliar() {
           )}
         </div>
 
-        <div className="rounded-2xl bg-card shadow-[var(--shadow-card)]">
+        <div
+          className={cn(
+            "rounded-2xl bg-card shadow-[var(--shadow-card)]",
+            !detalhado && "border-2 border-mint/60",
+          )}
+        >
           <button
             type="button"
-            className="flex w-full items-center justify-between p-4 text-sm font-semibold text-foreground"
+            className="flex w-full items-center gap-3 p-4 text-left"
             aria-expanded={detalhado}
             onClick={() => setDetalhadoManual(!detalhado)}
           >
-            Avaliação detalhada
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-mint-soft">
+              <SlidersHorizontal className="size-4 text-primary" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-2 text-sm font-bold text-foreground">
+                Avaliação detalhada
+                {!detalhado && !enviadoEste && (
+                  <span className="rounded-full bg-mint-soft px-2 py-0.5 text-[10px] font-semibold text-primary">
+                    recomendado
+                  </span>
+                )}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Leva 30s e deixa a nota mais justa
+              </span>
+            </span>
             <ChevronDown
               className={cn(
-                "size-4 text-muted-foreground transition-transform",
+                "size-5 shrink-0 text-primary transition-transform",
                 detalhado && "rotate-180",
               )}
             />
@@ -559,7 +588,7 @@ function Avaliar() {
         </div>
       </div>
 
-      <div className="sticky bottom-0 mt-auto flex gap-2 border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto flex gap-2 border-t border-border bg-card p-4 pb-[max(var(--sa-bottom),1rem)]">
         {indice > 0 && (
           <Button
             variant="outline"

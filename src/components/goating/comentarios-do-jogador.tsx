@@ -160,7 +160,7 @@ export function ListaDeComentarios({
           <div
             role="dialog"
             aria-label="Denunciar comentário"
-            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
           >
             <h2 className="text-lg font-extrabold text-foreground">Denunciar comentário</h2>
             <p className="rounded-xl bg-secondary/60 p-3 text-sm text-foreground">

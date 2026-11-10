@@ -43,6 +43,7 @@ export function AssinarNaLoja({
     queryKey: ["planos-da-loja", userId],
     enabled: !!userId && !premium,
     staleTime: 5 * 60_000,
+    retry: 1,
     queryFn: () => planosDaLoja(userId!),
   });
 
@@ -146,9 +147,19 @@ export function AssinarNaLoja({
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
         </div>
       ) : !planos.data?.length ? (
-        <p className="py-4 text-center text-sm text-muted-foreground">
-          Não deu pra carregar os planos da {loja}. Confere a internet e tenta de novo.
-        </p>
+        <div className="space-y-2 py-2 text-center">
+          <p className="text-sm text-muted-foreground">
+            Não deu pra carregar os planos da {loja}. Confere a internet e tenta de novo.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={planos.isFetching}
+            onClick={() => void planos.refetch()}
+          >
+            {planos.isFetching ? <Loader2 className="size-4 animate-spin" /> : "Tentar de novo"}
+          </Button>
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2">

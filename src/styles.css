@@ -185,8 +185,14 @@
     overscroll-behavior-y: none;
   }
 
-  /* altura da barra de status que o app do iPhone desconta da tela (0 no site e no Android) */
+  /*
+   * Áreas das barras do sistema. No Android o Capacitor 8 injeta --safe-area-inset-* (o env() do
+   * WebView nem sempre vem certo); no iPhone e no site vale o env(). --topo é a faixa de cima que o
+   * app desconta da tela (0 no site).
+   */
   :root {
+    --sa-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+    --sa-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
     --topo: 0px;
   }
 
@@ -204,17 +210,17 @@
 }
 
 /*
- * App do iPhone (classe posta por iniciarApp): a página começa abaixo da barra de status, que
- * fica verde e parada por cima de tudo, e as telas de altura cheia descontam essa faixa.
+ * App do celular (classe posta por iniciarApp, iPhone e Android): a página começa abaixo da barra
+ * de status, que fica verde e parada por cima de tudo, e as telas de altura cheia descontam essa faixa.
  */
-.ios-app {
-  --topo: env(safe-area-inset-top);
+.app-nativo {
+  --topo: var(--sa-top);
   background-color: #0f3d2e;
 }
-.ios-app body {
+.app-nativo body {
   padding-top: var(--topo);
 }
-.ios-app body::before {
+.app-nativo body::before {
   content: "";
   position: fixed;
   inset: 0 0 auto 0;
@@ -222,10 +228,10 @@
   background-color: #0f3d2e;
   z-index: 60;
 }
-.ios-app .min-h-dvh {
+.app-nativo .min-h-dvh {
   min-height: calc(100dvh - var(--topo));
 }
-.ios-app .h-dvh {
+.app-nativo .h-dvh {
   height: calc(100dvh - var(--topo));
 }
 

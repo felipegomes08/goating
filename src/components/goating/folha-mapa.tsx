@@ -151,7 +151,7 @@ export function FolhaMapa({
       <div
         role="dialog"
         aria-label="Marcar no mapa"
-        className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+        className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <h2 className="text-lg font-extrabold text-foreground">Marcar no mapa</h2>
         <p className="text-xs text-muted-foreground">

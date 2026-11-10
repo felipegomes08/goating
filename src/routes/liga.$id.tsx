@@ -10,10 +10,15 @@ import { useLiga, usePremiosDaLiga, useRodadasDaLiga, useTabelaDaLiga } from "@/
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CabecalhoDaLiga } from "@/components/goating/liga/cabecalho-da-liga";
-import { LideresDaLiga, TabelaDaLiga } from "@/components/goating/liga/tabela-da-liga";
+import {
+  LideresDaLiga,
+  TabelaDaLiga,
+  type ColunaDaLiga,
+} from "@/components/goating/liga/tabela-da-liga";
+import { CompartilharLiga } from "@/components/goating/liga/compartilhar-liga";
 import { PremiadosDaLiga } from "@/components/goating/liga/premiados";
 import { FolhaLiga } from "@/components/goating/liga/folha-liga";
-import { situacaoDaLiga } from "@/lib/ligas";
+import { periodoDaLiga, situacaoDaLiga } from "@/lib/ligas";
 
 export const Route = createFileRoute("/liga/$id")({
   ssr: false,
@@ -33,6 +38,7 @@ function PaginaDaLiga() {
   const encerrada = !!liga.data?.encerrada_em;
   const premios = usePremiosDaLiga(id, encerrada);
   const [editando, setEditando] = useState(false);
+  const [ordem, setOrdem] = useState<ColunaDaLiga>("pontos");
   const [confirmando, setConfirmando] = useState<"encerrar" | "apagar" | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
@@ -142,7 +148,21 @@ function PaginaDaLiga() {
               <h3 className="px-1 text-xs font-bold tracking-wide text-muted-foreground uppercase">
                 {encerrada ? "Tabela final" : "Tabela"}
               </h3>
-              <TabelaDaLiga linhas={tabela.data ?? []} userId={userId} />
+              <TabelaDaLiga
+                linhas={tabela.data ?? []}
+                userId={userId}
+                ordem={ordem}
+                onOrdenar={setOrdem}
+              />
+              {(tabela.data ?? []).length > 0 && (
+                <CompartilharLiga
+                  liga={liga.data.nome}
+                  turma={turma.data?.nome ?? "Turma"}
+                  periodo={periodoDaLiga(liga.data)}
+                  linhas={tabela.data ?? []}
+                  ordem={ordem}
+                />
+              )}
               {!encerrada && <LideresDaLiga linhas={tabela.data ?? []} />}
             </>
           ))}
@@ -198,7 +218,7 @@ function PaginaDaLiga() {
           <div
             role="dialog"
             aria-label={confirmando === "encerrar" ? "Encerrar liga" : "Apagar liga"}
-            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
           >
             <h2 className="text-lg font-extrabold text-foreground">
               {confirmando === "encerrar" ? "Encerrar a liga agora?" : "Apagar a liga?"}

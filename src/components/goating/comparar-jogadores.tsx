@@ -62,7 +62,7 @@ export function CompararJogadores({
           <div
             role="dialog"
             aria-label={`Comparar com ${nome}`}
-            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
           >
             <h2 className="text-lg font-extrabold text-foreground">Você × {nome}</h2>
             <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-2 text-sm">

@@ -160,7 +160,7 @@ export function ConquistasDoJogador({
           <div
             role="dialog"
             aria-label={aberta.nome}
-            className="w-full max-w-[480px] space-y-2 rounded-t-3xl bg-card p-5 pb-7 text-center"
+            className="w-full max-w-[480px] space-y-2 rounded-t-3xl bg-card p-5 pb-[max(var(--sa-bottom),1.75rem)] text-center"
           >
             <aberta.icone className="mx-auto size-10" style={{ color: aberta.cor }} />
             <h3 className="text-lg font-extrabold text-foreground">{aberta.nome}</h3>

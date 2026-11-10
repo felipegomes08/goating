@@ -26,15 +26,45 @@ export const nomeDaLoja = () => (Capacitor.getPlatform() === "ios" ? "App Store"
 
 let contaConfigurada: string | null = null;
 
+/** Falha se a promessa não terminar em `ms` milissegundos. */
+function comLimiteDeTempo<T>(promessa: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error("A loja demorou demais pra responder.")), ms);
+    promessa.then(
+      (valor) => {
+        clearTimeout(id);
+        resolve(valor);
+      },
+      (erro) => {
+        clearTimeout(id);
+        reject(erro);
+      },
+    );
+  });
+}
+
+// uma única preparação por vez: duas telas pedindo ao mesmo tempo não rodam o configure duas vezes
+let preparando: Promise<unknown> = Promise.resolve();
+
 async function plugin(userId: string) {
   const { Purchases } = await import("@revenuecat/purchases-capacitor");
-  if (contaConfigurada === null) {
-    // o id da compra é o id da conta do Goating: é por ele que o servidor liga o Premium
-    await Purchases.configure({ apiKey: chave(), appUserID: userId });
-  } else if (contaConfigurada !== userId) {
-    await Purchases.logIn({ appUserID: userId });
+  const vez = preparando.then(async () => {
+    if (contaConfigurada === null) {
+      // o id da compra é o id da conta do Goating: é por ele que o servidor liga o Premium
+      await comLimiteDeTempo(Purchases.configure({ apiKey: chave(), appUserID: userId }), 15_000);
+    } else if (contaConfigurada !== userId) {
+      await comLimiteDeTempo(Purchases.logIn({ appUserID: userId }), 15_000);
+    }
+    contaConfigurada = userId;
+  });
+  // se essa vez falhar, a próxima tenta de novo do zero
+  preparando = vez.catch(() => undefined);
+  try {
+    await vez;
+  } catch (e) {
+    console.error("RevenueCat: não deu pra preparar as compras", e);
+    throw e;
   }
-  contaConfigurada = userId;
   return Purchases;
 }
 
@@ -50,7 +80,15 @@ export type PlanoDaLoja = {
 /** Os planos à venda na loja (mensal e anual), com o preço e a promoção de quem está vendo. */
 export async function planosDaLoja(userId: string): Promise<PlanoDaLoja[]> {
   const Purchases = await plugin(userId);
-  const { current } = await Purchases.getOfferings();
+  // a loja às vezes não responde (ex.: logo depois do app sair na App Store): sem limite de tempo
+  // a tela ficava carregando pra sempre
+  const { current } = await comLimiteDeTempo(Purchases.getOfferings(), 15_000).catch((e) => {
+    console.error("RevenueCat: não deu pra buscar os planos", e);
+    throw e;
+  });
+  if (!current?.availablePackages.length) {
+    console.error("RevenueCat: nenhum plano no offering atual", current);
+  }
   const planos: PlanoDaLoja[] = [];
   for (const pacote of current?.availablePackages ?? []) {
     const tipo =

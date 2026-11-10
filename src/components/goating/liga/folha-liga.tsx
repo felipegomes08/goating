@@ -104,7 +104,7 @@ export function FolhaLiga({
       <div
         role="dialog"
         aria-label={liga ? "Editar liga" : "Criar liga"}
-        className="max-h-[92dvh] w-full max-w-[480px] space-y-4 overflow-y-auto rounded-t-3xl bg-background p-4 pb-[max(env(safe-area-inset-bottom),1.5rem)]"
+        className="max-h-[92dvh] w-full max-w-[480px] space-y-4 overflow-y-auto rounded-t-3xl bg-background p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <div className="flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-foreground">

@@ -766,7 +766,7 @@ function PlacarDaPelada() {
         </div>
 
         {encerrados.length > 0 && (
-          <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
+          <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4 pb-[max(var(--sa-bottom),1rem)]">
             {!jaComecou && !corrigindo && (
               <p className="mb-2 text-center text-xs text-muted-foreground">
                 Dá pra finalizar a partir do horário da pelada ({pelada.horario.slice(0, 5)}).
@@ -1317,7 +1317,7 @@ function PlacarDaPelada() {
 
       {/* de quem foi a assistência do gol que acabou de sair; dá pra ignorar */}
       {golDaFaixa && !alarme && !folha && (
-        <div className="fixed inset-x-0 bottom-0 z-30 flex justify-center p-3">
+        <div className="fixed inset-x-0 bottom-0 z-30 flex justify-center p-3 pb-[max(var(--sa-bottom),0.75rem)]">
           <div className="w-full max-w-[456px] space-y-2 rounded-2xl bg-primary p-3 shadow-[var(--shadow-float)]">
             <div className="flex items-center justify-between gap-2">
               <p className="min-w-0 truncate text-sm font-bold text-primary-foreground">
@@ -1353,7 +1353,7 @@ function PlacarDaPelada() {
       )}
 
       {alarme && (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center p-4">
+        <div className="fixed inset-x-0 bottom-0 z-40 flex justify-center p-4 pb-[max(var(--sa-bottom),1rem)]">
           <button
             type="button"
             onClick={silenciar}
@@ -1845,7 +1845,7 @@ function Folha({
       <div
         role="dialog"
         aria-label={titulo}
-        className="max-h-[85dvh] w-full max-w-[480px] space-y-3 overflow-auto rounded-t-3xl bg-card p-4 pb-6"
+        className="max-h-[85dvh] w-full max-w-[480px] space-y-3 overflow-auto rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <h2 className="text-lg font-extrabold text-foreground">{titulo}</h2>
         {children}

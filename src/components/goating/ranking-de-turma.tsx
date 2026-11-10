@@ -10,6 +10,7 @@ import {
 } from "@/hooks/use-turmas";
 import {
   COLUNA_GRATIS,
+  NavegadorDoPeriodo,
   PeriodosDoRanking,
   TabelaRanking,
   type ColunaRanking,
@@ -42,10 +43,13 @@ export function RankingDeTurma({
   // sem Premium o ranking fica em vitórias, desde o começo
   const periodo: Periodo = premium ? periodoEscolhido : "tudo";
   const ordem: ColunaRanking = premium ? ordemEscolhida : COLUNA_GRATIS;
+  // mês/ano passado (0 = o atual)
+  const [recuo, setRecuo] = useState(0);
+  const recuoAtivo = periodo === "tudo" ? 0 : recuo;
 
   const escolhida =
     (turmas.data ?? []).find((t) => t.crew_id === turmaId) ?? turmas.data?.[0] ?? null;
-  const ranking = useRankingDaTurma(escolhida?.crew_id ?? null, periodo);
+  const ranking = useRankingDaTurma(escolhida?.crew_id ?? null, periodo, true, recuoAtivo);
   const linhas = [...(ranking.data ?? [])].sort(
     (a, b) =>
       b[ordem] - a[ordem] ||
@@ -107,17 +111,29 @@ export function RankingDeTurma({
       <PeriodosDoRanking
         opcoes={PERIODOS}
         valor={periodo}
-        onMudar={setPeriodo}
+        onMudar={(p) => {
+          setPeriodo(p);
+          setRecuo(0);
+        }}
         premium={premium}
         livre="tudo"
         onBloqueado={() => setBloqueio("Ranking do mês e do ano")}
       />
+      {periodo !== "tudo" && (
+        <NavegadorDoPeriodo
+          rotulo={rotuloDoPeriodo(periodo, recuoAtivo)}
+          voltar={recuoAtivo}
+          onMudar={setRecuo}
+          maximo={periodo === "mes" ? 24 : 5}
+        />
+      )}
 
       {ranking.isLoading ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : linhas.length === 0 ? (
         <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-[var(--shadow-card)]">
-          Nenhuma pelada com placar em {escolhida.nome} nesse período ({rotuloDoPeriodo(periodo)}
+          Nenhuma pelada com placar em {escolhida.nome} nesse período (
+          {rotuloDoPeriodo(periodo, recuoAtivo)}
           ).
         </p>
       ) : (

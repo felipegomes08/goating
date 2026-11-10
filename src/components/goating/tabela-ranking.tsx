@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Crown, Lock } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Crown, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type LinhaRanking = {
@@ -248,6 +248,51 @@ export function PeriodosDoRanking<T extends string>({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Escolhe qual mês (ou ano) do ranking ver: ‹ outubro de 2026 ›. `voltar` 0 é o atual; não passa
+ * do atual nem de `maximo` períodos pra trás.
+ */
+export function NavegadorDoPeriodo({
+  rotulo,
+  voltar,
+  onMudar,
+  maximo,
+}: {
+  rotulo: string;
+  voltar: number;
+  onMudar: (voltar: number) => void;
+  maximo: number;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-xl bg-card px-1 py-1 shadow-[var(--shadow-card)]">
+      <button
+        type="button"
+        aria-label="Período anterior"
+        disabled={voltar >= maximo}
+        onClick={() => onMudar(voltar + 1)}
+        className="flex size-8 items-center justify-center rounded-lg text-foreground disabled:opacity-30"
+      >
+        <ChevronLeft className="size-5" />
+      </button>
+      <span className="text-sm font-bold text-foreground capitalize">
+        {rotulo}
+        {voltar === 0 && (
+          <span className="ml-1 text-xs font-medium text-muted-foreground">(atual)</span>
+        )}
+      </span>
+      <button
+        type="button"
+        aria-label="Próximo período"
+        disabled={voltar <= 0}
+        onClick={() => onMudar(voltar - 1)}
+        className="flex size-8 items-center justify-center rounded-lg text-foreground disabled:opacity-30"
+      >
+        <ChevronRight className="size-5" />
+      </button>
     </div>
   );
 }

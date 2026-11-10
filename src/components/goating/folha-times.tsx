@@ -59,7 +59,7 @@ export function FolhaTimes({
       <div
         role="dialog"
         aria-label="Nome e cor dos times"
-        className="max-h-[90dvh] w-full max-w-[480px] space-y-4 overflow-y-auto rounded-t-3xl bg-card p-4 pb-6"
+        className="max-h-[90dvh] w-full max-w-[480px] space-y-4 overflow-y-auto rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <div>
           <h2 className="text-lg font-extrabold text-foreground">Nome e cor dos times</h2>

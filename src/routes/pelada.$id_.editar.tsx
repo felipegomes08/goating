@@ -381,7 +381,7 @@ function EditarPelada() {
         )}
       </div>
 
-      <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4 pb-[max(var(--sa-bottom),1rem)]">
         <Button className="w-full font-semibold" disabled={!valido || salvando} onClick={salvar}>
           {salvando ? "Salvando..." : "Salvar mudanças"}
         </Button>

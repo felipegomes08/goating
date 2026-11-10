@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { GripVertical } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowRightLeft, GripVertical, HelpCircle, MousePointerClick, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePremiums } from "@/hooks/use-premiums";
 import { SeloPremium } from "@/components/goating/selo-premium";
@@ -193,11 +193,13 @@ export function QuadroTimes({
 
   return (
     <>
-      <p className="text-xs text-muted-foreground">
-        {selecionado
-          ? "Toque em outro jogador pra trocar os dois, ou em “Mover pra cá”."
-          : "Arraste pela alça ⋮⋮ pra mudar de time ou de posição no time. Ou toque em dois jogadores pra trocar os dois de lugar."}
-      </p>
+      {selecionado ? (
+        <p className="rounded-xl bg-mint-soft px-3 py-2 text-xs font-semibold text-primary">
+          Agora toque em outro jogador pra trocar os dois, ou em “Mover pra cá” num time.
+        </p>
+      ) : (
+        <ComoMexer />
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         {times.map((time, i) => {
@@ -275,5 +277,82 @@ export function QuadroTimes({
         </div>
       )}
     </>
+  );
+}
+
+const CHAVE_DICA = "goating-dica-times-vista";
+
+/**
+ * Como mexer nos times depois do sorteio. Aparece aberto na primeira vez; depois de fechado
+ * vira só um botão "Como funciona?".
+ */
+function ComoMexer() {
+  const [aberto, setAberto] = useState(true);
+  // lido depois de montar: no servidor não existe localStorage
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(CHAVE_DICA) === "1") setAberto(false);
+    } catch {
+      // sem armazenamento: fica aberto
+    }
+  }, []);
+
+  function fechar() {
+    setAberto(false);
+    try {
+      localStorage.setItem(CHAVE_DICA, "1");
+    } catch {
+      // sem armazenamento: só fecha
+    }
+  }
+
+  if (!aberto) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAberto(true)}
+        className="flex items-center gap-1.5 text-xs font-semibold text-primary"
+      >
+        <HelpCircle className="size-4" /> Como mexer nos times?
+      </button>
+    );
+  }
+
+  const dicas = [
+    {
+      icone: MousePointerClick,
+      texto: "Toque em um jogador e depois em outro: os dois trocam de lugar.",
+    },
+    {
+      icone: GripVertical,
+      texto: "Segure a alça ⋮⋮ e arraste pra mudar de time ou de posição no time.",
+    },
+    {
+      icone: ArrowRightLeft,
+      texto: "Com um jogador marcado, toque em “Mover pra cá” pra levar ele pra outro time.",
+    },
+  ];
+
+  return (
+    <div className="relative space-y-2 rounded-2xl border border-mint/60 bg-mint-soft/60 p-3">
+      <button
+        type="button"
+        aria-label="Fechar dicas"
+        onClick={fechar}
+        className="absolute top-2 right-2 p-1 text-muted-foreground"
+      >
+        <X className="size-4" />
+      </button>
+      <p className="text-sm font-bold text-foreground">Como mexer nos times</p>
+      {dicas.map(({ icone: Icone, texto }) => (
+        <div key={texto} className="flex items-start gap-2 pr-4 text-xs text-foreground">
+          <Icone className="mt-0.5 size-4 shrink-0 text-primary" />
+          <span>{texto}</span>
+        </div>
+      ))}
+      <button type="button" onClick={fechar} className="text-xs font-semibold text-primary">
+        Entendi
+      </button>
+    </div>
   );
 }

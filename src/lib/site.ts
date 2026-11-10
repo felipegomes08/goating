@@ -24,5 +24,5 @@ export const LOJAS = {
   /** https://play.google.com/store/apps/details?id=br.com.goating.app */
   playStore: "",
   /** https://apps.apple.com/br/app/id... (o número sai no App Store Connect) */
-  appStore: "",
+  appStore: "https://apps.apple.com/br/app/id6829370272",
 };

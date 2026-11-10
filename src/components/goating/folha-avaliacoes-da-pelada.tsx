@@ -61,7 +61,7 @@ export function FolhaAvaliacoesDaPelada({
       <div
         role="dialog"
         aria-label="Avaliações da pelada"
-        className="flex max-h-[90dvh] w-full max-w-[480px] flex-col rounded-t-3xl bg-background"
+        className="flex max-h-[90dvh] w-full max-w-[480px] flex-col rounded-t-3xl bg-background pb-[var(--sa-bottom)]"
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <h2 className="text-lg font-extrabold text-foreground">Avaliações da pelada</h2>

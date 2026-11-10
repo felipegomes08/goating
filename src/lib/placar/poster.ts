@@ -511,7 +511,43 @@ const COLUNAS_RANKING = ["J", "V", "G", "A", "MVP", "M", "%"];
 const MAX_LINHAS_RANKING = 15;
 
 /** Tabela do ranking da turma como imagem: altura acompanha a quantidade de jogadores. */
-export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvasElement> {
+export const desenharRanking = (dados: DadosDoRanking) =>
+  desenharTabela({
+    etiqueta: "RANKING DA TURMA",
+    titulo: dados.turma,
+    periodo: dados.periodo,
+    colunas: COLUNAS_RANKING,
+    colunaOrdenada: dados.colunaOrdenada,
+    linhas: dados.linhas.map((l) => ({
+      nome: l.nome,
+      valores: [
+        String(l.jogos),
+        String(l.vitorias),
+        String(l.gols),
+        String(l.assistencias),
+        String(l.mvps),
+        l.media,
+        `${l.aproveitamento}`,
+      ],
+    })),
+    legenda:
+      "J jogos  ·  V vitórias  ·  G gols  ·  A assist.  ·  MVP  ·  M gols por jogo  ·  % aproveit.",
+  });
+
+/** Qualquer tabela de jogadores no visual do ranking (turma ou liga). Até 7 colunas de número. */
+export type DadosDaTabela = {
+  /** texto pequeno no canto de cima ("RANKING DA TURMA", "LIGA") */
+  etiqueta: string;
+  titulo: string;
+  periodo: string;
+  colunas: string[];
+  /** índice em `colunas` da que ordena a tabela (fica destacada) */
+  colunaOrdenada: number;
+  linhas: { nome: string; valores: string[] }[];
+  legenda: string;
+};
+
+export async function desenharTabela(dados: DadosDaTabela): Promise<HTMLCanvasElement> {
   await Promise.all(
     [600, 800, 900].map((peso) => document.fonts.load(fonte(peso, 40)).catch(() => undefined)),
   );
@@ -538,24 +574,24 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
   ctx.fillRect(0, 0, LARGURA, altura);
 
   await desenharLogo(ctx);
-  escrever(ctx, "RANKING DA TURMA", LARGURA - MARGEM, 120, {
+  escrever(ctx, dados.etiqueta, LARGURA - MARGEM, 120, {
     peso: 600,
     tamanho: 26,
     cor: APAGADO,
     largura: 500,
     alinhar: "right",
   });
-  escrever(ctx, dados.turma, MARGEM, 220, { peso: 800, tamanho: 64, cor: BRANCO, largura: util });
+  escrever(ctx, dados.titulo, MARGEM, 220, { peso: 800, tamanho: 64, cor: BRANCO, largura: util });
   escrever(ctx, dados.periodo, MARGEM, 272, { peso: 600, tamanho: 30, cor: MENTA, largura: util });
 
   // colunas de número, da direita pra esquerda
   const LARGURA_COLUNA = 84;
   const xColuna = (i: number) =>
-    LARGURA - MARGEM - 24 - (COLUNAS_RANKING.length - 1 - i) * LARGURA_COLUNA;
+    LARGURA - MARGEM - 24 - (dados.colunas.length - 1 - i) * LARGURA_COLUNA;
   const xNome = MARGEM + 96;
   const larguraNome = xColuna(0) - LARGURA_COLUNA + 20 - xNome;
 
-  COLUNAS_RANKING.forEach((rotulo, i) => {
+  dados.colunas.forEach((rotulo, i) => {
     escrever(ctx, rotulo, xColuna(i), TOPO_TABELA - 30, {
       peso: 800,
       tamanho: 28,
@@ -596,15 +632,7 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
       largura: larguraNome,
       minimo: 30,
     });
-    [
-      String(l.jogos),
-      String(l.vitorias),
-      String(l.gols),
-      String(l.assistencias),
-      String(l.mvps),
-      l.media,
-      `${l.aproveitamento}`,
-    ].forEach((valor, c) => {
+    l.valores.forEach((valor, c) => {
       const ordenada = c === dados.colunaOrdenada;
       escrever(ctx, valor, xColuna(c), base, {
         peso: ordenada ? 900 : 600,
@@ -617,13 +645,13 @@ export async function desenharRanking(dados: DadosDoRanking): Promise<HTMLCanvas
   });
 
   const rodape = TOPO_TABELA + linhas.length * ALTURA_LINHA + 50;
-  escrever(
-    ctx,
-    "J jogos  ·  V vitórias  ·  G gols  ·  A assist.  ·  MVP  ·  M gols por jogo  ·  % aproveit.",
-    LARGURA / 2,
-    rodape,
-    { peso: 600, tamanho: 24, cor: APAGADO, largura: util, alinhar: "center" },
-  );
+  escrever(ctx, dados.legenda, LARGURA / 2, rodape, {
+    peso: 600,
+    tamanho: 24,
+    cor: APAGADO,
+    largura: util,
+    alinhar: "center",
+  });
   escrever(ctx, hostDoSite(), LARGURA / 2, altura - 60, {
     peso: 600,
     tamanho: 26,
@@ -646,6 +674,9 @@ export const gerarPoster = async (dados: DadosDoPoster) => paraArquivo(await des
 
 export const compartilharRanking = async (dados: DadosDoRanking, nomeDoArquivo: string) =>
   compartilharImagem(await paraArquivo(await desenharRanking(dados)), nomeDoArquivo);
+
+export const compartilharTabela = async (dados: DadosDaTabela, nomeDoArquivo: string) =>
+  compartilharImagem(await paraArquivo(await desenharTabela(dados)), nomeDoArquivo);
 
 /** Abre a folha de compartilhar do celular com a imagem; onde não dá, baixa o arquivo. */
 export async function compartilharImagem(blob: Blob, nomeDoArquivo: string) {

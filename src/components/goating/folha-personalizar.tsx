@@ -66,7 +66,7 @@ export function FolhaPersonalizar({
       <div
         role="dialog"
         aria-label="Personalizar carta"
-        className="w-full max-w-[480px] space-y-4 rounded-t-3xl bg-card p-4 pb-6"
+        className="w-full max-w-[480px] space-y-4 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <div className="flex items-center gap-2">
           <Crown className="size-5 fill-tier-ouro text-tier-ouro" />

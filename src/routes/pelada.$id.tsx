@@ -703,7 +703,7 @@ function DetalhePelada() {
         )}
       </div>
 
-      <div className="sticky bottom-0 mt-auto space-y-2 border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto space-y-2 border-t border-border bg-card p-4 pb-[max(var(--sa-bottom),1rem)]">
         {finalizada && podeGerir && temPlacar && (
           <Button asChild variant="ghost" className="w-full">
             <Link to="/pelada/$id/placar" params={{ id }}>
@@ -854,7 +854,7 @@ function DetalhePelada() {
           <div
             role="dialog"
             aria-label="Como chegar"
-            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
           >
             <h2 className="text-lg font-extrabold text-foreground">Como chegar</h2>
             <p className="text-sm text-muted-foreground">
@@ -903,7 +903,7 @@ function DetalhePelada() {
           <div
             role="dialog"
             aria-label="Tirar da pelada"
-            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
           >
             <h2 className="text-lg font-extrabold text-foreground">
               Tirar {tirando.nome} da pelada?
@@ -942,7 +942,7 @@ function DetalhePelada() {
           <div
             role="dialog"
             aria-label="Cancelar pelada"
-            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-6"
+            className="w-full max-w-[480px] space-y-3 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
           >
             <h2 className="text-lg font-extrabold text-foreground">Cancelar essa pelada?</h2>
             <p className="text-sm text-muted-foreground">

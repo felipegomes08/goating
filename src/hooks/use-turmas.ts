@@ -43,20 +43,33 @@ export const PERIODOS: { id: Periodo; rotulo: string }[] = [
   { id: "tudo", rotulo: "Tudo" },
 ];
 
-function inicioDoPeriodo(periodo: Periodo) {
+const dia = (d: Date) => d.toLocaleDateString("sv-SE");
+
+/**
+ * Datas do período. `voltar` conta pra trás a partir do atual: 0 = este mês/ano, 1 = o anterior...
+ * `ate` só vem nos períodos passados (o atual vai até hoje).
+ */
+export function intervaloDoPeriodo(periodo: Periodo, voltar = 0) {
+  if (periodo === "tudo") return { desde: null, ate: null };
   const hoje = new Date();
-  if (periodo === "tudo") return null;
-  const mes = periodo === "mes" ? hoje.getMonth() + 1 : 1;
-  return `${hoje.getFullYear()}-${String(mes).padStart(2, "0")}-01`;
+  if (periodo === "mes") {
+    const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - voltar, 1);
+    const fim = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0);
+    return { desde: dia(inicio), ate: voltar > 0 ? dia(fim) : null };
+  }
+  const ano = hoje.getFullYear() - voltar;
+  return { desde: `${ano}-01-01`, ate: voltar > 0 ? `${ano}-12-31` : null };
 }
 
 /** "outubro de 2026", "2026" ou "desde o começo" */
-export function rotuloDoPeriodo(periodo: Periodo) {
-  return periodo === "mes"
-    ? new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
-    : periodo === "ano"
-      ? String(new Date().getFullYear())
-      : "desde o começo";
+export function rotuloDoPeriodo(periodo: Periodo, voltar = 0) {
+  if (periodo === "tudo") return "desde o começo";
+  const hoje = new Date();
+  if (periodo === "ano") return String(hoje.getFullYear() - voltar);
+  return new Date(hoje.getFullYear(), hoje.getMonth() - voltar, 1).toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+  });
 }
 
 type LinhaDoCrewStats = { jogos: number; vitorias: number; empates: number; gols: number };
@@ -78,7 +91,7 @@ export function useRankingAntesDaUltima(crewId: string | null, periodo: Periodo,
     queryKey: ["turma-ranking-anterior", crewId, periodo],
     enabled: !!crewId && ligado,
     queryFn: async () => {
-      const desde = inicioDoPeriodo(periodo);
+      const { desde } = intervaloDoPeriodo(periodo);
       const { data: ultima, error: erroUltima } = await supabase
         .from("matches")
         .select("data")
@@ -104,16 +117,25 @@ export function useRankingAntesDaUltima(crewId: string | null, periodo: Periodo,
   });
 }
 
-/** Números de cada jogador da turma no período, já com média de gols e aproveitamento. */
-export function useRankingDaTurma(crewId: string | null, periodo: Periodo, ligado = true) {
+/**
+ * Números de cada jogador da turma no período, já com média de gols e aproveitamento.
+ * `voltar` escolhe um mês/ano passado (veja intervaloDoPeriodo).
+ */
+export function useRankingDaTurma(
+  crewId: string | null,
+  periodo: Periodo,
+  ligado = true,
+  voltar = 0,
+) {
   return useQuery({
-    queryKey: ["turma-ranking", crewId, periodo],
+    queryKey: ["turma-ranking", crewId, periodo, voltar],
     enabled: !!crewId && ligado,
     queryFn: async () => {
-      const desde = inicioDoPeriodo(periodo);
+      const { desde, ate } = intervaloDoPeriodo(periodo, voltar);
       const { data, error } = await supabase.rpc("crew_stats", {
         p_crew_id: crewId!,
         ...(desde ? { p_desde: desde } : {}),
+        ...(ate ? { p_ate: ate } : {}),
       });
       if (error) throw error;
       return data.map(comMedias);

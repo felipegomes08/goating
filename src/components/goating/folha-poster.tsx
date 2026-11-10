@@ -71,7 +71,7 @@ export function FolhaPoster({
       <div
         role="dialog"
         aria-label="Compartilhar pôster"
-        className="max-h-[94dvh] w-full max-w-[480px] space-y-3 overflow-auto rounded-t-3xl bg-card p-4 pb-6"
+        className="max-h-[94dvh] w-full max-w-[480px] space-y-3 overflow-auto rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <h2 className="text-lg font-extrabold text-foreground">Pôster da pelada</h2>
 

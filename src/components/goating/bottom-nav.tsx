@@ -27,7 +27,7 @@ export function BottomNav() {
   return (
     <nav
       onClick={() => vibrar(8)}
-      className="sticky bottom-0 z-30 border-t border-border/60 bg-card/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
+      className="sticky bottom-0 z-30 border-t border-border/60 bg-card/85 pb-[var(--sa-bottom)] backdrop-blur-xl"
     >
       <div className="mx-auto flex h-14 w-full max-w-[480px] items-stretch">
         <Link to="/" className={aba(noFeed)}>

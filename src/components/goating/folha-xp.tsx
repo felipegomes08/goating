@@ -52,7 +52,7 @@ export function FolhaXp({
       <div
         role="dialog"
         aria-label="Como funciona o XP"
-        className="max-h-[88dvh] w-full max-w-[480px] space-y-4 overflow-y-auto rounded-t-3xl bg-card p-4 pb-6"
+        className="max-h-[88dvh] w-full max-w-[480px] space-y-4 overflow-y-auto rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <div>
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-foreground">

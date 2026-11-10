@@ -375,7 +375,7 @@ function ResumoDaPelada() {
         )}
       </div>
 
-      <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4">
+      <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4 pb-[max(var(--sa-bottom),1rem)]">
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1" onClick={compartilharResumo}>
             <Share2 className="mr-2 size-4" /> Texto

@@ -185,7 +185,7 @@ export function AvaliacoesDaTurma({
           <div
             role="dialog"
             aria-label="Avaliar a turma"
-            className="max-h-[92dvh] w-full max-w-[480px] space-y-4 overflow-auto rounded-t-3xl bg-card p-4 pb-6"
+            className="max-h-[92dvh] w-full max-w-[480px] space-y-4 overflow-auto rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
           >
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-extrabold text-foreground">Avaliar a turma</h2>

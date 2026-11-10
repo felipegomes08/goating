@@ -63,7 +63,7 @@ export function FolhaVincular({
       <div
         role="dialog"
         aria-label={`Quem é ${nome} na turma`}
-        className="flex max-h-[85dvh] w-full max-w-[480px] flex-col gap-3 rounded-t-3xl bg-card p-4 pb-6"
+        className="flex max-h-[85dvh] w-full max-w-[480px] flex-col gap-3 rounded-t-3xl bg-card p-4 pb-[max(var(--sa-bottom),1.5rem)]"
       >
         <div>
           <h2 className="text-lg font-extrabold text-foreground">Quem é “{nome}” na turma?</h2>
