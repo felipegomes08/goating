@@ -1,4 +1,5 @@
 import "@/lib/polyfills";
+import { AvisoDeVersao } from "@/components/goating/aviso-de-versao";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -154,6 +155,7 @@ function RootComponent() {
       <FotoDoGoogle />
       <CadastroObrigatorio />
       <ChatAoVivo />
+      <AvisoDeVersao />
       <Outlet />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>

@@ -5,7 +5,10 @@ import { useSession } from "@/hooks/use-session";
 import { useChatsNaoLidos } from "@/hooks/use-chat";
 import { vibrar } from "@/lib/placar/alarme";
 
-/** Barra de abas no estilo iOS: fundo translúcido, cinco espaços iguais, criar no meio sem saltar pra fora. */
+/**
+ * Barra de abas no estilo bolha do iOS: uma pílula flutuante e translúcida, a aba ativa ganha a
+ * sua própria bolha por dentro e o criar fica no meio.
+ */
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { userId } = useSession();
@@ -13,8 +16,8 @@ export function BottomNav() {
 
   const aba = (ativa: boolean) =>
     cn(
-      "flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] transition-colors active:opacity-60",
-      ativa ? "font-semibold text-primary" : "font-medium text-muted-foreground",
+      "mx-0.5 flex flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[10px] transition-colors active:scale-95",
+      ativa ? "bg-mint-soft font-bold text-primary" : "font-medium text-muted-foreground",
     );
   // aba ativa ganha traço mais grosso, como os ícones preenchidos do iOS
   const traco = (ativa: boolean) => (ativa ? 2.4 : 1.8);
@@ -27,9 +30,9 @@ export function BottomNav() {
   return (
     <nav
       onClick={() => vibrar(8)}
-      className="sticky bottom-0 z-30 border-t border-border/60 bg-card/85 pb-[var(--sa-bottom)] backdrop-blur-xl"
+      className="pointer-events-none sticky bottom-0 z-30 px-3 pt-2 pb-[max(var(--sa-bottom),0.75rem)]"
     >
-      <div className="mx-auto flex h-14 w-full max-w-[480px] items-stretch">
+      <div className="pointer-events-auto mx-auto flex h-16 w-full max-w-[460px] items-stretch rounded-full border border-border/60 bg-card/80 p-1.5 shadow-[0_8px_30px_rgba(15,61,46,0.18)] backdrop-blur-xl">
         <Link to="/" className={aba(noFeed)}>
           <House className="size-[22px]" strokeWidth={traco(noFeed)} />
           Feed
@@ -52,7 +55,7 @@ export function BottomNav() {
           <Link
             to="/criar"
             aria-label="Criar pelada"
-            className="flex h-9 w-12 items-center justify-center rounded-full bg-primary transition-transform active:scale-90"
+            className="flex size-12 items-center justify-center rounded-full bg-primary shadow-md transition-transform active:scale-90"
           >
             <Plus className="size-5 text-mint" strokeWidth={2.75} />
           </Link>
