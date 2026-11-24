@@ -21,7 +21,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useSession } from "@/hooks/use-session";
+import { usePerfil, useSession } from "@/hooks/use-session";
+import { useFeed } from "@/hooks/use-feed";
+import { AvisosDeAvaliacao, pendentesDeAvaliacao } from "@/components/goating/aviso-avaliacao";
+import { PeladasDaTurma } from "@/components/goating/peladas-da-turma";
 import { useChatsNaoLidos } from "@/hooks/use-chat";
 import { AbaLiga } from "@/components/goating/liga/aba-liga";
 import {
@@ -100,6 +103,9 @@ function PaginaDaTurma() {
   const { id } = useParams({ from: "/turma/$id" });
   const { aba: abaDaUrl, c: codigo } = useSearch({ from: "/turma/$id" });
   const { userId, carregando } = useSession();
+  // o mesmo feed da tela inicial (já em cache): diz quais peladas da turma falta eu avaliar
+  const { data: perfil, isLoading: carregandoPerfil } = usePerfil(userId);
+  const feed = useFeed(carregandoPerfil ? null : userId, perfil?.cidade ?? null);
   const chats = useChatsNaoLidos(userId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -154,7 +160,7 @@ function PaginaDaTurma() {
           .order("nome"),
         supabase
           .from("matches")
-          .select("id, titulo, data, horario, status, placar_finalizado_em")
+          .select("id, titulo, data, horario, status, local, placar_finalizado_em")
           .eq("crew_id", id)
           .order("data", { ascending: false })
           .order("horario", { ascending: false }),
@@ -557,12 +563,10 @@ function PaginaDaTurma() {
   const escudo = urlDaFotoDaTurma(dados.escudo_url);
   const capa = urlDaFotoDaTurma(dados.capa_url);
 
-  const hoje = new Date().toLocaleDateString("sv-SE");
-  const proximas = dados.peladas
-    // agendada que já passou da hora (pendente) continua aqui até alguém decidir
-    .filter((p) => p.status === "agendada" || p.status === "em_andamento")
-    .reverse();
   const passadas = dados.peladas.filter((p) => p.status === "finalizada");
+  const faltaAvaliar = pendentesDeAvaliacao(
+    (feed.data?.finalizadas ?? []).filter((p) => p.crew_id === id),
+  );
 
   return (
     <div className="app-shell flex min-h-dvh flex-col">
@@ -643,6 +647,7 @@ function PaginaDaTurma() {
       </header>
 
       <div className="space-y-3 p-4">
+        <AvisosDeAvaliacao peladas={faltaAvaliar} />
         {(souMembro || souDono) && (
           <Button asChild className="w-full justify-between" variant="outline">
             <Link to="/turma/$id/chat" params={{ id }}>
@@ -797,14 +802,13 @@ function PaginaDaTurma() {
                 </Link>
               </Button>
             )}
-            {proximas.length === 0 && passadas.length === 0 && (
+            {dados.peladas.length === 0 ? (
               <Vazio>Essa turma ainda não tem pelada.</Vazio>
-            )}
-            {proximas.length > 0 && (
-              <ListaPeladas titulo="Próximas" peladas={proximas} destino="pelada" />
-            )}
-            {passadas.length > 0 && (
-              <ListaPeladas titulo="Já rolaram" peladas={passadas} destino="resumo" />
+            ) : (
+              <PeladasDaTurma
+                peladas={dados.peladas.filter((p) => p.status !== "cancelada")}
+                faltaAvaliar={new Set(faltaAvaliar.map((p) => p.id))}
+              />
             )}
           </>
         )}
@@ -1187,65 +1191,6 @@ function PaginaDaTurma() {
         </Folha>
       )}
     </div>
-  );
-}
-
-function ListaPeladas({
-  titulo,
-  peladas,
-  destino,
-}: {
-  titulo: string;
-  peladas: {
-    id: string;
-    titulo: string;
-    data: string;
-    horario: string;
-    placar_finalizado_em: string | null;
-  }[];
-  destino: "pelada" | "resumo";
-}) {
-  return (
-    <section>
-      <h2 className="mb-2 text-xs font-bold tracking-wide text-muted-foreground uppercase">
-        {titulo}
-      </h2>
-      <div className="divide-y divide-border rounded-2xl bg-card shadow-[var(--shadow-card)]">
-        {peladas.map((p) => {
-          const comPlacar = destino === "resumo" && !!p.placar_finalizado_em;
-          return (
-            <Link
-              key={p.id}
-              to={comPlacar ? "/pelada/$id/resumo" : "/pelada/$id"}
-              params={{ id: p.id }}
-              className="flex items-center gap-3 px-3 py-2.5"
-            >
-              {comPlacar ? (
-                <Trophy className="size-4 shrink-0 text-tier-ouro" />
-              ) : (
-                <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
-              )}
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-foreground">
-                  {p.titulo}
-                </span>
-                <span className="block text-[11px] text-muted-foreground capitalize">
-                  {new Date(`${p.data}T12:00:00`).toLocaleDateString("pt-BR", {
-                    weekday: "long",
-                    day: "2-digit",
-                    month: "long",
-                  })}{" "}
-                  · {p.horario.slice(0, 5)}
-                </span>
-              </span>
-              <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">
-                {comPlacar ? "Ver placar" : destino === "resumo" ? "Sem placar" : "Abrir"}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </section>
   );
 }
 

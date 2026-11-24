@@ -10,6 +10,7 @@ import { BottomNav } from "@/components/goating/bottom-nav";
 import { PuxarParaAtualizar } from "@/components/goating/puxar-para-atualizar";
 import { Segmentos, classeSegmento } from "@/components/goating/titulo-grande";
 import { MatchCard } from "@/components/goating/match-card";
+import { AvisosDeAvaliacao, pendentesDeAvaliacao } from "@/components/goating/aviso-avaliacao";
 import { EmBreve } from "@/components/goating/em-breve";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -63,6 +64,8 @@ function Feed() {
   // a busca saiu do feed por enquanto (pouco usada); a lista é a da aba inteira
   const lista = (aba === "finalizadas" ? feed.data?.finalizadas : feed.data?.proximas) ?? [];
   const aAvaliar = feed.data?.aAvaliar ?? 0;
+  // em "Próximas" a pelada que falta avaliar fica fixa no topo (nas finalizadas ela já vem primeiro)
+  const faltaAvaliar = aba === "proximas" ? pendentesDeAvaliacao(feed.data?.finalizadas ?? []) : [];
 
   // quem não entrou vê a apresentação do app (o que é, entrar, política de privacidade)
   if (!carregando && !userId) return <Apresentacao />;
@@ -162,6 +165,7 @@ function Feed() {
       </div>
 
       <main className="flex-1 space-y-3 px-4 py-4">
+        {!vendoCampeonatos && <AvisosDeAvaliacao peladas={faltaAvaliar} />}
         {vendoCampeonatos ? (
           <EmBreve
             icone={Trophy}
