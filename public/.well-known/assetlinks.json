@@ -1,0 +1,15 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "br.com.goating.app",
+      "sha256_cert_fingerprints": [
+        "CF:9D:8E:46:F2:4E:2A:9F:CA:F0:66:1F:0A:EE:59:B4:CC:4C:D1:33:A1:27:1E:93:79:E6:31:6D:6C:C7:79:F1",
+        "3C:DE:2F:77:9F:21:37:71:37:C4:EE:B8:7F:9C:8E:0D:0B:F3:FA:69:80:02:72:AC:F4:7A:04:26:CA:65:6E:8D",
+        "B5:BC:09:F2:BF:B8:D7:9B:95:B5:CD:BE:78:32:4B:31:BC:D0:B4:96:9E:F2:A7:85:75:00:B4:33:AC:CB:55:D4",
+        "FE:6A:AD:07:5C:E2:DE:07:D8:EE:D6:4A:B4:E0:EA:FF:67:D3:27:A8:09:CA:67:1A:36:A2:C5:01:49:51:19:13"
+      ]
+    }
+  }
+]

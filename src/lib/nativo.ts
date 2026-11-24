@@ -100,6 +100,53 @@ export async function iniciarApp() {
   });
 }
 
+const CHAVE_LINK_DE_ABERTURA = "goating-link-de-abertura";
+
+/** "https://goating.com.br/pelada/1?x=1#y" → "/pelada/1?x=1#y". Link de outro site → null. */
+function caminhoDoLink(url: string) {
+  try {
+    const u = new URL(url);
+    if (u.hostname !== "goating.com.br" && u.hostname !== "www.goating.com.br") return null;
+    return `${u.pathname}${u.search}${u.hash}` || "/";
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Link do goating.com.br tocado no WhatsApp etc. com o app instalado (App Links no Android,
+ * Universal Links no iPhone): o sistema abre o app e aqui ele vai pra tela do link.
+ * Link de login/recuperação de senha (com token) recarrega a página, pro Supabase ler o token.
+ */
+export async function ouvirLinksNoApp(abrir: (caminho: string) => void) {
+  if (!noApp()) return () => undefined;
+  const { App } = await import("@capacitor/app");
+  const ir = (url: string) => {
+    const caminho = caminhoDoLink(url);
+    if (!caminho) return;
+    if (/[#?&](access_token|refresh_token|code|token_hash)=|type=recovery/.test(caminho)) {
+      window.location.replace(caminho);
+    } else {
+      abrir(caminho);
+    }
+  };
+  // app fechado: o link que abriu o app (uma vez só, pra não repetir depois de recarregar)
+  const inicio = await App.getLaunchUrl().catch(() => undefined);
+  if (inicio?.url) {
+    let jaAbriu = false;
+    try {
+      jaAbriu = sessionStorage.getItem(CHAVE_LINK_DE_ABERTURA) === inicio.url;
+      sessionStorage.setItem(CHAVE_LINK_DE_ABERTURA, inicio.url);
+    } catch {
+      // sem armazenamento: abre mesmo assim
+    }
+    if (!jaAbriu) ir(inicio.url);
+  }
+  // app já aberto (ou em segundo plano)
+  const ouvinte = await App.addListener("appUrlOpen", ({ url }) => ir(url));
+  return () => void ouvinte.remove();
+}
+
 const CHAVE_TOKEN = "goating-push-token";
 
 /** Como está o registro deste celular pros avisos (aparece em Notificações > Avisos no celular). */

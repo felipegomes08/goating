@@ -22,7 +22,7 @@ export const hostDoSite = () =>
  */
 export const LOJAS = {
   /** https://play.google.com/store/apps/details?id=br.com.goating.app */
-  playStore: "",
+  playStore: "https://play.google.com/store/apps/details?id=br.com.goating.app",
   /** https://apps.apple.com/br/app/id... (o número sai no App Store Connect) */
   appStore: "https://apps.apple.com/br/app/id6829370272",
 };

@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["JNWJTQ4898.br.com.goating.app"],
+        "components": [{ "/": "*" }]
+      }
+    ]
+  }
+}

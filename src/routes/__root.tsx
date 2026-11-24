@@ -1,5 +1,6 @@
 import "@/lib/polyfills";
 import { AvisoDeVersao } from "@/components/goating/aviso-de-versao";
+import { LinksNoApp } from "@/components/goating/links-no-app";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -156,6 +157,7 @@ function RootComponent() {
       <CadastroObrigatorio />
       <ChatAoVivo />
       <AvisoDeVersao />
+      <LinksNoApp />
       <Outlet />
       <Toaster position="top-center" richColors />
     </QueryClientProvider>
