@@ -30,7 +30,7 @@ import { useAvatarUrl } from "@/hooks/use-avatar";
 import { usePerfil, useSession } from "@/hooks/use-session";
 import { useVoltar } from "@/hooks/use-voltar";
 import { Button } from "@/components/ui/button";
-import { contarAvaliados, rotuloDoQueFalta } from "@/components/goating/match-card";
+import { AoVivoNoCard, contarAvaliados, rotuloDoQueFalta } from "@/components/goating/match-card";
 import { DestaqueDoMvp } from "@/components/goating/destaque-mvp";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -675,6 +675,9 @@ function DetalhePelada() {
           <FolhaCobranca crewId={pelada.crew_id} matchId={id} onFechar={() => setCobrando(false)} />
         )}
 
+        {/* bola rolando: placar ao vivo pra todo mundo; tocar abre a tela do ao vivo */}
+        {emAndamento && <AoVivoNoCard matchId={id} />}
+
         {/* passou da hora e ninguém iniciou: o organizador decide se rolou */}
         {pendente && podeGerir && (
           <div className="rounded-2xl border border-tier-ouro/40 bg-tier-ouro/10 p-4 text-sm">
@@ -836,8 +839,10 @@ function DetalhePelada() {
             Cancelar solicitação
           </Button>
         ) : emAndamento ? (
-          <Button disabled className="w-full">
-            Pelada em andamento
+          <Button asChild className="w-full">
+            <Link to="/pelada/$id/ao-vivo" params={{ id }}>
+              Acompanhar ao vivo
+            </Link>
           </Button>
         ) : lotado ? (
           <Button disabled className="w-full">

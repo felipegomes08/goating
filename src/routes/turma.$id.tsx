@@ -27,6 +27,7 @@ import { AbaLiga } from "@/components/goating/liga/aba-liga";
 import {
   PERIODOS,
   rotuloDoPeriodo,
+  useGoleirosDaTurma,
   useRankingAntesDaUltima,
   useRankingDaTurma,
   type Periodo,
@@ -43,6 +44,7 @@ import {
   COLUNAS_RANKING,
   NavegadorDoPeriodo,
   PeriodosDoRanking,
+  TabelaGoleiros,
   TabelaRanking,
   formatarMedia,
   type ColunaRanking,
@@ -55,7 +57,10 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { compartilhar } from "@/lib/placar/dados";
-import { compartilharRanking } from "@/lib/placar/poster";
+import {
+  compartilharRanking,
+  compartilharTabela as compartilharImagemDaTabela,
+} from "@/lib/placar/poster";
 import { urlDaFotoDaTurma } from "@/lib/foto-turma";
 import { origemDoSite } from "@/lib/site";
 
@@ -103,6 +108,8 @@ function PaginaDaTurma() {
   const { premium } = usePremium();
   const [periodoEscolhido, setPeriodo] = useState<Periodo>("mes");
   const [ordemEscolhida, setOrdem] = useState<ColunaRanking>("vitorias");
+  // a tabela do ranking: jogadores (gols, vitórias...) ou goleiros (gols sofridos)
+  const [tabelaDe, setTabelaDe] = useState<"jogadores" | "goleiros">("jogadores");
   const [bloqueio, setBloqueio] = useState<string | null>(null);
   // sem Premium o ranking fica em vitórias, desde o começo
   const periodo: Periodo = premium ? periodoEscolhido : "tudo";
@@ -172,7 +179,18 @@ function PaginaDaTurma() {
     },
   });
 
-  const ranking = useRankingDaTurma(id, periodo, !!userId && aba === "ranking", recuoAtivo);
+  const ranking = useRankingDaTurma(
+    id,
+    periodo,
+    !!userId && aba === "ranking" && tabelaDe === "jogadores",
+    recuoAtivo,
+  );
+  const goleiros = useGoleirosDaTurma(
+    id,
+    periodo,
+    !!userId && aba === "ranking" && tabelaDe === "goleiros",
+    recuoAtivo,
+  );
   // setinhas de subiu/caiu só no período atual
   const rankingAntes = useRankingAntesDaUltima(
     id,
@@ -426,6 +444,54 @@ function PaginaDaTurma() {
   })();
   const colunaOrdenada = COLUNAS_RANKING.find((c) => c.id === ordem);
 
+  const linhasGoleiros = goleiros.data ?? [];
+
+  /** Goleiros pro WhatsApp: menor média primeiro, quem jogou pouco no fim. */
+  async function compartilharTextoGoleiros() {
+    const medalhas = ["🥇", "🥈", "🥉"];
+    const naDisputa = linhasGoleiros.filter((l) => !l.poucosJogos);
+    const fora = linhasGoleiros.filter((l) => l.poucosJogos);
+    const linhaDe = (l: (typeof linhasGoleiros)[number]) =>
+      `   ${l.jogos} ${l.jogos === 1 ? "jogo" : "jogos"} · ${l.sofridos} ${l.sofridos === 1 ? "gol sofrido" : "gols sofridos"} · média ${formatarMedia(l.media)}`;
+    const texto = [
+      `🧤 *${dados.nome}*`,
+      `Goleiros de ${rotuloPeriodo}, pela menor média de gols sofridos`,
+      "",
+      ...naDisputa.flatMap((l, i) => [`${medalhas[i] ?? `${i + 1}.`} *${l.nome}*`, linhaDe(l)]),
+      ...(fora.length
+        ? ["", "_Poucos jogos no período:_", ...fora.flatMap((l) => [`• ${l.nome}`, linhaDe(l)])]
+        : []),
+    ].join("\n");
+    const resultado = await compartilhar(texto);
+    if (resultado === "copiado") toast.success("Goleiros copiados. Cola no grupo!");
+  }
+
+  async function compartilharTabelaGoleiros() {
+    setGerandoImagem(true);
+    try {
+      const resultado = await compartilharImagemDaTabela(
+        {
+          etiqueta: "GOLEIROS DA TURMA",
+          titulo: dados.nome,
+          periodo: rotuloPeriodo,
+          colunas: ["J", "GS", "Média"],
+          colunaOrdenada: 2,
+          linhas: linhasGoleiros.map((l) => ({
+            nome: l.poucosJogos ? `${l.nome} (poucos jogos)` : l.nome,
+            valores: [String(l.jogos), String(l.sofridos), formatarMedia(l.media)],
+          })),
+          legenda: "J jogos no gol  ·  GS gols sofridos  ·  Média gols sofridos por jogo",
+        },
+        "goating-goleiros.png",
+      );
+      if (resultado === "baixado") toast.success("Tabela baixada. Manda no grupo!");
+    } catch {
+      toast.error("Não deu pra gerar a tabela.");
+    } finally {
+      setGerandoImagem(false);
+    }
+  }
+
   /** Texto pro WhatsApp: um jogador por bloco, com todos os números. */
   async function compartilharTexto() {
     const medalhas = ["🥇", "🥈", "🥉"];
@@ -672,7 +738,29 @@ function PaginaDaTurma() {
                 maximo={maximoRecuo}
               />
             )}
-            {ranking.isLoading ? (
+            <PeriodosDoRanking
+              opcoes={[
+                { id: "jogadores" as const, rotulo: "Jogadores" },
+                { id: "goleiros" as const, rotulo: "🧤 Goleiros" },
+              ]}
+              valor={tabelaDe}
+              onMudar={setTabelaDe}
+              premium
+              livre="jogadores"
+              onBloqueado={() => undefined}
+            />
+            {tabelaDe === "goleiros" ? (
+              goleiros.isLoading ? (
+                <Skeleton className="h-64 w-full rounded-2xl" />
+              ) : linhasGoleiros.length === 0 ? (
+                <Vazio>
+                  Nenhum goleiro marcado nesse período. No placar, o jogador com posição GOL de cada
+                  time já entra como goleiro.
+                </Vazio>
+              ) : (
+                <TabelaGoleiros linhas={linhasGoleiros} userId={userId} />
+              )
+            ) : ranking.isLoading ? (
               <Skeleton className="h-64 w-full rounded-2xl" />
             ) : linhas.length === 0 ? (
               <Vazio>Nenhuma pelada com placar nesse período ainda.</Vazio>
@@ -867,24 +955,29 @@ function PaginaDaTurma() {
         )}
       </div>
 
-      {aba === "ranking" && linhas.length > 0 && (
-        <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4 pb-[max(var(--sa-bottom),1rem)]">
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={compartilharTexto}>
-              <Share2 className="mr-2 size-4" /> Texto
-            </Button>
-            <Button
-              variant={souMembro || souDono ? "default" : "outline"}
-              className="flex-[2]"
-              disabled={gerandoImagem}
-              onClick={compartilharTabela}
-            >
-              <ImageIcon className="mr-2 size-4" />{" "}
-              {gerandoImagem ? "Gerando…" : "Compartilhar tabela"}
-            </Button>
+      {aba === "ranking" &&
+        (tabelaDe === "goleiros" ? linhasGoleiros.length > 0 : linhas.length > 0) && (
+          <div className="sticky bottom-0 mt-auto border-t border-border bg-card p-4 pb-[max(var(--sa-bottom),1rem)]">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={tabelaDe === "goleiros" ? compartilharTextoGoleiros : compartilharTexto}
+              >
+                <Share2 className="mr-2 size-4" /> Texto
+              </Button>
+              <Button
+                variant={souMembro || souDono ? "default" : "outline"}
+                className="flex-[2]"
+                disabled={gerandoImagem}
+                onClick={tabelaDe === "goleiros" ? compartilharTabelaGoleiros : compartilharTabela}
+              >
+                <ImageIcon className="mr-2 size-4" />{" "}
+                {gerandoImagem ? "Gerando…" : "Compartilhar tabela"}
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {renomeando && (
         <FolhaNome

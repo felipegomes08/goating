@@ -29,6 +29,7 @@ import { Route as LigaIdRouteImport } from './routes/liga.$id'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as PeladaIdRouteImport } from './routes/pelada.$id'
 import { Route as TurmaIdRouteImport } from './routes/turma.$id'
+import { Route as PeladaIdAoVivoRouteImport } from './routes/pelada.$id_.ao-vivo'
 import { Route as PeladaIdAvaliarRouteImport } from './routes/pelada.$id_.avaliar'
 import { Route as PeladaIdEditarRouteImport } from './routes/pelada.$id_.editar'
 import { Route as PeladaIdPlacarRouteImport } from './routes/pelada.$id_.placar'
@@ -136,6 +137,11 @@ const TurmaIdRoute = TurmaIdRouteImport.update({
   path: '/turma/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PeladaIdAoVivoRoute = PeladaIdAoVivoRouteImport.update({
+  id: '/pelada/$id_/ao-vivo',
+  path: '/pelada/$id/ao-vivo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PeladaIdAvaliarRoute = PeladaIdAvaliarRouteImport.update({
   id: '/pelada/$id_/avaliar',
   path: '/pelada/$id/avaliar',
@@ -188,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRoute
   '/turma/$id': typeof TurmaIdRoute
+  '/pelada/$id/ao-vivo': typeof PeladaIdAoVivoRoute
   '/pelada/$id/avaliar': typeof PeladaIdAvaliarRoute
   '/pelada/$id/editar': typeof PeladaIdEditarRoute
   '/pelada/$id/placar': typeof PeladaIdPlacarRoute
@@ -216,6 +223,7 @@ export interface FileRoutesByTo {
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRoute
   '/turma/$id': typeof TurmaIdRoute
+  '/pelada/$id/ao-vivo': typeof PeladaIdAoVivoRoute
   '/pelada/$id/avaliar': typeof PeladaIdAvaliarRoute
   '/pelada/$id/editar': typeof PeladaIdEditarRoute
   '/pelada/$id/placar': typeof PeladaIdPlacarRoute
@@ -245,6 +253,7 @@ export interface FileRoutesById {
   '/p/$token': typeof PTokenRoute
   '/pelada/$id': typeof PeladaIdRoute
   '/turma/$id': typeof TurmaIdRoute
+  '/pelada/$id_/ao-vivo': typeof PeladaIdAoVivoRoute
   '/pelada/$id_/avaliar': typeof PeladaIdAvaliarRoute
   '/pelada/$id_/editar': typeof PeladaIdEditarRoute
   '/pelada/$id_/placar': typeof PeladaIdPlacarRoute
@@ -275,6 +284,7 @@ export interface FileRouteTypes {
     | '/p/$token'
     | '/pelada/$id'
     | '/turma/$id'
+    | '/pelada/$id/ao-vivo'
     | '/pelada/$id/avaliar'
     | '/pelada/$id/editar'
     | '/pelada/$id/placar'
@@ -303,6 +313,7 @@ export interface FileRouteTypes {
     | '/p/$token'
     | '/pelada/$id'
     | '/turma/$id'
+    | '/pelada/$id/ao-vivo'
     | '/pelada/$id/avaliar'
     | '/pelada/$id/editar'
     | '/pelada/$id/placar'
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/p/$token'
     | '/pelada/$id'
     | '/turma/$id'
+    | '/pelada/$id_/ao-vivo'
     | '/pelada/$id_/avaliar'
     | '/pelada/$id_/editar'
     | '/pelada/$id_/placar'
@@ -360,6 +372,7 @@ export interface RootRouteChildren {
   PTokenRoute: typeof PTokenRoute
   PeladaIdRoute: typeof PeladaIdRoute
   TurmaIdRoute: typeof TurmaIdRoute
+  PeladaIdAoVivoRoute: typeof PeladaIdAoVivoRoute
   PeladaIdAvaliarRoute: typeof PeladaIdAvaliarRoute
   PeladaIdEditarRoute: typeof PeladaIdEditarRoute
   PeladaIdPlacarRoute: typeof PeladaIdPlacarRoute
@@ -510,6 +523,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TurmaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pelada/$id_/ao-vivo': {
+      id: '/pelada/$id_/ao-vivo'
+      path: '/pelada/$id/ao-vivo'
+      fullPath: '/pelada/$id/ao-vivo'
+      preLoaderRoute: typeof PeladaIdAoVivoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pelada/$id_/avaliar': {
       id: '/pelada/$id_/avaliar'
       path: '/pelada/$id/avaliar'
@@ -576,6 +596,7 @@ const rootRouteChildren: RootRouteChildren = {
   PTokenRoute: PTokenRoute,
   PeladaIdRoute: PeladaIdRoute,
   TurmaIdRoute: TurmaIdRoute,
+  PeladaIdAoVivoRoute: PeladaIdAoVivoRoute,
   PeladaIdAvaliarRoute: PeladaIdAvaliarRoute,
   PeladaIdEditarRoute: PeladaIdEditarRoute,
   PeladaIdPlacarRoute: PeladaIdPlacarRoute,

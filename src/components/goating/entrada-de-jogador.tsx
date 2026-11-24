@@ -58,7 +58,12 @@ export function EntradaDeJogador({
     : [];
   const existeIgual = (turma.data ?? []).some((m) => chaveNome(m.nome) === termo);
 
-  const linhaNova = (memberId: string, nome: string, userId: string | null): LinhaElenco => ({
+  const linhaNova = (
+    memberId: string,
+    nome: string,
+    userId: string | null,
+    posicao: string | null,
+  ): LinhaElenco => ({
     memberId,
     time,
     gols: 0,
@@ -73,10 +78,16 @@ export function EntradaDeJogador({
     vermelhos: 0,
     nome,
     userId,
+    posicao,
   });
 
   /** Põe no elenco do dia quem ainda não estava, no time daquele lado. */
-  async function entrar(membro: { id: string; nome: string; user_id: string | null }) {
+  async function entrar(membro: {
+    id: string;
+    nome: string;
+    user_id: string | null;
+    posicao?: string | null;
+  }) {
     const noElenco = elenco.find((j) => j.memberId === membro.id);
     if (noElenco) {
       onEntrou(noElenco);
@@ -94,7 +105,7 @@ export function EntradaDeJogador({
       toast.error("Não deu pra colocar esse jogador. Confere a internet.");
       return;
     }
-    onEntrou(linhaNova(membro.id, membro.nome, membro.user_id));
+    onEntrou(linhaNova(membro.id, membro.nome, membro.user_id, membro.posicao ?? null));
   }
 
   async function cadastrar() {

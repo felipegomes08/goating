@@ -1,21 +1,15 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Regras do encolhimento/ofuscação da versão de loja (minifyEnabled no build.gradle).
+# Capacitor, os plugins, o RevenueCat e o Firebase já trazem as regras deles nas
+# bibliotecas (consumer rules); aqui fica só o que o app precisa além disso.
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ponte entre o site e o Android: métodos chamados pelo JavaScript do WebView
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# a tela principal é aberta pelo nome no AndroidManifest
+-keep class br.com.goating.app.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# falha no Play Console com número de linha (o mapping.txt desfaz os nomes)
+-keepattributes SourceFile,LineNumberTable,*Annotation*,Signature,InnerClasses,EnclosingMethod
+-renamesourcefileattribute SourceFile

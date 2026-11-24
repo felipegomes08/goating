@@ -350,6 +350,8 @@ export type Database = {
       games: {
         Row: {
           duracao_seg: number;
+          goleiro_a: string | null;
+          goleiro_b: string | null;
           gols_a: number;
           gols_b: number;
           penaltis_a: number | null;
@@ -364,6 +366,8 @@ export type Database = {
         };
         Insert: {
           duracao_seg?: number;
+          goleiro_a?: string | null;
+          goleiro_b?: string | null;
           gols_a?: number;
           gols_b?: number;
           penaltis_a?: number | null;
@@ -378,6 +382,8 @@ export type Database = {
         };
         Update: {
           duracao_seg?: number;
+          goleiro_a?: string | null;
+          goleiro_b?: string | null;
           gols_a?: number;
           gols_b?: number;
           penaltis_a?: number | null;
@@ -650,6 +656,9 @@ export type Database = {
           organizador_id: string;
           placar_estado: Json | null;
           placar_finalizado_em: string | null;
+          placar_marcador: string | null;
+          placar_marcador_desde: string | null;
+          placar_atualizado_em: string | null;
           quantidade_vagas: number;
           status: string;
           tempos: number;
@@ -681,6 +690,9 @@ export type Database = {
           organizador_id: string;
           placar_estado?: Json | null;
           placar_finalizado_em?: string | null;
+          placar_marcador?: string | null;
+          placar_marcador_desde?: string | null;
+          placar_atualizado_em?: string | null;
           quantidade_vagas: number;
           status?: string;
           tempos?: number;
@@ -712,6 +724,9 @@ export type Database = {
           organizador_id?: string;
           placar_estado?: Json | null;
           placar_finalizado_em?: string | null;
+          placar_marcador?: string | null;
+          placar_marcador_desde?: string | null;
+          placar_atualizado_em?: string | null;
           quantidade_vagas?: number;
           status?: string;
           tempos?: number;
@@ -1102,6 +1117,24 @@ export type Database = {
           titulo: string;
         }[];
       };
+      crew_goleiros: {
+        Args: { p_ate?: string; p_crew_id: string; p_desde?: string };
+        Returns: {
+          foto_url: string | null;
+          jogos: number;
+          member_id: string;
+          nome: string;
+          peladas: number;
+          peladas_no_periodo: number;
+          sofridos: number;
+          user_id: string | null;
+        }[];
+      };
+      assumir_placar: {
+        Args: { p_match_id: string; p_so_se_livre?: boolean };
+        Returns: string | null;
+      };
+      placar_ao_vivo: { Args: { p_match_id: string }; Returns: Json };
       crew_stats: {
         Args: { p_ate?: string; p_crew_id: string; p_desde?: string };
         Returns: {

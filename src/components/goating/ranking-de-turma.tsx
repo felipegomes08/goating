@@ -4,6 +4,7 @@ import { ChevronRight, Users } from "lucide-react";
 import {
   PERIODOS,
   rotuloDoPeriodo,
+  useGoleirosDaTurma,
   useMinhasTurmas,
   useRankingDaTurma,
   type Periodo,
@@ -12,6 +13,7 @@ import {
   COLUNA_GRATIS,
   NavegadorDoPeriodo,
   PeriodosDoRanking,
+  TabelaGoleiros,
   TabelaRanking,
   type ColunaRanking,
 } from "@/components/goating/tabela-ranking";
@@ -40,6 +42,7 @@ export function RankingDeTurma({
   const [periodoEscolhido, setPeriodo] = useState<Periodo>("mes");
   const [ordemEscolhida, setOrdem] = useState<ColunaRanking>("vitorias");
   const [bloqueio, setBloqueio] = useState<string | null>(null);
+  const [tabelaDe, setTabelaDe] = useState<"jogadores" | "goleiros">("jogadores");
   // sem Premium o ranking fica em vitórias, desde o começo
   const periodo: Periodo = premium ? periodoEscolhido : "tudo";
   const ordem: ColunaRanking = premium ? ordemEscolhida : COLUNA_GRATIS;
@@ -49,7 +52,18 @@ export function RankingDeTurma({
 
   const escolhida =
     (turmas.data ?? []).find((t) => t.crew_id === turmaId) ?? turmas.data?.[0] ?? null;
-  const ranking = useRankingDaTurma(escolhida?.crew_id ?? null, periodo, true, recuoAtivo);
+  const ranking = useRankingDaTurma(
+    escolhida?.crew_id ?? null,
+    periodo,
+    tabelaDe === "jogadores",
+    recuoAtivo,
+  );
+  const goleiros = useGoleirosDaTurma(
+    escolhida?.crew_id ?? null,
+    periodo,
+    tabelaDe === "goleiros",
+    recuoAtivo,
+  );
   const linhas = [...(ranking.data ?? [])].sort(
     (a, b) =>
       b[ordem] - a[ordem] ||
@@ -128,7 +142,30 @@ export function RankingDeTurma({
         />
       )}
 
-      {ranking.isLoading ? (
+      <PeriodosDoRanking
+        opcoes={[
+          { id: "jogadores" as const, rotulo: "Jogadores" },
+          { id: "goleiros" as const, rotulo: "🧤 Goleiros" },
+        ]}
+        valor={tabelaDe}
+        onMudar={setTabelaDe}
+        premium
+        livre="jogadores"
+        onBloqueado={() => undefined}
+      />
+
+      {tabelaDe === "goleiros" ? (
+        goleiros.isLoading ? (
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        ) : (goleiros.data ?? []).length === 0 ? (
+          <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-[var(--shadow-card)]">
+            Nenhum goleiro marcado em {escolhida.nome} nesse período (
+            {rotuloDoPeriodo(periodo, recuoAtivo)}).
+          </p>
+        ) : (
+          <TabelaGoleiros linhas={goleiros.data ?? []} userId={userId} />
+        )
+      ) : ranking.isLoading ? (
         <Skeleton className="h-64 w-full rounded-2xl" />
       ) : linhas.length === 0 ? (
         <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-[var(--shadow-card)]">

@@ -65,6 +65,8 @@ export type Jogo = {
   penaltis?: Disputa | null;
   /** assistências, defesas épicas e cartões */
   lances?: Lance[];
+  /** goleiro de cada lado (memberId); nulo = revezamento / sem goleiro. Conta os gols sofridos. */
+  goleiros?: [string | null, string | null];
 };
 
 export type EstadoPlacar = { v: 1; jogos: Jogo[] };
@@ -120,14 +122,45 @@ export function colocarNoLado(jogo: Jogo, memberId: string, lado: Lado): Jogo {
     jogo.lados[1].filter((m) => m !== memberId),
   ];
   lados[lado] = [...lados[lado], memberId];
-  return { ...jogo, lados };
+  return { ...jogo, lados, goleiros: semGoleiroFora(jogo.goleiros, lados) };
 }
 
 /** Tira o jogador do jogo (marcou por engano). Gols e lances dele ficam. */
-export const tirarDoJogo = (jogo: Jogo, memberId: string): Jogo => ({
-  ...jogo,
-  lados: [jogo.lados[0].filter((m) => m !== memberId), jogo.lados[1].filter((m) => m !== memberId)],
-});
+export function tirarDoJogo(jogo: Jogo, memberId: string): Jogo {
+  const lados: [string[], string[]] = [
+    jogo.lados[0].filter((m) => m !== memberId),
+    jogo.lados[1].filter((m) => m !== memberId),
+  ];
+  return { ...jogo, lados, goleiros: semGoleiroFora(jogo.goleiros, lados) };
+}
+
+/** Goleiro que saiu do lado (mudou de time ou saiu do jogo) deixa de ser o goleiro dele. */
+function semGoleiroFora(
+  goleiros: Jogo["goleiros"],
+  lados: [string[], string[]],
+): [string | null, string | null] {
+  if (!goleiros) return [null, null];
+  return [
+    goleiros[0] && lados[0].includes(goleiros[0]) ? goleiros[0] : null,
+    goleiros[1] && lados[1].includes(goleiros[1]) ? goleiros[1] : null,
+  ];
+}
+
+/** Define o goleiro de um lado (nulo = revezamento). */
+export function comGoleiro(jogo: Jogo, lado: Lado, memberId: string | null): Jogo {
+  const goleiros: [string | null, string | null] = [...(jogo.goleiros ?? [null, null])];
+  goleiros[lado] = memberId;
+  return { ...jogo, goleiros };
+}
+
+/** Goleiro de um lado pela posição: o único jogador "GOL" dele; dois ou nenhum = revezamento. */
+export function goleiroPelaPosicao(
+  lado: string[],
+  posicaoDe: (memberId: string) => string | null | undefined,
+): string | null {
+  const goleiros = lado.filter((m) => posicaoDe(m) === "GOL");
+  return goleiros.length === 1 ? (goleiros[0] ?? null) : null;
+}
 
 /**
  * Depois de mexer nos gols de um jogo encerrado: se o placar passou a ter um vencedor, ele
@@ -353,6 +386,8 @@ export function montarPayload(estado: EstadoPlacar, contagem: Contagem) {
         penaltis_a: penaltis?.[0] ?? null,
         penaltis_b: penaltis?.[1] ?? null,
         penaltis_na_artilharia: jogo.penaltis?.contaNaArtilharia ?? true,
+        goleiro_a: jogo.goleiros?.[0] ?? null,
+        goleiro_b: jogo.goleiros?.[1] ?? null,
         escalacao: ([0, 1] as const).flatMap((lado) =>
           jogo.lados[lado].map((memberId) => ({ member_id: memberId, time: jogo.times[lado] })),
         ),

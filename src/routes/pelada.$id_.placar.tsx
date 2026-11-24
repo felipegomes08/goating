@@ -31,6 +31,8 @@ import {
   vibrar,
 } from "@/lib/placar/alarme";
 import { TabelaTimes } from "@/components/goating/tabela-times";
+import { TelaAoVivo } from "@/components/goating/placar-ao-vivo";
+import { usePlacarAoVivo } from "@/hooks/use-placar-ao-vivo";
 import { EntradaDeJogador } from "@/components/goating/entrada-de-jogador";
 import { carregarElenco, podeGerirPelada, type LinhaElenco } from "@/lib/placar/dados";
 import {
@@ -38,12 +40,14 @@ import {
   TIPOS_DE_LANCE,
   ajustarVencedor,
   colocarNoLado,
+  comGoleiro,
   corDoTime,
   decorridoMs,
   ehEstadoPlacar,
   estadoVazio,
   filaDeEspera,
   formatarRelogio,
+  goleiroPelaPosicao,
   jogoAtual,
   jogoFinal,
   montarPayload,
@@ -130,6 +134,8 @@ function PlacarDaPelada() {
     | { tipo: "lance"; lado: Lado; memberId: string; trocando?: boolean }
     | { tipo: "fim-dos-penaltis" }
     | { tipo: "editar-jogo"; jogoId: string }
+    | { tipo: "goleiro"; lado: Lado }
+    | { tipo: "assumir" }
     | null
   >(null);
   // quem entrou no elenco com o jogo rolando (a consulta do elenco é carregada uma vez só)
@@ -141,6 +147,24 @@ function PlacarDaPelada() {
 
   const dados = consulta.data;
   const souOrganizador = !!dados?.podeGerir;
+
+  // Um marcador por pelada: dois celulares marcando ao mesmo tempo apagavam um ao outro.
+  // null = conferindo; false = outro está marcando (este aparelho só assiste).
+  const [marcando, setMarcando] = useState<boolean | null>(null);
+  const corrigindoPelada = dados?.pelada.status === "finalizada";
+  useEffect(() => {
+    if (!dados?.podeGerir || marcando !== null) return;
+    // corrigir pelada finalizada não disputa com ninguém
+    if (dados.pelada.status === "finalizada") {
+      setMarcando(true);
+      return;
+    }
+    void supabase
+      .rpc("assumir_placar", { p_match_id: id, p_so_se_livre: true })
+      .then(({ data, error }) => setMarcando(error ? true : data === userId));
+  }, [dados, marcando, id, userId]);
+  const assistindo = marcando === false;
+  const aoVivo = usePlacarAoVivo(id, assistindo);
 
   // O aparelho é a fonte da verdade durante o jogo (quadra costuma ter sinal ruim);
   // o banco guarda uma cópia pra recuperar se trocar de aparelho.
@@ -159,7 +183,7 @@ function PlacarDaPelada() {
 
   const sincronizado = useRef<string | null>(null);
   useEffect(() => {
-    if (!estado || !souOrganizador) return;
+    if (!estado || !souOrganizador || marcando !== true) return;
     const texto = JSON.stringify(estado);
     try {
       localStorage.setItem(chaveLocal(id), texto);
@@ -172,16 +196,52 @@ function PlacarDaPelada() {
     }
     if (sincronizado.current === texto) return;
     const espera = setTimeout(() => {
-      void supabase
+      const gravar = supabase
         .from("matches")
         .update({ placar_estado: estado as unknown as Json })
-        .eq("id", id)
-        .then(({ error }) => {
-          if (!error) sincronizado.current = texto;
+        .eq("id", id);
+      // na correção não tem marcador; com a bola rolando só grava quem está marcando
+      void (corrigindoPelada ? gravar : gravar.eq("placar_marcador", userId!))
+        .select("id")
+        .then(({ data, error }) => {
+          if (error) return;
+          if (data.length === 0) {
+            // outro administrador assumiu: este aparelho para de gravar e passa a assistir
+            setMarcando(false);
+            toast("Outra pessoa assumiu o placar", {
+              description: "Daqui pra frente você acompanha ao vivo.",
+            });
+            return;
+          }
+          sincronizado.current = texto;
         });
     }, 2000);
     return () => clearTimeout(espera);
-  }, [estado, id, souOrganizador]);
+  }, [estado, id, souOrganizador, marcando, corrigindoPelada, userId]);
+
+  /** Vira o marcador: o placar daqui passa a ser o do banco (o que o outro marcou até agora). */
+  async function assumirPlacar() {
+    const { data, error } = await supabase.rpc("assumir_placar", { p_match_id: id });
+    if (error || data !== userId) {
+      toast.error("Não deu pra assumir o placar. Confere a internet.");
+      return;
+    }
+    const { data: linha } = await supabase
+      .from("matches")
+      .select("placar_estado")
+      .eq("id", id)
+      .maybeSingle();
+    const doBanco = ehEstadoPlacar(linha?.placar_estado) ? linha.placar_estado : estadoVazio();
+    try {
+      localStorage.removeItem(chaveLocal(id));
+    } catch {
+      // sem acesso ao armazenamento: segue com o do banco
+    }
+    sincronizado.current = JSON.stringify(doBanco);
+    setEstado(doBanco);
+    setMarcando(true);
+    toast.success("Agora quem marca é você.");
+  }
 
   const atual = estado ? jogoAtual(estado) : null;
   const rodando = !!atual?.iniciadoEm;
@@ -219,7 +279,12 @@ function PlacarDaPelada() {
     return () => clearTimeout(espera);
   }, [golRecente]);
 
-  if (carregando || consulta.isLoading || (dados && !estado)) {
+  if (
+    carregando ||
+    consulta.isLoading ||
+    (dados && !estado) ||
+    (souOrganizador && marcando === null)
+  ) {
     return (
       <div className="app-shell space-y-3 p-4">
         <Skeleton className="h-48 w-full rounded-2xl" />
@@ -246,6 +311,63 @@ function PlacarDaPelada() {
     );
   }
 
+  // ───────────── Outro está marcando: só assiste ─────────────
+  if (assistindo) {
+    return (
+      <div className="app-shell flex min-h-dvh flex-col">
+        <header className="flex items-center gap-3 bg-primary px-4 py-3">
+          <button type="button" aria-label="Voltar" onClick={voltar}>
+            <ArrowLeft className="size-5 text-primary-foreground" />
+          </button>
+          <h1 className="min-w-0 flex-1 truncate text-base font-extrabold text-primary-foreground">
+            {dados.pelada.titulo}
+          </h1>
+        </header>
+        <div className="space-y-4 p-4">
+          <section className="space-y-2 rounded-2xl bg-mint-soft p-4">
+            <p className="text-sm font-bold text-primary">
+              {aoVivo.data?.marcador
+                ? `${aoVivo.data.marcador} está marcando o placar`
+                : "Outra pessoa está marcando o placar"}
+            </p>
+            <p className="text-xs text-primary">
+              Pra não apagar o que ele marcou, aqui você só acompanha. Se o celular dele morreu,
+              assuma: o placar continua de onde parou.
+            </p>
+            <Button className="w-full" onClick={() => setFolha({ tipo: "assumir" })}>
+              Assumir o placar
+            </Button>
+          </section>
+          {aoVivo.data ? (
+            <TelaAoVivo dados={aoVivo.data} />
+          ) : (
+            <Skeleton className="h-56 w-full rounded-2xl" />
+          )}
+        </div>
+        {folha?.tipo === "assumir" && (
+          <Folha titulo="Assumir o placar?" onFechar={() => setFolha(null)}>
+            <p className="text-sm text-muted-foreground">
+              Quem está marcando agora deixa de conseguir salvar. Combina com ele antes, pra ninguém
+              marcar gol no celular errado.
+            </p>
+            <Button
+              className="w-full"
+              onClick={() => {
+                setFolha(null);
+                void assumirPlacar();
+              }}
+            >
+              Assumir o placar
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setFolha(null)}>
+              Só acompanhar
+            </Button>
+          </Folha>
+        )}
+      </div>
+    );
+  }
+
   const { pelada } = dados;
   const elenco = elencoLocal ?? dados.elenco;
   const numTimes = pelada.num_times;
@@ -257,6 +379,7 @@ function PlacarDaPelada() {
       ? (elenco.find((j) => j.memberId === memberId)?.nome ?? "Jogador")
       : "Sem autor / contra";
   const encerrados = estado.jogos.filter((j) => j.encerrado);
+  const posicaoDe = (memberId: string) => elenco.find((j) => j.memberId === memberId)?.posicao;
 
   function mudarAtual(fn: (jogo: Jogo) => Jogo) {
     setEstado((e) => {
@@ -298,6 +421,11 @@ function PlacarDaPelada() {
           duracaoMs: 0,
           encerrado: false,
           vencedor: null,
+          // o jogador "GOL" de cada time já entra como goleiro (dá pra trocar no placar)
+          goleiros: [
+            goleiroPelaPosicao(lados[0], posicaoDe),
+            goleiroPelaPosicao(lados[1], posicaoDe),
+          ],
         },
       ],
     }));
@@ -1169,6 +1297,10 @@ function PlacarDaPelada() {
                   >
                     {nomeTime(atual.times[lado])}
                   </p>
+                  <BotaoGoleiro
+                    nome={atual.goleiros?.[lado] ? nomeJogador(atual.goleiros[lado]) : null}
+                    onClick={() => setFolha({ tipo: "goleiro", lado })}
+                  />
                   {atual.lados[lado].map((memberId) => {
                     const gols = atual.gols.filter(
                       (g) => g.lado === lado && g.memberId === memberId,
@@ -1502,8 +1634,83 @@ function PlacarDaPelada() {
         </Folha>
       )}
 
+      {folha?.tipo === "goleiro" && (
+        <Folha
+          titulo={`Goleiro do ${nomeTime(atual.times[folha.lado])}`}
+          onFechar={() => setFolha(null)}
+        >
+          <EscolhaDeGoleiro
+            jogadores={atual.lados[folha.lado]}
+            atual={atual.goleiros?.[folha.lado] ?? null}
+            cor={corTime(atual.times[folha.lado])}
+            nomeJogador={nomeJogador}
+            onEscolher={(memberId) => {
+              const lado = folha.lado;
+              mudarAtual((j) => comGoleiro(j, lado, memberId));
+              setFolha(null);
+            }}
+          />
+        </Folha>
+      )}
+
       {folhaReforco}
     </div>
+  );
+}
+
+/** "🧤 Goleiro: Fulano" embaixo do nome do time; tocar troca o goleiro. */
+function BotaoGoleiro({ nome, onClick }: { nome: string | null; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-1 truncate rounded-lg border border-dashed border-border px-2 py-1 text-left text-[11px] font-semibold text-muted-foreground"
+    >
+      <span aria-hidden>🧤</span>
+      <span className="truncate">{nome ? `Goleiro: ${nome}` : "Goleiro: revezamento"}</span>
+    </button>
+  );
+}
+
+/** Quem ficou no gol (os gols sofridos contam pra ele). Revezamento não conta pra ninguém. */
+function EscolhaDeGoleiro({
+  jogadores,
+  atual,
+  cor,
+  nomeJogador,
+  onEscolher,
+}: {
+  jogadores: string[];
+  atual: string | null;
+  cor: CorDeTime;
+  nomeJogador: (memberId: string | null) => string;
+  onEscolher: (memberId: string | null) => void;
+}) {
+  const botao = (memberId: string | null) => (
+    <button
+      key={memberId ?? "revezamento"}
+      type="button"
+      onClick={() => onEscolher(memberId)}
+      className={cn(
+        "w-full rounded-xl border-2 px-3 py-2.5 text-left text-sm font-semibold",
+        cor.borda,
+        atual === memberId ? cn(cor.solido, cor.sobre) : cn(cor.fundo, "text-foreground"),
+      )}
+    >
+      {memberId ? nomeJogador(memberId) : "Revezamento"}
+    </button>
+  );
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">
+        Os gols que o time levar contam na média de quem ficou no gol. Se revezaram, não conta pra
+        ninguém.
+      </p>
+      <div className="grid grid-cols-2 gap-1.5">
+        {jogadores.map(botao)}
+        {botao(null)}
+      </div>
+    </>
   );
 }
 
@@ -1539,6 +1746,7 @@ function EditorDeJogo({
     | { tipo: "autor"; golId: string }
     | { tipo: "novo-gol"; lado: Lado }
     | { tipo: "lance"; lado: Lado; memberId: string }
+    | { tipo: "goleiro"; lado: Lado }
     | null
   >(null);
   const lances = jogo.lances ?? [];
@@ -1562,6 +1770,27 @@ function EditorDeJogo({
           onEntrou={(linha) => {
             onIncluirNoElenco(linha);
             onMudar((j) => colocarNoLado(j, linha.memberId, modo.lado));
+            setModo(null);
+          }}
+        />
+        <Button variant="outline" className="w-full" onClick={() => setModo(null)}>
+          Voltar
+        </Button>
+      </>
+    );
+  }
+
+  if (modo?.tipo === "goleiro") {
+    const { lado } = modo;
+    return (
+      <>
+        <EscolhaDeGoleiro
+          jogadores={jogo.lados[lado]}
+          atual={jogo.goleiros?.[lado] ?? null}
+          cor={corTime(jogo.times[lado])}
+          nomeJogador={nomeJogador}
+          onEscolher={(memberId) => {
+            onMudar((j) => comGoleiro(j, lado, memberId));
             setModo(null);
           }}
         />
@@ -1697,6 +1926,10 @@ function EditorDeJogo({
               >
                 {nomeTime(jogo.times[lado])}
               </p>
+              <BotaoGoleiro
+                nome={jogo.goleiros?.[lado] ? nomeJogador(jogo.goleiros[lado]) : null}
+                onClick={() => setModo({ tipo: "goleiro", lado })}
+              />
               {jogo.lados[lado].map((memberId) => (
                 <div
                   key={memberId}

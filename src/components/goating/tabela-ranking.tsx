@@ -296,3 +296,112 @@ export function NavegadorDoPeriodo({
     </div>
   );
 }
+
+export type LinhaTabelaGoleiro = {
+  member_id: string;
+  user_id: string | null;
+  nome: string;
+  jogos: number;
+  sofridos: number;
+  /** gols sofridos por jogo */
+  media: number;
+  /** jogou menos que metade das peladas do período: fica no fim, fora da disputa */
+  poucosJogos: boolean;
+};
+
+/**
+ * Tabela dos goleiros: menor média de gols sofridos por jogo em cima. Quem jogou pouco no
+ * período aparece embaixo, marcado, sem posição.
+ */
+export function TabelaGoleiros({
+  linhas,
+  userId,
+}: {
+  linhas: LinhaTabelaGoleiro[];
+  userId: string | null;
+}) {
+  const naDisputa = linhas.filter((l) => !l.poucosJogos).length;
+  return (
+    <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)]">
+      <table className="w-full table-fixed text-sm">
+        <colgroup>
+          <col className="w-8" />
+          <col />
+          <col className="w-10" />
+          <col className="w-10" />
+          <col className="w-14" />
+        </colgroup>
+        <thead>
+          <tr className="border-b border-border text-[11px] text-muted-foreground">
+            <th scope="col" className="py-2 pl-2 text-center font-semibold">
+              #
+            </th>
+            <th scope="col" className="py-2 pl-1 text-left font-semibold">
+              Goleiro
+            </th>
+            <th scope="col" className="py-2 text-center font-bold">
+              J
+            </th>
+            <th scope="col" className="py-2 text-center font-bold">
+              GS
+            </th>
+            <th scope="col" className="bg-mint-soft py-2 text-center font-bold text-primary">
+              Média
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {linhas.map((l, i) => {
+            const eu = !!userId && l.user_id === userId;
+            return (
+              <tr
+                key={l.member_id}
+                className={cn(eu && "bg-mint-soft/60", l.poucosJogos && "opacity-60")}
+              >
+                <td className="py-2.5 pl-2 text-center">
+                  {l.poucosJogos ? (
+                    <span className="block text-xs font-bold text-muted-foreground">–</span>
+                  ) : i === 0 ? (
+                    <Crown className="mx-auto size-4 text-tier-ouro" aria-label="1º" />
+                  ) : (
+                    <span className="block text-xs font-bold text-muted-foreground">{i + 1}</span>
+                  )}
+                </td>
+                <td className="py-2.5 pr-1 pl-1">
+                  {l.user_id ? (
+                    <Link
+                      to="/jogador/$id"
+                      params={{ id: l.user_id }}
+                      className={cn(
+                        "block truncate text-foreground",
+                        eu ? "font-extrabold" : "font-semibold",
+                      )}
+                    >
+                      {l.nome}
+                    </Link>
+                  ) : (
+                    <span className="block truncate font-semibold text-foreground">{l.nome}</span>
+                  )}
+                  {l.poucosJogos && (
+                    <span className="block text-[10px] text-muted-foreground">poucos jogos</span>
+                  )}
+                </td>
+                <td className="py-2.5 text-center text-foreground/80 tabular-nums">{l.jogos}</td>
+                <td className="py-2.5 text-center text-foreground/80 tabular-nums">{l.sofridos}</td>
+                <td className="bg-mint-soft py-2.5 text-center font-extrabold text-primary tabular-nums">
+                  {formatarMedia(l.media)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p className="border-t border-border px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
+        J jogos no gol · GS gols sofridos · Média gols sofridos por jogo (menor é melhor).
+        {naDisputa < linhas.length &&
+          " Quem jogou menos que metade das peladas do período fica fora da disputa."}{" "}
+        Jogo com revezamento no gol não conta pra ninguém.
+      </p>
+    </div>
+  );
+}

@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { CheckCheck, Clock, Crown, Lock, MapPin, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PlacarAoVivoMini } from "@/components/goating/placar-ao-vivo";
+import { usePlacarAoVivo } from "@/hooks/use-placar-ao-vivo";
 import { urlDaFotoDaTurma, urlDaMiniaturaDoEscudo } from "@/lib/foto-turma";
 import { janelaAberta } from "@/lib/janela-avaliacao";
 import { cn } from "@/lib/utils";
@@ -119,7 +121,8 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
                 classe: "bg-mint-soft text-primary",
               }
             : emAndamento
-              ? { texto: "ROLANDO", icone: null, classe: "bg-destructive/10 text-destructive" }
+              ? // o placar ao vivo embaixo já mostra o "AO VIVO"
+                null
               : finalizada
                 ? null
                 : pelada.souOrganizador
@@ -257,6 +260,8 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
         </div>
       </Link>
 
+      {emAndamento && <AoVivoNoCard matchId={pelada.id} className="px-4 pb-4" />}
+
       {/* botão só quando existe algo a fazer além de abrir a pelada */}
       {avaliacaoPendente ? (
         <div className="px-4 pb-4">
@@ -292,5 +297,16 @@ export function MatchCard({ pelada }: { pelada: PeladaFeed }) {
         </div>
       ) : null}
     </article>
+  );
+}
+
+/** Pelada rolando: placar ao vivo no card; tocar abre a tela do ao vivo. */
+export function AoVivoNoCard({ matchId, className }: { matchId: string; className?: string }) {
+  const placar = usePlacarAoVivo(matchId);
+  if (!placar.data) return null;
+  return (
+    <Link to="/pelada/$id/ao-vivo" params={{ id: matchId }} className={cn("block", className)}>
+      <PlacarAoVivoMini dados={placar.data} />
+    </Link>
   );
 }

@@ -142,3 +142,43 @@ export function useRankingDaTurma(
     },
   });
 }
+
+/**
+ * Goleiros da turma no período: jogos no gol, gols sofridos e a média por jogo. Ordem: menor
+ * média primeiro; quem jogou menos que metade das peladas do período (`poucosJogos`) vai pro fim.
+ */
+export function useGoleirosDaTurma(
+  crewId: string | null,
+  periodo: Periodo,
+  ligado = true,
+  voltar = 0,
+) {
+  return useQuery({
+    queryKey: ["turma-goleiros", crewId, periodo, voltar],
+    enabled: !!crewId && ligado,
+    queryFn: async () => {
+      const { desde, ate } = intervaloDoPeriodo(periodo, voltar);
+      const { data, error } = await supabase.rpc("crew_goleiros", {
+        p_crew_id: crewId!,
+        ...(desde ? { p_desde: desde } : {}),
+        ...(ate ? { p_ate: ate } : {}),
+      });
+      if (error) throw error;
+      return data
+        .map((l) => ({
+          ...l,
+          media: l.jogos > 0 ? l.sofridos / l.jogos : 0,
+          poucosJogos: l.peladas * 2 < l.peladas_no_periodo,
+        }))
+        .sort(
+          (a, b) =>
+            Number(a.poucosJogos) - Number(b.poucosJogos) ||
+            a.media - b.media ||
+            b.jogos - a.jogos ||
+            a.nome.localeCompare(b.nome),
+        );
+    },
+  });
+}
+
+export type LinhaGoleiro = NonNullable<ReturnType<typeof useGoleirosDaTurma>["data"]>[number];
