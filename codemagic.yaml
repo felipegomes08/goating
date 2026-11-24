@@ -12,9 +12,15 @@ workflows:
     integrations:
       app_store_connect: Goating ASC
     environment:
+      # Perfil e certificado guardados no Codemagic (Settings > Code signing identities).
+      # O perfil "v2" já tem Associated Domains (links do goating.com.br abrindo no app).
+      # Se mudar alguma capability no App ID: gerar o perfil de novo no site da Apple e
+      # buscar no Codemagic com outro nome (Fetch profiles), trocando o nome aqui.
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: br.com.goating.app
+        provisioning_profiles:
+          - goating_app_store_v2
+        certificates:
+          - goating_distribuicao
       node: 22
       xcode: latest
       # o .env não vai pro git: o build do app precisa destes valores públicos (já ficam no site)
