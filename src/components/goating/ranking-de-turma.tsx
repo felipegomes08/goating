@@ -14,6 +14,7 @@ import {
   NavegadorDoPeriodo,
   PeriodosDoRanking,
   TabelaGoleiros,
+  type ColunaGoleiro,
   TabelaRanking,
   type ColunaRanking,
 } from "@/components/goating/tabela-ranking";
@@ -43,6 +44,7 @@ export function RankingDeTurma({
   const [ordemEscolhida, setOrdem] = useState<ColunaRanking>("vitorias");
   const [bloqueio, setBloqueio] = useState<string | null>(null);
   const [tabelaDe, setTabelaDe] = useState<"jogadores" | "goleiros">("jogadores");
+  const [ordemGoleiros, setOrdemGoleiros] = useState<ColunaGoleiro>("media");
   // sem Premium o ranking fica em vitórias, desde o começo
   const periodo: Periodo = premium ? periodoEscolhido : "tudo";
   const ordem: ColunaRanking = premium ? ordemEscolhida : COLUNA_GRATIS;
@@ -163,7 +165,12 @@ export function RankingDeTurma({
             {rotuloDoPeriodo(periodo, recuoAtivo)}).
           </p>
         ) : (
-          <TabelaGoleiros linhas={goleiros.data ?? []} userId={userId} />
+          <TabelaGoleiros
+            linhas={goleiros.data ?? []}
+            userId={userId}
+            ordem={ordemGoleiros}
+            onOrdenar={setOrdemGoleiros}
+          />
         )
       ) : ranking.isLoading ? (
         <Skeleton className="h-64 w-full rounded-2xl" />

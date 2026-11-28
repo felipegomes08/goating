@@ -30,6 +30,17 @@ type Aba = "cidade" | "seguindo" | "geral" | "turma";
 /** cartinha = tier, depois XP (o padrão); overall = só a nota, pra ver quem joga mais */
 type Ordem = "cartinha" | "overall";
 
+/** Posições do filtro do ranking (a do perfil do jogador). */
+const POSICOES_DO_FILTRO = [
+  ["GOL", "Goleiro"],
+  ["ZAG", "Zagueiro"],
+  ["LAT", "Lateral"],
+  ["VOL", "Volante"],
+  ["MEI", "Meia"],
+  ["ATA", "Atacante"],
+] as const;
+const SIGLAS = POSICOES_DO_FILTRO.map(([s]) => s) as string[];
+
 export const Route = createFileRoute("/ranking")({
   ssr: false,
   validateSearch: (
@@ -39,6 +50,7 @@ export const Route = createFileRoute("/ranking")({
     turma?: string | undefined;
     ver?: "turmas" | undefined;
     ordem?: "overall" | undefined;
+    pos?: string | undefined;
   } => ({
     aba:
       search["aba"] === "seguindo"
@@ -54,6 +66,14 @@ export const Route = createFileRoute("/ranking")({
     ver: search["ver"] === "turmas" ? "turmas" : undefined,
     // ordem do ranking de jogadores: cartinha (padrão) ou overall
     ordem: search["ordem"] === "overall" ? "overall" : undefined,
+    // filtro de posições: "GOL" ou "ZAG,LAT" (só siglas conhecidas)
+    pos:
+      typeof search["pos"] === "string"
+        ? search["pos"]
+            .split(",")
+            .filter((p) => SIGLAS.includes(p))
+            .join(",") || undefined
+        : undefined,
   }),
   head: () => ({
     meta: [
@@ -103,7 +123,15 @@ function ordenarPorOverall(jogadores: JogadorResumo[]) {
 function Ranking() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { aba, turma: turmaDaUrl, ver, ordem: ordemDaUrl } = useSearch({ from: "/ranking" });
+  const {
+    aba,
+    turma: turmaDaUrl,
+    ver,
+    ordem: ordemDaUrl,
+    pos: posDaUrl,
+  } = useSearch({ from: "/ranking" });
+  const posicoes = posDaUrl ? posDaUrl.split(",") : [];
+  const filtrando = posicoes.length > 0;
   const ordem: Ordem = ordemDaUrl ?? "cartinha";
   const porOverall = ordem === "overall";
   const { userId, carregando } = useSession();
@@ -143,7 +171,7 @@ function Ranking() {
   });
 
   const lista = useQuery({
-    queryKey: ["ranking", aba, cidade, userId, busca, ordem],
+    queryKey: ["ranking", aba, cidade, userId, busca, ordem, posDaUrl],
     enabled: !!userId && !naTurma,
     queryFn: async (): Promise<JogadorResumo[]> => {
       if (busca) {
@@ -169,9 +197,9 @@ function Ranking() {
         if (error) throw error;
         // a própria pessoa entra junto, pra ver onde está no meio de quem ela segue
         const ids = [...(vinculos ?? []).map((v) => v.seguido_id), userId!];
-        const { data, error: erroPerfis } = await supabase
-          .from("profiles")
-          .select(CAMPOS)
+        let consulta = supabase.from("profiles").select(CAMPOS);
+        if (filtrando) consulta = consulta.in("posicao_preferida", posicoes);
+        const { data, error: erroPerfis } = await consulta
           .in("id", ids)
           .gte("avaliacoes_recebidas", MIN_AVALIACOES)
           .order(porOverall ? "overall" : "xp", { ascending: false })
@@ -184,6 +212,7 @@ function Ranking() {
 
       let q = supabase.from("profiles").select(CAMPOS).gte("avaliacoes_recebidas", MIN_AVALIACOES);
       if (aba === "cidade" && cidade) q = q.eq("cidade", cidade);
+      if (filtrando) q = q.in("posicao_preferida", posicoes);
       // por overall o banco já devolve os 100 de maior nota (não os 100 de mais XP reordenados)
       const { data, error } = await q
         .order(porOverall ? "overall" : "xp", { ascending: false })
@@ -229,7 +258,7 @@ function Ranking() {
   const disputa = !buscando && (aba === "geral" || aba === "cidade");
   const travado = disputa && !premium;
   // a foto semanal é do ranking por cartinha: subiu/caiu só aparece nele
-  const comVariacao = disputa && premium && !porOverall;
+  const comVariacao = disputa && premium && !porOverall && !filtrando;
   const semana = usePosicoesDaSemana(aba === "cidade" ? "cidade" : "geral", comVariacao);
   const historico = useHistoricoNoRanking(userId, disputa && premium);
   const variacaoDe = (id: string, posicao: number) => {
@@ -354,13 +383,15 @@ function Ranking() {
                 {!buscando && (
                   <OrdemDoRanking
                     ordem={ordem}
-                    onMudar={(o) =>
+                    posicoes={posicoes}
+                    onMudar={(o, novas) =>
                       void navigate({
                         to: "/ranking",
                         search: {
                           aba,
                           ...(ver ? { ver } : {}),
                           ...(o === "overall" ? { ordem: "overall" as const } : {}),
+                          ...(novas.length ? { pos: novas.join(",") } : {}),
                         },
                         replace: true,
                       })
@@ -390,9 +421,11 @@ function Ranking() {
                     <p className="text-sm text-muted-foreground">
                       {buscando
                         ? "Nenhum jogador encontrado com esse nome."
-                        : aba === "seguindo"
-                          ? "Ninguém que você segue tem ranking ainda."
-                          : "Ainda não tem ninguém no ranking por aqui."}
+                        : filtrando
+                          ? `Ninguém no ranking com a posição ${posicoes.join(", ")} por aqui ainda.`
+                          : aba === "seguindo"
+                            ? "Ninguém que você segue tem ranking ainda."
+                            : "Ainda não tem ninguém no ranking por aqui."}
                     </p>
                     {!buscando && aba === "seguindo" && (
                       <p className="text-xs text-muted-foreground">
@@ -462,10 +495,12 @@ function Ranking() {
                         <span className="block text-sm font-bold">
                           Você está em {minhaPosicao}º
                         </span>
-                        {porOverall ? (
-                          // a foto semanal é da ordem por cartinha: aqui não tem subiu/caiu
+                        {porOverall || filtrando ? (
+                          // a foto semanal é do ranking completo por cartinha: aqui não tem subiu/caiu
                           <span className="block truncate text-xs text-mint">
-                            No ranking por overall
+                            {filtrando
+                              ? `Entre ${posicoes.join(", ")}${porOverall ? ", por overall" : ""}`
+                              : "No ranking por overall"}
                           </span>
                         ) : premium ? (
                           <span className="block truncate text-xs text-mint">
@@ -516,7 +551,23 @@ function Ranking() {
  * "Ordenar por: Cartinha | Overall", com a explicação de por que um 90 pode ficar atrás de um
  * 70 (a cartinha também pede XP) e a tabela do que cada tier pede.
  */
-function OrdemDoRanking({ ordem, onMudar }: { ordem: Ordem; onMudar: (ordem: Ordem) => void }) {
+function OrdemDoRanking({
+  ordem,
+  posicoes,
+  onMudar,
+}: {
+  ordem: Ordem;
+  /** posições escolhidas no filtro (vazio = todas) */
+  posicoes: string[];
+  onMudar: (ordem: Ordem, posicoes: string[]) => void;
+}) {
+  const alternar = (sigla: string) =>
+    onMudar(
+      ordem,
+      posicoes.includes(sigla)
+        ? posicoes.filter((p) => p !== sigla)
+        : SIGLAS.filter((s) => s === sigla || posicoes.includes(s)),
+    );
   return (
     <div className="space-y-2 rounded-2xl bg-card p-3 shadow-[var(--shadow-card)]">
       <div className="flex items-center gap-2">
@@ -532,7 +583,7 @@ function OrdemDoRanking({ ordem, onMudar }: { ordem: Ordem; onMudar: (ordem: Ord
               key={valor}
               type="button"
               aria-pressed={ordem === valor}
-              onClick={() => onMudar(valor)}
+              onClick={() => onMudar(valor, posicoes)}
               className={cn(
                 "flex-1 rounded-full py-1 text-xs",
                 ordem === valor
@@ -541,6 +592,43 @@ function OrdemDoRanking({ ordem, onMudar }: { ordem: Ordem; onMudar: (ordem: Ord
               )}
             >
               {rotulo}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* filtro por posição: dá pra escolher mais de uma (ex.: só goleiros, ou zagueiros e laterais) */}
+      <div className="flex items-center gap-2">
+        <span className="shrink-0 text-xs font-semibold text-muted-foreground">Posição</span>
+        <div className="-mr-1 flex flex-1 gap-1 overflow-x-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <button
+            type="button"
+            aria-pressed={posicoes.length === 0}
+            onClick={() => onMudar(ordem, [])}
+            className={cn(
+              "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold",
+              posicoes.length === 0
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground",
+            )}
+          >
+            Todas
+          </button>
+          {POSICOES_DO_FILTRO.map(([sigla, nome]) => (
+            <button
+              key={sigla}
+              type="button"
+              title={nome}
+              aria-label={nome}
+              aria-pressed={posicoes.includes(sigla)}
+              onClick={() => alternar(sigla)}
+              className={cn(
+                "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold",
+                posicoes.includes(sigla)
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground",
+              )}
+            >
+              {sigla}
             </button>
           ))}
         </div>

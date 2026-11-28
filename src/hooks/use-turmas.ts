@@ -156,28 +156,45 @@ export function useGoleirosDaTurma(
   return useQuery({
     queryKey: ["turma-goleiros", crewId, periodo, voltar],
     enabled: !!crewId && ligado,
-    queryFn: async () => {
+    queryFn: () => {
       const { desde, ate } = intervaloDoPeriodo(periodo, voltar);
-      const { data, error } = await supabase.rpc("crew_goleiros", {
-        p_crew_id: crewId!,
-        ...(desde ? { p_desde: desde } : {}),
-        ...(ate ? { p_ate: ate } : {}),
-      });
-      if (error) throw error;
-      return data
-        .map((l) => ({
-          ...l,
-          media: l.jogos > 0 ? l.sofridos / l.jogos : 0,
-          poucosJogos: l.peladas * 2 < l.peladas_no_periodo,
-        }))
-        .sort(
-          (a, b) =>
-            Number(a.poucosJogos) - Number(b.poucosJogos) ||
-            a.media - b.media ||
-            b.jogos - a.jogos ||
-            a.nome.localeCompare(b.nome),
-        );
+      return buscarGoleiros(crewId!, desde, ate);
     },
+  });
+}
+
+/** Goleiros da turma entre duas datas (vazio = sem limite), já com a média e o "poucos jogos". */
+export async function buscarGoleiros(crewId: string, desde: string | null, ate: string | null) {
+  const { data, error } = await supabase.rpc("crew_goleiros", {
+    p_crew_id: crewId,
+    ...(desde ? { p_desde: desde } : {}),
+    ...(ate ? { p_ate: ate } : {}),
+  });
+  if (error) throw error;
+  return data
+    .map((l) => ({
+      ...l,
+      media: l.jogos > 0 ? l.sofridos / l.jogos : 0,
+      poucosJogos: l.peladas * 2 < l.peladas_no_periodo,
+    }))
+    .sort(
+      (a, b) =>
+        Number(a.poucosJogos) - Number(b.poucosJogos) ||
+        a.media - b.media ||
+        b.jogos - a.jogos ||
+        a.nome.localeCompare(b.nome),
+    );
+}
+
+/** Goleiros de uma liga: as peladas da turma entre o início e o fim dela. */
+export function useGoleirosDaLiga(
+  liga: { id: string; crew_id: string; inicio: string; fim: string } | null,
+  ligado = true,
+) {
+  return useQuery({
+    queryKey: ["liga-goleiros", liga?.id],
+    enabled: !!liga && ligado,
+    queryFn: () => buscarGoleiros(liga!.crew_id, liga!.inicio, liga!.fim),
   });
 }
 

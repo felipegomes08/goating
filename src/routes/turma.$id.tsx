@@ -47,7 +47,10 @@ import {
   COLUNAS_RANKING,
   NavegadorDoPeriodo,
   PeriodosDoRanking,
+  COLUNAS_GOLEIRO,
   TabelaGoleiros,
+  ordenarGoleiros,
+  type ColunaGoleiro,
   TabelaRanking,
   formatarMedia,
   type ColunaRanking,
@@ -60,11 +63,12 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { compartilhar } from "@/lib/placar/dados";
-import {
-  compartilharRanking,
-  compartilharTabela as compartilharImagemDaTabela,
-} from "@/lib/placar/poster";
+import { compartilharRanking } from "@/lib/placar/poster";
 import { urlDaFotoDaTurma } from "@/lib/foto-turma";
+import {
+  compartilharImagemDosGoleiros,
+  compartilharTextoDosGoleiros,
+} from "@/lib/placar/goleiros-compartilhar";
 import { origemDoSite } from "@/lib/site";
 
 type Aba = "ranking" | "liga" | "peladas" | "membros" | "notas";
@@ -116,6 +120,7 @@ function PaginaDaTurma() {
   const [ordemEscolhida, setOrdem] = useState<ColunaRanking>("vitorias");
   // a tabela do ranking: jogadores (gols, vitórias...) ou goleiros (gols sofridos)
   const [tabelaDe, setTabelaDe] = useState<"jogadores" | "goleiros">("jogadores");
+  const [ordemGoleiros, setOrdemGoleiros] = useState<ColunaGoleiro>("media");
   const [bloqueio, setBloqueio] = useState<string | null>(null);
   // sem Premium o ranking fica em vitórias, desde o começo
   const periodo: Periodo = premium ? periodoEscolhido : "tudo";
@@ -450,46 +455,28 @@ function PaginaDaTurma() {
   })();
   const colunaOrdenada = COLUNAS_RANKING.find((c) => c.id === ordem);
 
-  const linhasGoleiros = goleiros.data ?? [];
+  const linhasGoleiros = ordenarGoleiros(goleiros.data ?? [], ordemGoleiros);
+  const colunaGoleiro = COLUNAS_GOLEIRO.find((c) => c.id === ordemGoleiros);
 
-  /** Goleiros pro WhatsApp: menor média primeiro, quem jogou pouco no fim. */
   async function compartilharTextoGoleiros() {
-    const medalhas = ["🥇", "🥈", "🥉"];
-    const naDisputa = linhasGoleiros.filter((l) => !l.poucosJogos);
-    const fora = linhasGoleiros.filter((l) => l.poucosJogos);
-    const linhaDe = (l: (typeof linhasGoleiros)[number]) =>
-      `   ${l.jogos} ${l.jogos === 1 ? "jogo" : "jogos"} · ${l.sofridos} ${l.sofridos === 1 ? "gol sofrido" : "gols sofridos"} · média ${formatarMedia(l.media)}`;
-    const texto = [
-      `🧤 *${dados.nome}*`,
-      `Goleiros de ${rotuloPeriodo}, pela menor média de gols sofridos`,
-      "",
-      ...naDisputa.flatMap((l, i) => [`${medalhas[i] ?? `${i + 1}.`} *${l.nome}*`, linhaDe(l)]),
-      ...(fora.length
-        ? ["", "_Poucos jogos no período:_", ...fora.flatMap((l) => [`• ${l.nome}`, linhaDe(l)])]
-        : []),
-    ].join("\n");
-    const resultado = await compartilhar(texto);
+    const resultado = await compartilharTextoDosGoleiros(
+      dados.nome,
+      `Goleiros de ${rotuloPeriodo}, por ${colunaGoleiro?.nome ?? "média"}`,
+      linhasGoleiros,
+    );
     if (resultado === "copiado") toast.success("Goleiros copiados. Cola no grupo!");
   }
 
   async function compartilharTabelaGoleiros() {
     setGerandoImagem(true);
     try {
-      const resultado = await compartilharImagemDaTabela(
-        {
-          etiqueta: "GOLEIROS DA TURMA",
-          titulo: dados.nome,
-          periodo: rotuloPeriodo,
-          colunas: ["J", "GS", "Média"],
-          colunaOrdenada: 2,
-          linhas: linhasGoleiros.map((l) => ({
-            nome: l.poucosJogos ? `${l.nome} (poucos jogos)` : l.nome,
-            valores: [String(l.jogos), String(l.sofridos), formatarMedia(l.media)],
-          })),
-          legenda: "J jogos no gol  ·  GS gols sofridos  ·  Média gols sofridos por jogo",
-        },
-        "goating-goleiros.png",
-      );
+      const resultado = await compartilharImagemDosGoleiros({
+        etiqueta: "GOLEIROS DA TURMA",
+        titulo: dados.nome,
+        periodo: rotuloPeriodo,
+        ordem: ordemGoleiros,
+        linhas: linhasGoleiros,
+      });
       if (resultado === "baixado") toast.success("Tabela baixada. Manda no grupo!");
     } catch {
       toast.error("Não deu pra gerar a tabela.");
@@ -763,7 +750,12 @@ function PaginaDaTurma() {
                   time já entra como goleiro.
                 </Vazio>
               ) : (
-                <TabelaGoleiros linhas={linhasGoleiros} userId={userId} />
+                <TabelaGoleiros
+                  linhas={linhasGoleiros}
+                  userId={userId}
+                  ordem={ordemGoleiros}
+                  onOrdenar={setOrdemGoleiros}
+                />
               )
             ) : ranking.isLoading ? (
               <Skeleton className="h-64 w-full rounded-2xl" />

@@ -19,6 +19,14 @@ import { CompartilharLiga } from "@/components/goating/liga/compartilhar-liga";
 import { PremiadosDaLiga } from "@/components/goating/liga/premiados";
 import { FolhaLiga } from "@/components/goating/liga/folha-liga";
 import { periodoDaLiga, situacaoDaLiga } from "@/lib/ligas";
+import { useGoleirosDaLiga } from "@/hooks/use-turmas";
+import {
+  PeriodosDoRanking,
+  TabelaGoleiros,
+  ordenarGoleiros,
+  type ColunaGoleiro,
+} from "@/components/goating/tabela-ranking";
+import { CompartilharGoleiros } from "@/components/goating/liga/compartilhar-goleiros";
 
 export const Route = createFileRoute("/liga/$id")({
   ssr: false,
@@ -39,6 +47,10 @@ function PaginaDaLiga() {
   const premios = usePremiosDaLiga(id, encerrada);
   const [editando, setEditando] = useState(false);
   const [ordem, setOrdem] = useState<ColunaDaLiga>("pontos");
+  // a tabela da liga: jogadores (pontos) ou goleiros (gols sofridos) no período dela
+  const [tabelaDe, setTabelaDe] = useState<"jogadores" | "goleiros">("jogadores");
+  const [ordemGoleiros, setOrdemGoleiros] = useState<ColunaGoleiro>("media");
+  const goleiros = useGoleirosDaLiga(liga.data ?? null, tabelaDe === "goleiros");
   const [confirmando, setConfirmando] = useState<"encerrar" | "apagar" | null>(null);
   const [ocupado, setOcupado] = useState(false);
 
@@ -115,6 +127,7 @@ function PaginaDaLiga() {
   }
 
   const situacao = situacaoDaLiga(liga.data);
+  const linhasGoleiros = ordenarGoleiros(goleiros.data ?? [], ordemGoleiros);
   const gestor = !!turma.data?.souGestor;
 
   return (
@@ -148,22 +161,61 @@ function PaginaDaLiga() {
               <h3 className="px-1 text-xs font-bold tracking-wide text-muted-foreground uppercase">
                 {encerrada ? "Tabela final" : "Tabela"}
               </h3>
-              <TabelaDaLiga
-                linhas={tabela.data ?? []}
-                userId={userId}
-                ordem={ordem}
-                onOrdenar={setOrdem}
+              <PeriodosDoRanking
+                opcoes={[
+                  { id: "jogadores" as const, rotulo: "Jogadores" },
+                  { id: "goleiros" as const, rotulo: "🧤 Goleiros" },
+                ]}
+                valor={tabelaDe}
+                onMudar={setTabelaDe}
+                premium
+                livre="jogadores"
+                onBloqueado={() => undefined}
               />
-              {(tabela.data ?? []).length > 0 && (
-                <CompartilharLiga
-                  liga={liga.data.nome}
-                  turma={turma.data?.nome ?? "Turma"}
-                  periodo={periodoDaLiga(liga.data)}
-                  linhas={tabela.data ?? []}
-                  ordem={ordem}
-                />
+              {tabelaDe === "goleiros" ? (
+                goleiros.isLoading ? (
+                  <Skeleton className="h-48 w-full rounded-2xl" />
+                ) : linhasGoleiros.length === 0 ? (
+                  <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground shadow-[var(--shadow-card)]">
+                    Nenhum goleiro marcado nas peladas da liga ainda.
+                  </p>
+                ) : (
+                  <>
+                    <TabelaGoleiros
+                      linhas={linhasGoleiros}
+                      userId={userId}
+                      ordem={ordemGoleiros}
+                      onOrdenar={setOrdemGoleiros}
+                    />
+                    <CompartilharGoleiros
+                      liga={liga.data.nome}
+                      turma={turma.data?.nome ?? "Turma"}
+                      periodo={periodoDaLiga(liga.data)}
+                      linhas={linhasGoleiros}
+                      ordem={ordemGoleiros}
+                    />
+                  </>
+                )
+              ) : (
+                <>
+                  <TabelaDaLiga
+                    linhas={tabela.data ?? []}
+                    userId={userId}
+                    ordem={ordem}
+                    onOrdenar={setOrdem}
+                  />
+                  {(tabela.data ?? []).length > 0 && (
+                    <CompartilharLiga
+                      liga={liga.data.nome}
+                      turma={turma.data?.nome ?? "Turma"}
+                      periodo={periodoDaLiga(liga.data)}
+                      linhas={tabela.data ?? []}
+                      ordem={ordem}
+                    />
+                  )}
+                  {!encerrada && <LideresDaLiga linhas={tabela.data ?? []} />}
+                </>
               )}
-              {!encerrada && <LideresDaLiga linhas={tabela.data ?? []} />}
             </>
           ))}
 

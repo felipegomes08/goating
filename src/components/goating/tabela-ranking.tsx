@@ -302,24 +302,66 @@ export type LinhaTabelaGoleiro = {
   user_id: string | null;
   nome: string;
   jogos: number;
+  vitorias: number;
   sofridos: number;
+  defesas: number;
+  /** jogos sem sofrer gol */
+  sem_sofrer: number;
   /** gols sofridos por jogo */
   media: number;
   /** jogou menos que metade das peladas do período: fica no fim, fora da disputa */
   poucosJogos: boolean;
 };
 
+export type ColunaGoleiro = "jogos" | "vitorias" | "sofridos" | "media" | "defesas" | "sem_sofrer";
+
+export const COLUNAS_GOLEIRO: { id: ColunaGoleiro; sigla: string; nome: string }[] = [
+  { id: "jogos", sigla: "J", nome: "jogos no gol" },
+  { id: "vitorias", sigla: "V", nome: "vitórias" },
+  { id: "sofridos", sigla: "GS", nome: "gols sofridos" },
+  { id: "media", sigla: "Média", nome: "gols sofridos por jogo" },
+  { id: "defesas", sigla: "D", nome: "defesas épicas" },
+  { id: "sem_sofrer", sigla: "SG", nome: "jogos sem sofrer gol" },
+];
+
+/** Nessas, menos é melhor: a ordem é do menor pro maior. */
+const MENOS_E_MELHOR: ColunaGoleiro[] = ["media", "sofridos"];
+
 /**
- * Tabela dos goleiros: menor média de gols sofridos por jogo em cima. Quem jogou pouco no
- * período aparece embaixo, marcado, sem posição.
+ * Ordem dos goleiros pela coluna escolhida. Quem jogou pouco no período fica sempre no fim.
+ * Padrão (média): menor média em cima, que é o critério do troféu.
+ */
+export function ordenarGoleiros<T extends LinhaTabelaGoleiro>(linhas: T[], coluna: ColunaGoleiro) {
+  const sinal = MENOS_E_MELHOR.includes(coluna) ? 1 : -1;
+  return [...linhas].sort(
+    (a, b) =>
+      Number(a.poucosJogos) - Number(b.poucosJogos) ||
+      sinal * (a[coluna] - b[coluna]) ||
+      a.media - b.media ||
+      b.jogos - a.jogos ||
+      a.nome.localeCompare(b.nome),
+  );
+}
+
+const valorDoGoleiro = (l: LinhaTabelaGoleiro, c: ColunaGoleiro) =>
+  c === "media" ? formatarMedia(l.media) : String(l[c]);
+
+/**
+ * Tabela dos goleiros: por padrão a menor média de gols sofridos por jogo em cima; toque numa
+ * coluna pra ordenar por ela. Quem jogou pouco no período aparece embaixo, sem posição.
  */
 export function TabelaGoleiros({
   linhas,
   userId,
+  ordem,
+  onOrdenar,
 }: {
   linhas: LinhaTabelaGoleiro[];
   userId: string | null;
+  ordem: ColunaGoleiro;
+  onOrdenar: (coluna: ColunaGoleiro) => void;
 }) {
+  const ordenadas = ordenarGoleiros(linhas, ordem);
   const naDisputa = linhas.filter((l) => !l.poucosJogos).length;
   return (
     <div className="overflow-hidden rounded-2xl bg-card shadow-[var(--shadow-card)]">
@@ -327,9 +369,9 @@ export function TabelaGoleiros({
         <colgroup>
           <col className="w-8" />
           <col />
-          <col className="w-10" />
-          <col className="w-10" />
-          <col className="w-14" />
+          {COLUNAS_GOLEIRO.map((c) => (
+            <col key={c.id} className={c.id === "media" ? "w-12" : "w-8"} />
+          ))}
         </colgroup>
         <thead>
           <tr className="border-b border-border text-[11px] text-muted-foreground">
@@ -339,19 +381,36 @@ export function TabelaGoleiros({
             <th scope="col" className="py-2 pl-1 text-left font-semibold">
               Goleiro
             </th>
-            <th scope="col" className="py-2 text-center font-bold">
-              J
-            </th>
-            <th scope="col" className="py-2 text-center font-bold">
-              GS
-            </th>
-            <th scope="col" className="bg-mint-soft py-2 text-center font-bold text-primary">
-              Média
-            </th>
+            {COLUNAS_GOLEIRO.map((c) => {
+              const ativa = ordem === c.id;
+              return (
+                <th
+                  key={c.id}
+                  scope="col"
+                  aria-sort={
+                    ativa ? (MENOS_E_MELHOR.includes(c.id) ? "ascending" : "descending") : "none"
+                  }
+                  className={cn("p-0", ativa && "bg-mint-soft")}
+                >
+                  <button
+                    type="button"
+                    aria-label={`Ordenar por ${c.nome}`}
+                    onClick={() => onOrdenar(c.id)}
+                    className={cn(
+                      "flex w-full flex-col items-center py-1.5 font-bold",
+                      ativa ? "text-primary" : "text-muted-foreground",
+                    )}
+                  >
+                    {c.sigla}
+                    <ChevronDown className={cn("size-3", ativa ? "opacity-100" : "opacity-0")} />
+                  </button>
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {linhas.map((l, i) => {
+          {ordenadas.map((l, i) => {
             const eu = !!userId && l.user_id === userId;
             return (
               <tr
@@ -386,21 +445,29 @@ export function TabelaGoleiros({
                     <span className="block text-[10px] text-muted-foreground">poucos jogos</span>
                   )}
                 </td>
-                <td className="py-2.5 text-center text-foreground/80 tabular-nums">{l.jogos}</td>
-                <td className="py-2.5 text-center text-foreground/80 tabular-nums">{l.sofridos}</td>
-                <td className="bg-mint-soft py-2.5 text-center font-extrabold text-primary tabular-nums">
-                  {formatarMedia(l.media)}
-                </td>
+                {COLUNAS_GOLEIRO.map((c) => (
+                  <td
+                    key={c.id}
+                    className={cn(
+                      "py-2.5 text-center tabular-nums",
+                      ordem === c.id
+                        ? "bg-mint-soft font-extrabold text-primary"
+                        : "text-foreground/80",
+                    )}
+                  >
+                    {valorDoGoleiro(l, c.id)}
+                  </td>
+                ))}
               </tr>
             );
           })}
         </tbody>
       </table>
       <p className="border-t border-border px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-        J jogos no gol · GS gols sofridos · Média gols sofridos por jogo (menor é melhor).
+        {COLUNAS_GOLEIRO.map((c) => `${c.sigla} ${c.nome}`).join(" · ")}. Média: menor é melhor.
         {naDisputa < linhas.length &&
           " Quem jogou menos que metade das peladas do período fica fora da disputa."}{" "}
-        Jogo com revezamento no gol não conta pra ninguém.
+        Jogo com revezamento no gol não conta pra ninguém. Toque numa coluna pra ordenar.
       </p>
     </div>
   );

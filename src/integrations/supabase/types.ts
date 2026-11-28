@@ -1127,6 +1127,9 @@ export type Database = {
           peladas: number;
           peladas_no_periodo: number;
           sofridos: number;
+          vitorias: number;
+          defesas: number;
+          sem_sofrer: number;
           user_id: string | null;
         }[];
       };
