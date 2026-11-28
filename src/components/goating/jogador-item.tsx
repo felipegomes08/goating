@@ -36,6 +36,8 @@ type Props = {
   ocupado?: boolean;
   /** posições que subiu (positivo) ou caiu (negativo) desde a última foto do ranking */
   variacao?: number | null | undefined;
+  /** mostra o XP nos detalhes (ranking por cartinha, onde ele desempata) */
+  comXp?: boolean;
 };
 
 const COR_DO_PODIO = ["text-tier-ouro", "text-tier-prata", "text-tier-bronze"];
@@ -48,6 +50,7 @@ export function JogadorItem({
   onAlternarSeguir,
   ocupado,
   variacao,
+  comXp = false,
 }: Props) {
   const foto = useAvatarUrl(jogador.foto_url);
   const liberado = overallLiberado(jogador.avaliacoes_recebidas);
@@ -59,6 +62,8 @@ export function JogadorItem({
   // o que dá pra saber do jogador num relance: quanto joga, quantas vezes foi o melhor
   // (onde joga vai no selo ao lado do nome)
   const detalhes = [
+    // no ranking por cartinha o XP é o desempate: fica à vista
+    comXp ? `${jogador.xp.toLocaleString("pt-BR")} XP` : null,
     `${jogador.peladas_jogadas} ${jogador.peladas_jogadas === 1 ? "pelada" : "peladas"}`,
     jogador.vezes_mvp ? `${jogador.vezes_mvp} MVP` : null,
   ].filter(Boolean);

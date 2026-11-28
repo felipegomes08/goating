@@ -23,15 +23,23 @@ import { useHistoricoNoRanking, usePosicoesDaSemana } from "@/hooks/use-ranking-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MIN_AVALIACOES, avaliacoesFaltando, tierPorNome } from "@/lib/tiers";
+import { MIN_AVALIACOES, TIERS, avaliacoesFaltando, tierPorNome } from "@/lib/tiers";
+import { cn } from "@/lib/utils";
 
 type Aba = "cidade" | "seguindo" | "geral" | "turma";
+/** cartinha = tier, depois XP (o padrão); overall = só a nota, pra ver quem joga mais */
+type Ordem = "cartinha" | "overall";
 
 export const Route = createFileRoute("/ranking")({
   ssr: false,
   validateSearch: (
     search: Record<string, unknown>,
-  ): { aba: Aba; turma?: string | undefined; ver?: "turmas" | undefined } => ({
+  ): {
+    aba: Aba;
+    turma?: string | undefined;
+    ver?: "turmas" | undefined;
+    ordem?: "overall" | undefined;
+  } => ({
     aba:
       search["aba"] === "seguindo"
         ? "seguindo"
@@ -44,6 +52,8 @@ export const Route = createFileRoute("/ranking")({
     turma: typeof search["turma"] === "string" ? search["turma"] : undefined,
     // na aba Cidade: ranking de jogadores (padrão) ou de turmas
     ver: search["ver"] === "turmas" ? "turmas" : undefined,
+    // ordem do ranking de jogadores: cartinha (padrão) ou overall
+    ordem: search["ordem"] === "overall" ? "overall" : undefined,
   }),
   head: () => ({
     meta: [
@@ -80,10 +90,22 @@ function ordenarRanking(jogadores: JogadorResumo[]) {
   );
 }
 
+/** Ranking pelo overall: a nota primeiro; empate, quem foi mais avaliado (nota mais firme). */
+function ordenarPorOverall(jogadores: JogadorResumo[]) {
+  return [...jogadores].sort(
+    (a, b) =>
+      Number(b.overall) - Number(a.overall) ||
+      b.avaliacoes_recebidas - a.avaliacoes_recebidas ||
+      b.xp - a.xp,
+  );
+}
+
 function Ranking() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { aba, turma: turmaDaUrl, ver } = useSearch({ from: "/ranking" });
+  const { aba, turma: turmaDaUrl, ver, ordem: ordemDaUrl } = useSearch({ from: "/ranking" });
+  const ordem: Ordem = ordemDaUrl ?? "cartinha";
+  const porOverall = ordem === "overall";
   const { userId, carregando } = useSession();
   const { data: perfil } = usePerfil(userId);
   const [termo, setTermo] = useState("");
@@ -121,7 +143,7 @@ function Ranking() {
   });
 
   const lista = useQuery({
-    queryKey: ["ranking", aba, cidade, userId, busca],
+    queryKey: ["ranking", aba, cidade, userId, busca, ordem],
     enabled: !!userId && !naTurma,
     queryFn: async (): Promise<JogadorResumo[]> => {
       if (busca) {
@@ -152,21 +174,24 @@ function Ranking() {
           .select(CAMPOS)
           .in("id", ids)
           .gte("avaliacoes_recebidas", MIN_AVALIACOES)
-          .order("xp", { ascending: false })
-          .order("overall", { ascending: false })
+          .order(porOverall ? "overall" : "xp", { ascending: false })
+          .order(porOverall ? "avaliacoes_recebidas" : "overall", { ascending: false })
           .limit(100);
         if (erroPerfis) throw erroPerfis;
-        return ordenarRanking((data ?? []) as JogadorResumo[]);
+        const seguidos = (data ?? []) as JogadorResumo[];
+        return porOverall ? ordenarPorOverall(seguidos) : ordenarRanking(seguidos);
       }
 
       let q = supabase.from("profiles").select(CAMPOS).gte("avaliacoes_recebidas", MIN_AVALIACOES);
       if (aba === "cidade" && cidade) q = q.eq("cidade", cidade);
+      // por overall o banco já devolve os 100 de maior nota (não os 100 de mais XP reordenados)
       const { data, error } = await q
-        .order("xp", { ascending: false })
-        .order("overall", { ascending: false })
+        .order(porOverall ? "overall" : "xp", { ascending: false })
+        .order(porOverall ? "avaliacoes_recebidas" : "overall", { ascending: false })
         .limit(100);
       if (error) throw error;
-      return ordenarRanking((data ?? []) as JogadorResumo[]);
+      const todos = (data ?? []) as JogadorResumo[];
+      return porOverall ? ordenarPorOverall(todos) : ordenarRanking(todos);
     },
   });
 
@@ -203,10 +228,12 @@ function Ranking() {
   // Geral e Cidade, sem Premium: pódio, a sua linha e o resto borrado.
   const disputa = !buscando && (aba === "geral" || aba === "cidade");
   const travado = disputa && !premium;
-  const semana = usePosicoesDaSemana(aba === "cidade" ? "cidade" : "geral", disputa && premium);
+  // a foto semanal é do ranking por cartinha: subiu/caiu só aparece nele
+  const comVariacao = disputa && premium && !porOverall;
+  const semana = usePosicoesDaSemana(aba === "cidade" ? "cidade" : "geral", comVariacao);
   const historico = useHistoricoNoRanking(userId, disputa && premium);
   const variacaoDe = (id: string, posicao: number) => {
-    if (!disputa || !premium) return undefined;
+    if (!comVariacao) return undefined;
     const antes = semana.data?.get(id);
     return antes ? antes - posicao : null;
   };
@@ -229,6 +256,7 @@ function Ranking() {
         variacao={posicao ? variacaoDe(j.id, posicao) : undefined}
         seguindo={buscando ? (meusSeguidos.data?.has(j.id) ?? false) : undefined}
         ocupado={ocupados.has(j.id)}
+        comXp={!porOverall}
         onAlternarSeguir={
           buscando ? () => alternarSeguir(j.id, meusSeguidos.data?.has(j.id) ?? false) : undefined
         }
@@ -323,6 +351,22 @@ function Ranking() {
             {vendoTurmas && cidade && <RankingDeTurmasDaCidade cidade={cidade} />}
             {!vendoTurmas && (
               <>
+                {!buscando && (
+                  <OrdemDoRanking
+                    ordem={ordem}
+                    onMudar={(o) =>
+                      void navigate({
+                        to: "/ranking",
+                        search: {
+                          aba,
+                          ...(ver ? { ver } : {}),
+                          ...(o === "overall" ? { ordem: "overall" as const } : {}),
+                        },
+                        replace: true,
+                      })
+                    }
+                  />
+                )}
                 {!buscando && !liberado && (
                   <p className="rounded-2xl bg-mint-soft p-3 text-xs font-medium text-primary">
                     Faltam {avaliacoesFaltando(perfil?.avaliacoes_recebidas ?? 0)} avaliações
@@ -418,7 +462,12 @@ function Ranking() {
                         <span className="block text-sm font-bold">
                           Você está em {minhaPosicao}º
                         </span>
-                        {premium ? (
+                        {porOverall ? (
+                          // a foto semanal é da ordem por cartinha: aqui não tem subiu/caiu
+                          <span className="block truncate text-xs text-mint">
+                            No ranking por overall
+                          </span>
+                        ) : premium ? (
                           <span className="block truncate text-xs text-mint">
                             {(() => {
                               const v = variacaoDe(userId!, minhaPosicao);
@@ -459,6 +508,81 @@ function Ranking() {
       {convite && <FolhaPremium recurso={convite} onFechar={() => setConvite(null)} />}
       <PuxarParaAtualizar />
       <BottomNav />
+    </div>
+  );
+}
+
+/**
+ * "Ordenar por: Cartinha | Overall", com a explicação de por que um 90 pode ficar atrás de um
+ * 70 (a cartinha também pede XP) e a tabela do que cada tier pede.
+ */
+function OrdemDoRanking({ ordem, onMudar }: { ordem: Ordem; onMudar: (ordem: Ordem) => void }) {
+  return (
+    <div className="space-y-2 rounded-2xl bg-card p-3 shadow-[var(--shadow-card)]">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold text-muted-foreground">Ordenar por</span>
+        <div className="flex flex-1 gap-1 rounded-full bg-secondary p-0.5">
+          {(
+            [
+              ["cartinha", "Cartinha"],
+              ["overall", "Overall"],
+            ] as const
+          ).map(([valor, rotulo]) => (
+            <button
+              key={valor}
+              type="button"
+              aria-pressed={ordem === valor}
+              onClick={() => onMudar(valor)}
+              className={cn(
+                "flex-1 rounded-full py-1 text-xs",
+                ordem === valor
+                  ? "bg-card font-bold text-foreground shadow-sm"
+                  : "font-semibold text-muted-foreground",
+              )}
+            >
+              {rotulo}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        {ordem === "cartinha"
+          ? "A cartinha sobe com overall e XP juntos: jogando e sendo avaliado. Por isso um 90 com pouco XP pode ficar atrás de um 70 que já subiu de cartinha. Mesma cartinha: mais XP na frente."
+          : "Só a nota (overall), da maior pra menor. Empate: quem foi mais avaliado na frente."}
+      </p>
+      {ordem === "cartinha" && (
+        <details>
+          <summary className="cursor-pointer list-none text-[11px] font-bold text-primary [&::-webkit-details-marker]:hidden">
+            Como a cartinha sobe?
+          </summary>
+          <table className="mt-2 w-full text-[11px]">
+            <thead>
+              <tr className="text-muted-foreground">
+                <th className="py-1 text-left font-semibold">Cartinha</th>
+                <th className="py-1 text-center font-semibold">Overall</th>
+                <th className="py-1 text-right font-semibold">XP</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {TIERS.map((t) => (
+                <tr key={t.nome}>
+                  <td className="py-1 font-bold text-foreground">{t.nome}</td>
+                  <td className="py-1 text-center tabular-nums">
+                    {t.overallMinimo > 0 ? `${t.overallMinimo}+` : "–"}
+                  </td>
+                  <td className="py-1 text-right tabular-nums">
+                    {t.xpMinimo > 0 ? `${t.xpMinimo.toLocaleString("pt-BR")}+` : "–"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            XP vem de cada pelada jogada, das notas recebidas e de ser MVP. Precisa dos dois:
+            overall e XP.
+          </p>
+        </details>
+      )}
     </div>
   );
 }
